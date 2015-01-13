@@ -147,7 +147,7 @@ class InfoHolder(object):
 				#~ 'MuEG': ["MuEG_1203a_Run2012A", "MuEG_1203a_Run2012B"],
 
 	
-				'TTJets': ["TT_Powheg_Summer12_v2"],
+				'TTJets': ["TTJets_madgraph_Summer12"],
 				'TTJetsSC': ["TTJets_MGDecays_madgraph_Summer12"],
 				'SingleTop': ["TBar_sChannel_Powheg_Summer12","TBar_tChannel_Powheg_Summer12","TBar_tWChannel_Powheg_Summer12","TBar_sChannel_Powheg_Summer12","TBar_tChannel_Powheg_Summer12","TBar_tWChannel_Powheg_Summer12"],
 				'ZJets' : ["ZJets_madgraph_Summer12", "AStar_madgraph_Summer12"],
@@ -666,9 +666,9 @@ class DataInterface(object):
 
 
 	def getEventCount(self, job, flag, task, dataSamples=None):
-		filePath = "%s/%s.%s.%s.root" % (self.theConfigDict['HistosPath'], flag, "processed", job)
+		filePath = "%s/%s.%s.%s.root" % (self.dataSetPath, flag, "processed", job)
 
-		histoPath = "%sCounters/analysis paths;1" % ("cutsV22Dilepton")
+		histoPath = "%sCounters/analysis paths;1" % (task.split("FinalTrees")[0])
 		value = -1.0
 
 		#if (dataSamples == None):
@@ -721,7 +721,7 @@ class DataInterface(object):
 
 		# 2. from external file
 		taskExternal = "%sNoCuts" % task
-		filePathExternal = "%s/%s/%s/%s.%s.%s.root" % (self.theConfigDict['HistosPath'], flag, taskExternal, flag, taskExternal, job)
+		filePathExternal = "%s/%s/%s/%s.%s.%s.root" % (self.dataSetPath, flag, taskExternal, flag, taskExternal, job)
 		histoPathExternal = "%sWeightSummer/Weights;1" % (taskExternal)
 		weightValueExternal = -1.0
 
@@ -815,7 +815,7 @@ class DataInterface(object):
 	def getTreeFromJob(self, flag, task, job, treePath, dataVersion=None, cut=""):
 		tree = ROOT.TChain("%s%s" % (task, treePath))
 		#~ fileName = "%s/%s/%s/%s.%s.%s.root" % (self.theConfigDict['HistosPath'], flag, task, flag, task, job)
-		fileName = "%s/%s.%s.%s.root" % (self.theConfigDict['HistosPath'], flag, "processed", job)
+		fileName = "%s/%s.%s.%s.root" % (self.dataSetPath, flag, "processed", job)
 		if (os.path.exists(fileName)):
 			tree.Add(fileName)
 		else:

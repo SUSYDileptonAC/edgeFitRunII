@@ -15,13 +15,21 @@ class edgeConfig:
 		plotErrorBands = False	
 		year = 2012	
 		
-		edgePosition = 70
-		fixeEdge = False
+		edgePosition = 78
+		fixEdge = False
+		
+		title = "None"
+		histoytitle = "None"
 		
 		useMC = False
-		mcDatasets = ["TTJets", "ZJets"]
+		mcdatasets = ["TTJets", "ZJets"]
 		addDataset = None
 		isSignal = False
+		runMinos = True
+		isPreliminary = True
+		year = 2012
+		showText = True
+		plotYMax = 200
 		### toy-related configuration
 		toyConfig = {"nToys":0,"nSig":100,"m0":125,"scale":1,"systShift":"None"}
 
@@ -30,9 +38,11 @@ class edgeConfig:
 		
 		maxInv = 300
 		minInv = 20
+		plotMaxInv = 300
+		plotMinInv = 20
 		nBinsMinv = 56
 		
-		def __init__(self,region="SignalInclusive",backgroundShape="ETH",signalShape="T",runName = "Full2012"):
+		def __init__(self,region="SignalInclusive",backgroundShape="ETH",signalShape="T",runName = "Full2012",dataSet="Combined"):
 			sys.path.append(pathes.basePath)
 			
 			self.dataSetPath = pathes.dataSetPath
@@ -59,3 +69,5 @@ class edgeConfig:
 			self.signalShape = signalShape
 			
 			
+			self.title = self.selection.name+"_"+dataSet+"_"+self.runRange.label+"_"+self.backgroundShape+self.signalShape
+			self.histoytitle = 'Events / %.1f GeV' % ((self.maxInv - self.minInv) / self.nBinsMinv)	
