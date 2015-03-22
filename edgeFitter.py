@@ -4,6 +4,7 @@ from frameworkStructure import pathes
 sys.path.append(pathes.basePath)
 
 import ROOT
+ROOT.PyConfig.IgnoreCommandLineOptions = True
 ROOT.gROOT.SetBatch(True)
 from ROOT import gROOT, gStyle
 from setTDRStyle import setTDRStyle
