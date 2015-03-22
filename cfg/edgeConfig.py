@@ -1,5 +1,9 @@
 import sys
+sys.path.append('cfg/')
 from frameworkStructure import pathes
+sys.path.append(pathes.basePath)
+
+from locations import locations
 
 
 class edgeConfig:
@@ -21,11 +25,11 @@ class edgeConfig:
 		title = "None"
 		histoytitle = "None"
 		
-		useMC = False
+		useMC = True
 		mcdatasets = ["TTJets", "ZJets"]
 		addDataset = None
 		isSignal = False
-		runMinos = True
+		runMinos = False
 		isPreliminary = True
 		year = 2012
 		showText = True
@@ -42,10 +46,12 @@ class edgeConfig:
 		plotMinInv = 20
 		nBinsMinv = 56
 		
-		def __init__(self,region="SignalInclusive",backgroundShape="ETH",signalShape="T",runName = "Full2012",dataSet="Combined"):
+		def __init__(self,region="SignalInclusive",backgroundShape="ETH",signalShape="T",runName = "Full2012",dataSet="Combined",useMC=False):
 			sys.path.append(pathes.basePath)
 			
-			self.dataSetPath = pathes.dataSetPath
+			self.dataSetPath = locations.dataSetPath
+			
+			self.useMC = useMC
 			
 			from defs import runRanges
 			if not runName in dir(runRanges):
@@ -61,7 +67,8 @@ class edgeConfig:
 			else:	
 				self.selection = getattr(Regions,region)
 		
-			from corrections import zPredictions, rSFOF	
+			from centralConfig import zPredictions
+			from corrections import  rSFOF	
 			self.rSFOF = rSFOF
 			self.zPredictions = zPredictions
 			

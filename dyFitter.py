@@ -13,6 +13,9 @@ from messageLogger import messageLogger as log
 import dataInterface
 import tools
 import math
+import argparse	
+
+from corrections import rSFOF, rEEOF, rMMOF
 
 parametersToSave  = {}
 rootContainer = []
@@ -115,15 +118,53 @@ def formatAndDrawFrame(ws,theConfig,frame, title, pdf, yMax=0.0):
 
 
 def main():
-	from sys import argv
 	
-	region = "DrellYanControl"
-	run = argv[2]
+	
+	parser = argparse.ArgumentParser(description='edge fitter reloaded.')
+	
+	parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False,
+						  help="Verbose mode.")
+	parser.add_argument("-m", "--mc", action="store_true", dest="mc", default=False,
+						  help="use MC, default is to use data.")
+	parser.add_argument("-u", "--use", action="store_true", dest="useExisting", default=False,
+						  help="use existing datasets from pickle, default is false.")
+	parser.add_argument("-s", "--selection", dest = "selection" , action="store", default="DrellYanControl",
+						  help="selection which to apply.")
+	parser.add_argument("-r", "--runRange", dest="runRange", action="store", default="Full2012",
+						  help="name of run range.")
+	parser.add_argument("-c", "--configuration", dest="config", action="store", default="Central",
+						  help="dataset configuration, default Combined")
+	parser.add_argument("-x", "--private", action="store_true", dest="private", default=False,
+						  help="plot is private work.")		
+	parser.add_argument("-w", "--write", action="store_true", dest="write", default=False,
+						  help="write results to central repository")	
+					
+	args = parser.parse_args()	
+
+
+
+
+
+	useExistingDataset = args.useExisting
+	
 	from edgeConfig import edgeConfig
-	theConfig = edgeConfig(region=region,runName=run)
+	theConfig = edgeConfig(region=args.selection,runName=args.runRange,useMC=args.mc)
 	
-	useExistingDataset = int(argv[3])		
 	
+
+
+	cmsExtra = ""
+	if args.private:
+		cmsExtra = "Private Work"
+		if args.mc:
+			cmsExtra = "#splitline{Private Work}{Simulation}"
+	elif args.mc:
+		cmsExtra = "Simulation"	
+	else:
+		cmsExtra = "Preliminary"
+
+
+
 	
 	# init ROOT
 	gROOT.Reset()
@@ -158,16 +199,16 @@ def main():
 			
 			log.logHighlighted("Using MC instead of data.")
 			datasets = theConfig.mcdatasets # ["TTJets", "ZJets", "DibosonMadgraph", "SingleTop"]
-			if argv[1] == "Central":
+			if args.config == "Central":
 				(treeOFOS, treeEE, treeMM) = tools.getTrees(theConfig, datasets,central=True)
-			elif argv[1] == "Forward":
+			elif args.config == "Forward":
 				(treeOFOS, treeEE, treeMM) = tools.getTrees(theConfig, datasets,central=False)
 			else:
 				log.logError("Region must be Central or Forward")
 				sys.exit()
 			
 		else:
-			if argv[1] == "Central":
+			if args.config == "Central":
 				treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
 				treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
 				treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
@@ -176,7 +217,7 @@ def main():
 				treeOFOS = dataInterface.DataInterface.convertDileptonTree(treeOFOSraw)
 				treeEE = dataInterface.DataInterface.convertDileptonTree(treeEEraw)
 				treeMM = dataInterface.DataInterface.convertDileptonTree(treeMMraw)
-			elif argv[1] == "Forward":	
+			elif args.config == "Forward":	
 				treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
 				treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
 				treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
@@ -234,11 +275,19 @@ def main():
 		histEE = createHistoFromTree(treeEE,"inv","",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
 		histMM = createHistoFromTree(treeMM,"inv","",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
 		
-
-		eeFrac = dataEE.sumEntries()/(dataEE.sumEntries() + dataMM.sumEntries())
 		
-		histEE.Add(histOFOS,-1*eeFrac)
-		histMM.Add(histOFOS,-1*(1-eeFrac))
+		if theConfig.useMC:
+			eeFac = getattr(rEEOF,args.config.lower()).valMC
+			mmFac = getattr(rMMOF,args.config.lower()).valMC
+		else:
+			eeFac = getattr(rEEOF,args.config.lower()).val
+			mmFac = getattr(rMMOF,args.config.lower()).val
+		
+		histEE.Add(histOFOS,-1*eeFac)
+		histMM.Add(histOFOS,-1*mmFac)
+		
+		#~ print histEE.Integral(histEE.FindBin(20),histEE.FindBin(70))
+		#~ print histEE.Integral(histEE.FindBin(80),histEE.FindBin(100))
 		
 		dataHistEE = ROOT.RooDataHist("dataHistEE", "dataHistEE", ROOT.RooArgList(w.var('inv')), ROOT.RooFit.Import(histEE))
 		dataHistMM = ROOT.RooDataHist("dataHistMM", "dataHistMM", ROOT.RooArgList(w.var('inv')), ROOT.RooFit.Import(histMM))
@@ -246,15 +295,15 @@ def main():
 		getattr(w, 'import')(dataHistEE)
 		getattr(w, 'import')(dataHistMM)
 		if theConfig.useMC:
-			w.writeToFile("workspaces/dyControl_%s_MC.root"%argv[1])
+			w.writeToFile("workspaces/dyControl_%s_MC.root"%args.config)
 		else:
-			w.writeToFile("workspaces/dyControl_%s_Data.root"%argv[1])
+			w.writeToFile("workspaces/dyControl_%s_Data.root"%args.config)
 
 	else:
 		if theConfig.useMC:
-			f = ROOT.TFile("workspaces/dyControl_%s_MC.root"%argv[1])
+			f = ROOT.TFile("workspaces/dyControl_%s_MC.root"%args.config)
 		else:
-			f = ROOT.TFile("workspaces/dyControl_%s_Data.root"%argv[1])
+			f = ROOT.TFile("workspaces/dyControl_%s_Data.root"%args.config)
 		w =  f.Get("w")		
 		vars = ROOT.RooArgSet(w.var("inv"), w.var('weight'))
 
@@ -326,6 +375,7 @@ def main():
 	w.factory("Exponential::offShellMM(inv,cContinuumMM)")
 	
 	w.factory("nZMM[100000.,500.,%s]" % (1000000))
+	w.factory("nOffShellMM[100000.,500.,%s]" % (1000000))
 
 
 	
@@ -358,29 +408,27 @@ def main():
 	w.var("inv").setRange("lowMass",20,70)
 	argSet = ROOT.RooArgSet(w.var("inv"))
 
-	peakIntEE = w.pdf("peakModelEE").createIntegral(argSet,ROOT.RooFit.NormSet(ROOT.RooArgSet(w.var("inv"))), ROOT.RooFit.Range("zPeak")) 
-	peakIntEE2 = w.pdf("offShellEE").createIntegral(argSet,ROOT.RooFit.NormSet(ROOT.RooArgSet(w.var("inv"))), ROOT.RooFit.Range("zPeak"))
-	peakEE = peakIntEE.getVal() + peakIntEE2.getVal()
+	peakIntEE = w.pdf("modelEE").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("zPeak")) 
+	peakEE = peakIntEE.getVal()
 	
-	lowMassIntEE = w.pdf("peakModelEE").createIntegral(argSet,ROOT.RooFit.NormSet(ROOT.RooArgSet(w.var("inv"))), ROOT.RooFit.Range("lowMass")) 
-	lowMassIntEE2 = w.pdf("offShellEE").createIntegral(argSet,ROOT.RooFit.NormSet(ROOT.RooArgSet(w.var("inv"))), ROOT.RooFit.Range("lowMass"))
-	lowMassEE = lowMassIntEE.getVal() + lowMassIntEE2().getVal()
+	lowMassIntEE = w.pdf("modelEE").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("lowMass")) 
+	lowMassEE = lowMassIntEE.getVal()
 	
-	peakIntMM = w.pdf("modelMM").createIntegral(argSet,ROOT.RooFit.NormSet(ROOT.RooArgSet(w.var("inv"))), ROOT.RooFit.Range("zPeak"))
+	peakIntMM = w.pdf("modelMM").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("zPeak"))
 	peakMM = peakIntMM.getVal()
 	
-	lowMassIntMM = w.pdf("modelMM").createIntegral(argSet,ROOT.RooFit.NormSet(ROOT.RooArgSet(w.var("inv"))), ROOT.RooFit.Range("lowMass"))
+	lowMassIntMM = w.pdf("modelMM").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("lowMass"))
 	lowMassMM = lowMassIntMM.getVal()
-	
-	log.logHighlighted( "Peak: %.2f LowMass: %.2f (ee)"%(peakEE,lowMassEE))
-	log.logHighlighted( "Peak: %.2f LowMass: %.2f (mm)"%(peakMM,lowMassMM))
-	log.logHighlighted( "R(In,Out): %.2f (ee) %.2f (mm)"%(lowMassEE/peakEE,lowMassMM/peakMM))
-	
 
 
 	
+	log.logHighlighted( "Peak: %.3f LowMass: %.3f (ee)"%(peakEE,lowMassEE))
+	log.logHighlighted( "Peak: %.3f LowMass: %.3f (mm)"%(peakMM,lowMassMM))
+	log.logHighlighted( "R(out,in): %.3f (ee) %.3f (mm)"%(lowMassEE/peakEE,lowMassMM/peakMM))
+
 	
-	yMaximum = 100000
+	
+	yMaximum = 1000000
 
 	frameEE = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of ee lepton pairs'))
 	frameEE.GetXaxis().SetTitle('m_{ee} [GeV]')
@@ -392,10 +440,10 @@ def main():
 
 	cEE = ROOT.TCanvas("ee distribtution", "ee distribution", sizeCanvas, int(1.25 * sizeCanvas))
 	cEE.cd()
-	pads = formatAndDrawFrame(w,theConfig,frameEE, title="EE", pdf=w.pdf("modelEE"), yMax=0.2*yMaximum)
+	pads = formatAndDrawFrame(w,theConfig,frameEE, title="EE", pdf=w.pdf("modelEE"), yMax=0.05*yMaximum)
 
 	
-	legend = ROOT.TLegend(0.5, 0.6, 0.95, 0.95)
+	legend = ROOT.TLegend(0.5, 0.6, 0.95, 0.94)
 	legend.SetFillStyle(0)
 	legend.SetBorderSize(0)
 	entryHist = ROOT.TH1F()
@@ -419,29 +467,48 @@ def main():
 	legend.Draw("same")
 	
 	latex = ROOT.TLatex()
-	latex.SetTextSize(0.04)
+	latex.SetTextFont(42)
 	latex.SetNDC(True)
-	latex.DrawLatex(0.15, 0.96, "CMS Private Work  #sqrt{s} = 8 TeV,     #scale[0.6]{#int}Ldt = %s fb^{-1}"%19.4)	
-	latex = ROOT.TLatex()
+	latex.SetTextAlign(31)
 	latex.SetTextSize(0.04)
-	latex.SetNDC(True)
-	latex.DrawLatex(0.5, 0.5, "%s"%theConfig.selection.latex)	
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % argv[1], "expo", w.var('cContinuumEE').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % argv[1], "cbMean", w.var('cbmeanEE').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % argv[1], "nL", w.var('nEEL').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % argv[1], "nR", w.var('nEER').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % argv[1], "alphaL", w.var('alphaEEL').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % argv[1], "alphaR", w.var('alphaEER').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % argv[1], "nZ", w.var('nZEE').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % argv[1], "zFraction", w.var('zFractionEE').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % argv[1], "s", w.var('sEE').getVal(),basePath="dyShelves/")
-	eeName = "fig/expoFitEE_%s"%argv[1]
+
+	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (8 TeV)"%theConfig.runRange.printval)
+
+	latexCMS = ROOT.TLatex()
+	latexCMS.SetTextFont(61)
+	latexCMS.SetTextSize(0.06)
+	latexCMS.SetNDC(True)
+	latexCMSExtra = ROOT.TLatex()
+	latexCMSExtra.SetTextFont(52)
+	latexCMSExtra.SetTextSize(0.045)
+	latexCMSExtra.SetNDC(True)				
+
+	latexCMS.DrawLatex(0.19,0.88,"CMS")
+	if "Simulation" in cmsExtra:
+		yLabelPos = 0.83	
+	else:
+		yLabelPos = 0.84	
+
+	latexCMSExtra.DrawLatex(0.19,yLabelPos,"%s"%(cmsExtra))		
+	
+	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "expo", w.var('cContinuumEE').getVal(),basePath="dyShelves/")
+	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "cbMean", w.var('cbmeanEE').getVal(),basePath="dyShelves/")
+	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "nL", w.var('nEEL').getVal(),basePath="dyShelves/")
+	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "nR", w.var('nEER').getVal(),basePath="dyShelves/")
+	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "alphaL", w.var('alphaEEL').getVal(),basePath="dyShelves/")
+	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "alphaR", w.var('alphaEER').getVal(),basePath="dyShelves/")
+	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "nZ", w.var('nZEE').getVal(),basePath="dyShelves/")
+	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "zFraction", w.var('zFractionEE').getVal(),basePath="dyShelves/")
+	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "s", w.var('sEE').getVal(),basePath="dyShelves/")
+	eeName = "fig/expoFitEE_%s"%args.config
+	if theConfig.useMC:
+		mmName = "fig/expoFitEE_%s_MC"%args.config	
 	cEE.Print(eeName+".pdf")
 	cEE.Print(eeName+".root")	
 	for pad in pads:
 		pad.Close()	
 	pads = formatAndDrawFrame(w,theConfig,frameEE, title="EE", pdf=w.pdf("modelEE"), yMax=yMaximum)
-	legend = ROOT.TLegend(0.5, 0.6, 0.95, 0.95)
+	legend = ROOT.TLegend(0.5, 0.6, 0.95, 0.94)
 	legend.SetFillStyle(0)
 	legend.SetBorderSize(0)
 	entryHist = ROOT.TH1F()
@@ -465,15 +532,34 @@ def main():
 	legend.Draw("same")
 	
 	latex = ROOT.TLatex()
-	latex.SetTextSize(0.04)
+	latex.SetTextFont(42)
 	latex.SetNDC(True)
-	latex.DrawLatex(0.15, 0.96, "CMS Private Work  #sqrt{s} = 8 TeV,     #scale[0.6]{#int}Ldt = %s fb^{-1}"%19.4)	
-	latex = ROOT.TLatex()
+	latex.SetTextAlign(31)
 	latex.SetTextSize(0.04)
-	latex.SetNDC(True)
-	latex.DrawLatex(0.5, 0.5, "%s"%theConfig.selection.latex)		
+
+	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (8 TeV)"%theConfig.runRange.printval)
+
+	latexCMS = ROOT.TLatex()
+	latexCMS.SetTextFont(61)
+	latexCMS.SetTextSize(0.06)
+	latexCMS.SetNDC(True)
+	latexCMSExtra = ROOT.TLatex()
+	latexCMSExtra.SetTextFont(52)
+	latexCMSExtra.SetTextSize(0.045)
+	latexCMSExtra.SetNDC(True)				
+
+	latexCMS.DrawLatex(0.19,0.88,"CMS")
+	if "Simulation" in cmsExtra:
+		yLabelPos = 0.81	
+	else:
+		yLabelPos = 0.84	
+
+	latexCMSExtra.DrawLatex(0.19,yLabelPos,"%s"%(cmsExtra))		
+		
 	pads[0].SetLogy(1)
-	eeName = "fig/expoFitEE_Log_%s"%argv[1]
+	eeName = "fig/expoFitEE_Log_%s"%args.config
+	if theConfig.useMC:
+		mmName = "fig/expoFitEE_Log_%s_MC"%args.config	
 	cEE.Print(eeName+".pdf")
 	cEE.Print(eeName+".root")	
 	for pad in pads:
@@ -490,11 +576,11 @@ def main():
 	residualMode = "pull"
 	cMM = ROOT.TCanvas("#mu#mu distribtution", "#mu#mu distribution", sizeCanvas, int(1.25 * sizeCanvas))
 	cMM.cd()
-	pads = formatAndDrawFrame(w,theConfig,frameMM, title="MM", pdf=w.pdf("modelMM"), yMax=0.2*yMaximum)
+	pads = formatAndDrawFrame(w,theConfig,frameMM, title="MM", pdf=w.pdf("modelMM"), yMax=0.05*yMaximum)
 
 	
 	
-	legend = ROOT.TLegend(0.5, 0.6, 0.95, 0.95)
+	legend = ROOT.TLegend(0.5, 0.6, 0.95, 0.94)
 	legend.SetFillStyle(0)
 	legend.SetBorderSize(0)
 	entryHist = ROOT.TH1F()
@@ -518,23 +604,42 @@ def main():
 	legend.Draw("same")
 	
 	latex = ROOT.TLatex()
-	latex.SetTextSize(0.04)
+	latex.SetTextFont(42)
 	latex.SetNDC(True)
-	latex.DrawLatex(0.15, 0.96, "CMS Private Work  #sqrt{s} = 8 TeV,     #scale[0.6]{#int}Ldt = %s fb^{-1}"%19.4)	
-	latex = ROOT.TLatex()
+	latex.SetTextAlign(31)
 	latex.SetTextSize(0.04)
-	latex.SetNDC(True)
-	latex.DrawLatex(0.5, 0.5, "%s"%theConfig.selection.latex)	
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % argv[1], "expo", w.var('cContinuumMM').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % argv[1], "cbMean", w.var('cbmeanMM').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % argv[1], "nL", w.var('nMML').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % argv[1], "nR", w.var('nMMR').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % argv[1], "alphaL", w.var('alphaMML').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % argv[1], "alphaR", w.var('alphaMMR').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % argv[1], "nZ", w.var('nZMM').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % argv[1], "zFraction", w.var('zFractionMM').getVal(),basePath="dyShelves/")		
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % argv[1], "s", w.var('sMM').getVal(),basePath="dyShelves/")		
-	mmName = "fig/expoFitMM_%s"%argv[1]
+
+	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (8 TeV)"%theConfig.runRange.printval)
+
+	latexCMS = ROOT.TLatex()
+	latexCMS.SetTextFont(61)
+	latexCMS.SetTextSize(0.06)
+	latexCMS.SetNDC(True)
+	latexCMSExtra = ROOT.TLatex()
+	latexCMSExtra.SetTextFont(52)
+	latexCMSExtra.SetTextSize(0.045)
+	latexCMSExtra.SetNDC(True)				
+
+	latexCMS.DrawLatex(0.19,0.88,"CMS")
+	if "Simulation" in cmsExtra:
+		yLabelPos = 0.81	
+	else:
+		yLabelPos = 0.84	
+
+	latexCMSExtra.DrawLatex(0.19,yLabelPos,"%s"%(cmsExtra))		
+
+	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "expo", w.var('cContinuumMM').getVal(),basePath="dyShelves/")
+	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "cbMean", w.var('cbmeanMM').getVal(),basePath="dyShelves/")
+	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "nL", w.var('nMML').getVal(),basePath="dyShelves/")
+	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "nR", w.var('nMMR').getVal(),basePath="dyShelves/")
+	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "alphaL", w.var('alphaMML').getVal(),basePath="dyShelves/")
+	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "alphaR", w.var('alphaMMR').getVal(),basePath="dyShelves/")
+	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "nZ", w.var('nZMM').getVal(),basePath="dyShelves/")
+	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "zFraction", w.var('zFractionMM').getVal(),basePath="dyShelves/")		
+	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "s", w.var('sMM').getVal(),basePath="dyShelves/")		
+	mmName = "fig/expoFitMM_%s"%args.config
+	if theConfig.useMC:
+		mmName = "fig/expoFitMM_%s_MC"%args.config	
 	cMM.Print(mmName+".pdf")
 	cMM.Print(mmName+".root")
 	
@@ -542,7 +647,7 @@ def main():
 		pad.Close()	
 		
 	pads = formatAndDrawFrame(w,theConfig,frameMM, title="MM", pdf=w.pdf("modelMM"), yMax=yMaximum)
-	legend = ROOT.TLegend(0.5, 0.6, 0.95, 0.95)
+	legend = ROOT.TLegend(0.5, 0.6, 0.95, 0.94)
 	legend.SetFillStyle(0)
 	legend.SetBorderSize(0)
 	entryHist = ROOT.TH1F()
@@ -566,23 +671,45 @@ def main():
 	legend.Draw("same")
 	
 	latex = ROOT.TLatex()
-	latex.SetTextSize(0.04)
+	latex.SetTextFont(42)
 	latex.SetNDC(True)
-	latex.DrawLatex(0.15, 0.96, "CMS Private Work  #sqrt{s} = 8 TeV,     #scale[0.6]{#int}Ldt = %s fb^{-1}"%19.4)	
-	latex = ROOT.TLatex()
+	latex.SetTextAlign(31)
 	latex.SetTextSize(0.04)
-	latex.SetNDC(True)
-	latex.DrawLatex(0.5, 0.5, "%s"%theConfig.selection.latex)	
+
+	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (8 TeV)"%theConfig.runRange.printval)
+
+	latexCMS = ROOT.TLatex()
+	latexCMS.SetTextFont(61)
+	latexCMS.SetTextSize(0.06)
+	latexCMS.SetNDC(True)
+	latexCMSExtra = ROOT.TLatex()
+	latexCMSExtra.SetTextFont(52)
+	latexCMSExtra.SetTextSize(0.045)
+	latexCMSExtra.SetNDC(True)				
+
+	latexCMS.DrawLatex(0.19,0.88,"CMS")
+	if "Simulation" in cmsExtra:
+		yLabelPos = 0.81	
+	else:
+		yLabelPos = 0.84	
+
+	latexCMSExtra.DrawLatex(0.19,yLabelPos,"%s"%(cmsExtra))		
+	
 	pads[0].SetLogy(1)
-	mmName = "fig/expoFitMM_Log_%s"%argv[1]
+	mmName = "fig/expoFitMM_Log_%s"%args.config
+	if theConfig.useMC:
+		mmName = "fig/expoFitMM_Log_%s_MC"%args.config
+	
 	cMM.Print(mmName+".pdf")
 	cMM.Print(mmName+".root")	
 	for pad in pads:
 		pad.Close()
 
 
-
-	w.writeToFile("dyWorkspace_%s.root" % argv[1])
+	if theConfig.useMC:
+		w.writeToFile("dyWorkspace_%s_MC.root" % args.config)
+	else:
+		w.writeToFile("dyWorkspace_%s.root" % args.config)
 	return w
 
 

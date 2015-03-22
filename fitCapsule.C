@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     bool IllustrateResult=false;
     bool CreateProfile=false;
     bool fitSignal = false;
-    bool UseMinos=true; // only deactivate this if you're debugging!
+    bool UseMinos=false; // only deactivate this if you're debugging!
     bool useSumW2 = false;
     
     float ProfilePrecision=1e-1;
@@ -113,7 +113,7 @@ cout << "constraint (RSFOF): " << constrainingR_SF_OF_C << endl;
 cout << "N(events) in dataset, unweighted : " << combData->numEntries() << endl;
 
 
-    while(nattempts<1 && !HasConverged) {
+    while(nattempts<5 && !HasConverged) {
          result = simPdf->fitTo(*combData,"1s",RooFit::Save(),RooFit::Extended(),RooFit::Minos(UseMinos),RooFit::ExternalConstraints(RooArgSet(*constrainingR_SF_OF_C,*constrainingR_SF_OF_F)),RooFit::NumCPU(4));
 //          result = simPdf->fitTo(*combData,"1s",RooFit::Save(),RooFit::Extended(),RooFit::Minos(UseMinos),RooFit::NumCPU(1),RooFit::SumW2Error(useSumW2));
 
