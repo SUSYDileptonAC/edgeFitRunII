@@ -35,7 +35,7 @@ class edgeConfig:
 		showText = True
 		plotYMax = 200
 		### toy-related configuration
-		toyConfig = {"nToys":0,"nSig":100,"m0":125,"scale":1,"systShift":"None"}
+		toyConfig = {"nToys":0,"nSig":1000,"m0":125,"scale":1,"systShift":"None"}
 
 		dataVersion = "sw53X"
 		dataSetPath = "/home/jan/Trees/sw538v0478/"
@@ -46,7 +46,7 @@ class edgeConfig:
 		plotMinInv = 20
 		nBinsMinv = 56
 		
-		def __init__(self,region="SignalInclusive",backgroundShape="ETH",signalShape="T",runName = "Full2012",dataSet="Combined",useMC=False):
+		def __init__(self,region="SignalInclusive",backgroundShape="ETH",signalShape="T",runName = "Full2012",dataSet="Combined",useMC=False,toys=0):
 			sys.path.append(pathes.basePath)
 			
 			self.dataSetPath = locations.dataSetPath
@@ -68,8 +68,10 @@ class edgeConfig:
 				self.selection = getattr(Regions,region)
 		
 			from centralConfig import zPredictions
-			from corrections import  rSFOF	
+			from corrections import  rSFOF, rEEOF, rMMOF	
 			self.rSFOF = rSFOF
+			self.rEEOF = rEEOF
+			self.rMMOF = rMMOF
 			self.zPredictions = zPredictions
 			
 			self.backgroundShape = backgroundShape
@@ -78,3 +80,8 @@ class edgeConfig:
 			
 			self.title = self.selection.name+"_"+dataSet+"_"+self.runRange.label+"_"+self.backgroundShape+self.signalShape
 			self.histoytitle = 'Events / %.1f GeV' % ((self.maxInv - self.minInv) / self.nBinsMinv)	
+			
+			self.toyConfig["nToys"] = int(toys)
+			
+			if toys > 0:
+				self.useMC = True

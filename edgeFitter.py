@@ -14,6 +14,7 @@ import dataInterface
 import tools
 import math
 import argparse	
+import random
 
 parametersToSave  = {}
 rootContainer = []
@@ -21,7 +22,7 @@ rootContainer = []
 
 
 
-def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,rSFOF,rSFOFErr,addDataset,theConfig):
+def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,rSFOF,rSFOFErr,addDataset,theConfig,region="Central"):
 
 
 	vars = ROOT.RooArgSet(inv, weight)
@@ -70,114 +71,109 @@ def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,r
 
 	
 	if theConfig.toyConfig["nToys"] > 0:
-		log.logHighlighted("Preparing to dice %d Toys"%Holder.nToys)
+		log.logHighlighted("Preparing to dice %d Toys"%theConfig.toyConfig["nToys"])
 		rand = ROOT.TRandom3()
 		rand.SetSeed(0)
 		
-		wToys = ROOT.RooWorkspace("w", ROOT.kTRUE)
-		wToys.factory("inv[%s,%s,%s]" % ((maxInv - minInv) / 2, minInv, maxInv))
-		wToys.var('inv').setBins(nBinsMinv)
+		wToys = ROOT.RooWorkspace("wToys", ROOT.kTRUE)
+		wToys.factory("inv[%s,%s,%s]" % ((theConfig.maxInv - theConfig.minInv) / 2, theConfig.minInv, theConfig.maxInv))
 		wToys.factory("weight[1.,0.,10.]")
-		inv = ROOT.RooRealVar("inv","inv",(maxInv - minInv) / 2,minInv,maxInv)
-		#~ inv.setRange("Low",minInv,70)
-		#~ inv.setRange("High",100,maxInv)
-		#~ rangeString_ = "Low,High"
 		vars = ROOT.RooArgSet(inv, wToys.var('weight'))
-		Holder.vars = vars
 		
-		selectShapes(wToys,Holder.histSubtraction,Holder.shape,ratioMuE,nBinsMinv)	
-
+		selectShapes(wToys,theConfig.backgroundShape,theConfig.signalShape,theConfig.nBinsMinv)
+		
+		
+		dataEE = ROOT.RooDataSet("%sEE%s" % (typeName,region), "Dataset with invariant mass of di-electron pairs",
+								 vars, ROOT.RooFit.WeightVar('weight'), ROOT.RooFit.Import(tmpEE))
+		dataMM = ROOT.RooDataSet("%sMM%s" % (typeName,region), "Dataset with invariant mass of di-muon pairs",
+								 vars, ROOT.RooFit.WeightVar('weight'), ROOT.RooFit.Import(tmpMM))
+		dataSFOS = ROOT.RooDataSet("%sSFOS%s" % (typeName,region), "Dataset with invariant mass of SFOS lepton pairs",
+								   vars, ROOT.RooFit.WeightVar('weight'), ROOT.RooFit.Import(tmpSFOS))
+		dataOFOS = ROOT.RooDataSet("%sOFOS%s" % (typeName,region), "Dataset with invariant mass of OFOS lepton pairs",
+								   vars, ROOT.RooFit.WeightVar('weight'), ROOT.RooFit.Import(tmpOFOS))		
+		
+		
+		
 		getattr(wToys, 'import')(dataEE)
 		getattr(wToys, 'import')(dataMM)
 		getattr(wToys, 'import')(dataSFOS)
 		getattr(wToys, 'import')(dataOFOS)	
 		
-		if Holder.histSubtraction:
-				log.logHighlighted("HistSubtraction activated!")
 
-				if (Holder.histSmoothing):
-					log.logHighlighted("Smoothing HistSubtraction shape")
-					nameDataOFOS = "%sOFOS" % (typeName)
-					wToys.factory("RooKeysPdf::ofosShape1(inv, %s, MirrorBoth)" % (nameDataOFOS))
-				else:
-					wToys.var('inv').setBins(Holder.histBinning)
-					tempDataHist = ROOT.RooDataHist("dataHistOFOS", "dataHistOFOS", ROOT.RooArgSet(wToys.var('inv')), dataOFOS)
-					wToys.var('inv').setBins(nBinsMinv)
-					getattr(wToys, 'import')(tempDataHist)
-					Abkg=ROOT.RooRealVar("Abkg","Abkg",1,0.01,10)
-					wToys.factory("RooHistPdf::ofosShape1(inv, dataHistOFOS)")
-					getattr(wToys, 'import')(Abkg)
 					
-		wToys.factory("SUM::ofosShape(nB[100,0,100000]*ofosShape1)")
-		fitOFOS = wToys.pdf('ofosShape').fitTo(dataOFOS, ROOT.RooFit.Save(), ROOT.RooFit.SumW2Error(ROOT.kFALSE))
+		wToys.factory("SUM::ofosShape%s(nB[100,0,100000]*ofosShape1%s)"%(region,region))
+		fitOFOS = wToys.pdf('ofosShape%s'%region).fitTo(wToys.data('%sOFOS%s'%(typeName,region)), ROOT.RooFit.Save(), ROOT.RooFit.SumW2Error(ROOT.kFALSE))
 		numOFOS = tmpOFOS.sumEntries()
 		
 		
-		#~ tmpNumOFOS = float(rand.Poisson(numOFOS*Holder.scaleFactor))
-		#~ tmpNumOFOS2 = float(rand.Poisson(numOFOS*Holder.scaleFactor))
-		tmpNumOFOS = float(numOFOS*Holder.scaleFactor)
-		tmpNumOFOS2 = float(numOFOS*Holder.scaleFactor)
+		scale = theConfig.toyConfig["scale"]
+		
+		tmpNumOFOS = float(numOFOS*scale)
+		tmpNumOFOS2 = float(numOFOS*scale)
 		print "Signal OFOS %d"%tmpNumOFOS2
 		print "Signal SFOS %d"%tmpNumOFOS
-		frac1 = tmpNumOFOS/(tmpNumOFOS+predictions.zPrediction*Holder.scaleFactor+Holder.toySignalN*Holder.scaleFactor + predictions.offShellPrediction*Holder.scalefactor)
-		frac2 = predictions.zPrediction*Holder.scaleFactor/(tmpNumOFOS+predictions.zPrediction*Holder.scaleFactor+Holder.toySignalN*Holder.scaleFactor + predictions.offShellPrediction*Holder.scalefactor)
-		frac3 = predictions.offShellPrediction*Holder.scaleFactor/(tmpNumOFOS+predictions.zPrediction*Holder.scaleFactor+Holder.toySignalN*Holder.scaleFactor + predictions.offShellPrediction*Holder.scalefactor)
-		signalFrac = Holder.toySignalN*Holder.scaleFactor * 1./(tmpNumOFOS+predictions.zPrediction*Holder.scaleFactor+Holder.toySignalN*Holder.scaleFactor + predictions.offShellPrediction*Holder.scalefactor)
-		print frac1, frac2, frac3, signalFrac
 		
-		wToys.factory("frac1[%s,%s,%s]"%(frac1,frac1,frac1))
-		wToys.var('frac1').setConstant(ROOT.kTRUE)		
-		wToys.factory("frac2[%s,%s,%s]"%(frac2,frac2,frac2))
-		wToys.var('frac2').setConstant(ROOT.kTRUE)	
-		wToys.factory("frac3[%s,%s,%s]"%(frac3,frac3,frac3))
-		wToys.var('frac3').setConstant(ROOT.kTRUE)	
-		if Holder.toySignalN > 0:
-			log.logHighlighted("Dicing %d Signal Events at %.1f GeV edge position"%(Holder.toySignalN,Holder.toySignalM0))
-			wToys.factory("signalFrac[%(signalFrac)s,%(signalFrac)s,%(signalFrac)s]"%{"signalFrac":signalFrac})
-			print wToys.var("signalFrac").getVal()
-			wToys.var('signalFrac').setConstant(ROOT.kTRUE)
-			wToys.var('m0').setVal(Holder.toySignalM0)
-			if Holder.signalShape == "Concave":
+		#~ if theConfig.toyConfig["nSig"] > 0:
+			
+			
+		
+		zPrediction = getattr(theConfig.zPredictions.SF,region.lower()).val
+		print zPrediction, theConfig.toyConfig["nSig"], tmpNumOFOS
+		fsFrac = tmpNumOFOS/(tmpNumOFOS+zPrediction*scale+theConfig.toyConfig["nSig"]*scale)
+		zFrac = zPrediction*scale/(tmpNumOFOS+zPrediction*scale+theConfig.toyConfig["nSig"]*scale)
+		sigFrac = theConfig.toyConfig["nSig"]*scale/(tmpNumOFOS+zPrediction+theConfig.toyConfig["nSig"]*scale)
+		
+		print fsFrac, zFrac, sigFrac
+		
+		wToys.factory("fsFrac[%s,%s,%s]"%(fsFrac,fsFrac,fsFrac))
+		wToys.var('fsFrac').setConstant(ROOT.kTRUE)		
+		wToys.factory("zFrac[%s,%s,%s]"%(zFrac,zFrac,zFrac))
+		wToys.var('zFrac').setConstant(ROOT.kTRUE)	
+		wToys.factory("sigFrac[%s,%s,%s]"%(sigFrac,sigFrac,sigFrac))
+		wToys.var('sigFrac').setConstant(ROOT.kTRUE)	
+		if theConfig.toyConfig["nSig"] > 0:
+			log.logHighlighted("Dicing %d Signal Events at %.1f GeV edge position"%(theConfig.toyConfig["nSig"],theConfig.toyConfig["m0"]))
+			
+			wToys.var('m0').setVal(theConfig.toyConfig["m0"])
+			if theConfig.signalShape == "Concave":
 				log.logHighlighted("Dicing concave signal shape")
 				wToys.factory("SUSYX4Pdf::sfosShapeConcave(inv,const,s,m0)")
-				wToys.factory("SUM::backtoymodelEE(frac1*ofosShape, frac2*zEEShape, frac3*offShell, signalFrac*sfosShapeConcave)")
-				wToys.factory("SUM::backtoymodelMM(frac1*ofosShape, frac2*zMMShape, frac3*offShell,  signalFrac*sfosShapeConcave)")				
-			elif Holder.signalShape == "Convex":
+				wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s, sigFrac*sfosShapeConcave)"%(region,region))
+				wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s, sigFrac*sfosShapeConcave)"%(region,region))				
+			elif theConfig.signalShape == "Convex":
 				log.logHighlighted("Dicing convex signal shape")
 				wToys.factory("SUSYXM4Pdf::sfosShapeConvex(inv,const,s,m0)")				
-				wToys.factory("SUM::backtoymodelEE(frac1*ofosShape, frac2*zEEShape, frac3*offShell, signalFrac*sfosShapeConvex)")
-				wToys.factory("SUM::backtoymodelMM(frac1*ofosShape, frac2*zMMShape, frac3*offShell,  signalFrac*sfosShapeConvex)")				
+				wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s, sigFrac*sfosShapeConvex)"%(region,region))
+				wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s, sigFrac*sfosShapeConvex)"%(region,region))				
 			else:
-				wToys.factory("SUM::backtoymodelEE(frac1*ofosShape, frac2*zEEShape, frac3*offShell, signalFrac*sfosShape)")
-				wToys.factory("SUM::backtoymodelMM(frac1*ofosShape, frac2*zMMShape, frac3*offShell,  signalFrac*sfosShape)")
+				wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s, sigFrac*sfosShape)"%(region,region))
+				wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s, sigFrac*sfosShape)"%(region,region))
 		else:
-			wToys.factory("SUM::backtoymodelEE(frac1*ofosShape, frac3*offShell, frac2*zEEShape)")
-			wToys.factory("SUM::backtoymodelMM(frac1*ofosShape, frac3*offShell, frac2*zMMShape)")						
+			wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s)"%(region,region))
+			wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s)"%(region,region))						
 			
-		#~ wToys.factory("SIMUL::combModel(cat[EE=0,MM=1,OFOS=2], EE=backtoymodelEE, MM=backtoymodelMM, OFOS=ofosShape)")
 
-		print wToys.factory('backtoymodel')
-
-		if Holder.systShift == "Up":
-			tmpRatioMuE = ratioMuE + ratioMuE*ratioMuEError
-			tmpCorrection = 0.5*(tmpRatioMuE+1./tmpRatioMuE)*(ratioSFOFTrig+ratioSFOFTrigErr)
-		elif Holder.systShift == "Down":
-			tmpRatioMuE = ratioMuE - ratioMuE*ratioMuEError
-			tmpCorrection = 0.5*(tmpRatioMuE+1./tmpRatioMuE)*(ratioSFOFTrig-ratioSFOFTrigErr)
+		if theConfig.toyConfig["systShift"] == "Up":
+			tmpREEOF = getattr(theConfig.rEEOF,region.lower()).val + getattr(theConfig.rEEOF,region.lower()).err
+			tmpRMMOF = getattr(theConfig.rMMOF,region.lower()).val + getattr(theConfig.rMMOF,region.lower()).err
+			tmpRSFOF = getattr(theConfig.rSFOF,region.lower()).val + getattr(theConfig.rSFOF,region.lower()).err
+		elif theConfig.toyConfig["systShift"] == "Down":
+			tmpREEOF = getattr(theConfig.rEEOF,region.lower()).val - getattr(theConfig.rEEOF,region.lower()).err
+			tmpRMMOF = getattr(theConfig.rMMOF,region.lower()).val - getattr(theConfig.rMMOF,region.lower()).err
+			tmpRSFOF = getattr(theConfig.rSFOF,region.lower()).val - getattr(theConfig.rSFOF,region.lower()).err
 		else:
-			tmpRatioMuE = ratioMuE
-			tmpCorrection = 0.5*(tmpRatioMuE+1./tmpRatioMuE)*(ratioSFOFTrig)
+			tmpREEOF = getattr(theConfig.rEEOF,region.lower()).val
+			tmpRMMOF = getattr(theConfig.rMMOF,region.lower()).val
+			tmpRSFOF = getattr(theConfig.rSFOF,region.lower()).val
 			
-			
-
-		eeFraction = 1./(1+tmpRatioMuE**2)
-		mmFraction = tmpRatioMuE**2/(1+tmpRatioMuE**2)
-		print "Signal eeFraction: %f"%(eeFraction)
-		print "Signal mmFraction: %f"%(mmFraction)		
-		genNumEE =  int(float(tmpNumOFOS*Holder.scaleFactor*tmpCorrection + Holder.toySignalN*Holder.scaleFactor)*eeFraction + predictions.zPrediction*Holder.scaleFactor*eeFraction)
-		genNumMM = int(float(tmpNumOFOS*Holder.scaleFactor*tmpCorrection + Holder.toySignalN*Holder.scaleFactor)*mmFraction + predictions.zPrediction*Holder.scaleFactor*mmFraction)
+				
+		eeFraction = tmpREEOF/tmpRSFOF		
+		mmFraction = tmpRMMOF/tmpRSFOF		
+				
+		genNumEE =  int((tmpNumOFOS*scale*tmpRSFOF + theConfig.toyConfig["nSig"]*scale + zPrediction*scale)*eeFraction)
+		genNumMM =  int((tmpNumOFOS*scale*tmpRSFOF + theConfig.toyConfig["nSig"]*scale + zPrediction*scale)*mmFraction)
 		
-		result = genToys2013(wToys,Holder.nToys,genNumEE,genNumMM,int(tmpNumOFOS))
+		result = genToys2013(wToys,theConfig.toyConfig["nToys"],genNumEE,genNumMM,int(tmpNumOFOS),region)
 		
 	else:
 		result = [{"EE":dataEE,"MM":dataMM,"SFOS":dataSFOS,"OFOS":dataOFOS}]		
@@ -450,15 +446,19 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 		log.logHighlighted("No valid background shape selected, exiting")
 		sys.exit()
 
-def genToys2013(ws, nToys=10,genEE=0,genMM=0,genOFOS=0):
+def genToys2013(ws, nToys=10,genEE=0,genMM=0,genOFOS=0,region="Central"):
 	theToys = []
 
 	mcEE = ROOT.RooMCStudy(ws.pdf('backtoymodelEE'), ROOT.RooArgSet(ws.var('inv')),ROOT.RooFit.Extended(ROOT.kTRUE))
 	mcEE.generate(nToys, genEE, ROOT.kTRUE)
 	mcMM = ROOT.RooMCStudy(ws.pdf("backtoymodelMM"), ROOT.RooArgSet(ws.var('inv')),ROOT.RooFit.Extended(ROOT.kTRUE))
 	mcMM.generate(nToys, genMM, ROOT.kTRUE)
-	mcOFOS = ROOT.RooMCStudy(ws.pdf("ofosShape"), ROOT.RooArgSet(ws.var('inv')),ROOT.RooFit.Extended(ROOT.kTRUE))
+	mcOFOS = ROOT.RooMCStudy(ws.pdf("ofosShape%s"%region), ROOT.RooArgSet(ws.var('inv')),ROOT.RooFit.Extended(ROOT.kTRUE))
 	mcOFOS.generate(nToys, genOFOS, ROOT.kTRUE)
+	
+	vars = ROOT.RooArgSet(ws.var('inv'), ws.var('weight'))
+
+	
 	for i in range(nToys):
 		#toyEE = ws.pdf("mEE").generate(ROOT.RooArgSet(ws.var('inv')),ws.data('dataEE').numEntries())
 		#toyMM = ws.pdf("mMM").generate(ROOT.RooArgSet(ws.var('inv')),ws.data('dataMM').numEntries())
@@ -472,10 +472,10 @@ def genToys2013(ws, nToys=10,genEE=0,genMM=0,genOFOS=0):
 			#~ ROOT.RooFit.Import('OFOS', toyOFOS),
 			#~ ROOT.RooFit.Import('EE', toyEE),
 			#~ ROOT.RooFit.Import('MM', toyMM))
-		toyDataEE = ROOT.RooDataSet("theToyEE_%s" % (i), "toyEE_%s" % (i), Holder.vars,ROOT.RooFit.Import(toyEE))
-		toyDataMM = ROOT.RooDataSet("theToyMM_%s" % (i), "toyMM_%s" % (i), Holder.vars,ROOT.RooFit.Import(toyMM))
-		toyDataOFOS = ROOT.RooDataSet("theToyOFOS_%s" % (i), "toyOFOS_%s" % (i), Holder.vars,ROOT.RooFit.Import(toyOFOS))
-		toyDataSFOS = ROOT.RooDataSet("theToySFOS_%s" % (i), "toySFOS_%s" % (i), Holder.vars,ROOT.RooFit.Import(toySFOS))
+		toyDataEE = ROOT.RooDataSet("theToyEE_%s" % (i), "toyEE_%s" % (i), vars,ROOT.RooFit.Import(toyEE))
+		toyDataMM = ROOT.RooDataSet("theToyMM_%s" % (i), "toyMM_%s" % (i), vars,ROOT.RooFit.Import(toyMM))
+		toyDataOFOS = ROOT.RooDataSet("theToyOFOS_%s" % (i), "toyOFOS_%s" % (i), vars,ROOT.RooFit.Import(toyOFOS))
+		toyDataSFOS = ROOT.RooDataSet("theToySFOS_%s" % (i), "toySFOS_%s" % (i), vars,ROOT.RooFit.Import(toySFOS))
 		#toyData = mcTData.genData(i)
 		#ws.var("nSig").setConstant(ROOT.kFALSE)
 		#self.plotToy(ws,toyData)
@@ -595,7 +595,7 @@ def saveFitResults(ws,theConfig,x = None,region="Central"):
 		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "m0", ws.var('m0').getVal(), index = x)
 		tools.updateParameter("edgefit", "%sOFOS%s" %(title,region), "chi2",parametersToSave["chi2OFOS%s"%region], index = x)
 		tools.updateParameter("edgefit", "%sOFOS%s" %(title,region), "nPar",parametersToSave["nParOFOS%s"%region], index = x)
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "chi2",parametersToSave["chiSFOS%s"%region], index = x)
+		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "chi2",parametersToSave["chi2SFOS%s"%region], index = x)
 		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "nPar",parametersToSave["nParH1"], index = x)		
 		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "minNllH0", parametersToSave["minNllH0"], index = x)				
 		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "minNllH1", parametersToSave["minNllH1"], index = x)				
@@ -1102,6 +1102,8 @@ def main():
 						  help="edge shape, default Triangle")
 	parser.add_argument("-c", "--configuration", dest="config", action="store", default="Combined",
 						  help="dataset configuration, default Combined")
+	parser.add_argument("-t", "--toys", dest="toys", action="store", default=0,
+						  help="generate and fit x toys")
 	parser.add_argument("-x", "--private", action="store_true", dest="private", default=False,
 						  help="plot is private work.")		
 	parser.add_argument("-w", "--write", action="store_true", dest="write", default=False,
@@ -1121,7 +1123,7 @@ def main():
 	useExistingDataset = args.useExisting
 		
 	from edgeConfig import edgeConfig
-	theConfig = edgeConfig(region,backgroundShape,signalShape,runName,args.config,args.mc)
+	theConfig = edgeConfig(region,backgroundShape,signalShape,runName,args.config,args.mc,args.toys)
 	
 	
 	# init ROOT
@@ -1133,7 +1135,18 @@ def main():
 	#set random random seed for RooFit, for toy generation
 	ROOT.RooRandom.randomGenerator().SetSeed(0)
 	
-
+	ROOT.gSystem.Load("shapes/RooSUSYTPdf_cxx.so")
+	ROOT.gSystem.Load("shapes/RooSUSYX4Pdf_cxx.so")
+	ROOT.gSystem.Load("shapes/RooSUSYXM4Pdf_cxx.so")
+	ROOT.gSystem.Load("shapes/RooSUSYBkgPdf_cxx.so")
+	ROOT.gSystem.Load("shapes/RooSUSYBkgMoreParamsPdf_cxx.so")
+	ROOT.gSystem.Load("shapes/RooSUSYBkgBHPdf_cxx.so")
+	ROOT.gSystem.Load("shapes/RooSUSYOldBkgPdf_cxx.so")
+	ROOT.gSystem.Load("shapes/RooSUSYBkgMAPdf_cxx.so")
+	ROOT.gSystem.Load("shapes/RooSUSYBkgGaussiansPdf_cxx.so")
+	ROOT.gSystem.Load("shapes/RooTopPairProductionSpline_cxx.so")
+	ROOT.gSystem.Load("shapes/RooDoubleCB_cxx.so")
+	ROOT.gSystem.Load("libFFTW.so") 
 
 	# get data
 	theDataInterface = dataInterface.DataInterface(theConfig.dataSetPath,theConfig.dataVersion)
@@ -1213,26 +1226,15 @@ def main():
 		
 		
 		typeName = "dataCentral"
-		dataSetsCentral = prepareDatasets(inv,weight,treesCentral,addTreesCentral,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.central.val,theConfig.rSFOF.central.err,theConfig.addDataset,theConfig)
+		dataSetsCentral = prepareDatasets(inv,weight,treesCentral,addTreesCentral,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.central.val,theConfig.rSFOF.central.err,theConfig.addDataset,theConfig,region="Central")
 		typeName = "dataForward"
-		dataSetsForward = prepareDatasets(inv,weight,treesForward,addTreesForward,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.forward.val,theConfig.rSFOF.forward.err,theConfig.addDataset,theConfig)
+		dataSetsForward = prepareDatasets(inv,weight,treesForward,addTreesForward,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.forward.val,theConfig.rSFOF.forward.err,theConfig.addDataset,theConfig,region="Forward")
 
 	else:
 		dataSetsCentral = ["dummy"]
 		dataSetsForward = ["dummy"]
 	log.logDebug("Starting edge fit")
-	ROOT.gSystem.Load("shapes/RooSUSYTPdf_cxx.so")
-	ROOT.gSystem.Load("shapes/RooSUSYX4Pdf_cxx.so")
-	ROOT.gSystem.Load("shapes/RooSUSYXM4Pdf_cxx.so")
-	ROOT.gSystem.Load("shapes/RooSUSYBkgPdf_cxx.so")
-	ROOT.gSystem.Load("shapes/RooSUSYBkgMoreParamsPdf_cxx.so")
-	ROOT.gSystem.Load("shapes/RooSUSYBkgBHPdf_cxx.so")
-	ROOT.gSystem.Load("shapes/RooSUSYOldBkgPdf_cxx.so")
-	ROOT.gSystem.Load("shapes/RooSUSYBkgMAPdf_cxx.so")
-	ROOT.gSystem.Load("shapes/RooSUSYBkgGaussiansPdf_cxx.so")
-	ROOT.gSystem.Load("shapes/RooTopPairProductionSpline_cxx.so")
-	ROOT.gSystem.Load("shapes/RooDoubleCB_cxx.so")
-	ROOT.gSystem.Load("libFFTW.so") 		
+		
 
 	
 
@@ -1254,7 +1256,11 @@ def main():
  	if theConfig.isSignal:
 		theConfig.title = theConfig.title+"_SignalInjected"   	
 					
-	titleSave = theConfig.title				
+	titleSave = theConfig.title	
+	
+
+		
+				
 	for index, dataSet in enumerate(dataSetsCentral):
 		
 		if theConfig.toyConfig["nToys"] > 0:
@@ -1265,7 +1271,7 @@ def main():
 				theConfig.title = theConfig.title + "_" + theConfig.toyConfig["systShift"]
 			if theConfig.signalShape != "T":
 				theConfig.title = theConfig.title + "_" + signalShape
-			title = title + "_" + x
+			theConfig.title = theConfig.title + "_" + x
 				
 		else:
 			x = None		
@@ -1587,6 +1593,9 @@ def main():
 		#~ w.var("rSFOFForward").setConstant()
 		if (theConfig.edgePosition > 0):
 			w.var('m0').setVal(float(theConfig.edgePosition))
+			if not x == None:
+				w.var('m0').setVal(float(theConfig.toyConfig["m0"]))
+				
 			if (theConfig.fixEdge):
 				w.var('m0').setConstant(ROOT.kTRUE)
 			else:

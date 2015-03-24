@@ -619,9 +619,9 @@ def getTrees(theConfig, datasets, central=True):
 		if (len(jobs) > 1):
 			log.logDebug("Scaling and adding more than one job: %s" % (jobs))
 		for job in jobs:
-			treeMCOFOSraw = theDataInterface.getTreeFromJob(theConfig.flag, theConfig.task, job, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut)
-			treeMCEEraw = theDataInterface.getTreeFromJob(theConfig.flag, theConfig.task, job, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut)
-			treeMCMMraw = theDataInterface.getTreeFromJob(theConfig.flag, theConfig.task, job, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut)
+			treeMCOFOSraw = theDataInterface.getTreeFromJob(theConfig.flag, theConfig.task, job, treePathOFOS, dataVersion=theConfig.dataVersion, cut=cut)
+			treeMCEEraw = theDataInterface.getTreeFromJob(theConfig.flag, theConfig.task, job, treePathEE, dataVersion=theConfig.dataVersion, cut=cut)
+			treeMCMMraw = theDataInterface.getTreeFromJob(theConfig.flag, theConfig.task, job, treePathMM, dataVersion=theConfig.dataVersion, cut=cut)
 
 			dynNTotal = theDataInterface.getEventCount(job, theConfig.flag, theConfig.task)
 			dynXsection = theDataInterface.getCrossSection(job)
