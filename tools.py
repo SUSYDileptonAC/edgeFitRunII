@@ -234,7 +234,7 @@ def makeCMSAnnotation(xPos, yPos, luminosity, mcOnly=False, preliminary=True, ye
 			cmsString = "CMS"
 			if (preliminary):
 				cmsExtra = "Preliminary"
-			elif (ownWork):
+			if (ownWork):
 				cmsExtra = "Private Work"
 
 			annotationsCMS = [

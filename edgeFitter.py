@@ -623,7 +623,7 @@ def saveFitResults(ws,theConfig,x = None,region="Central"):
 		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "nSerror", ws.var('nSig%s'%region).getError(), index = x)
 		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "nZerror", ws.var('nZ%s'%region).getError(), index = x)
 		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "nBerror", ws.var('nB%s'%region).getError(), index = x)
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "rSFOF", ws.var('rSFOF%s'%region).getError(), index = x)
+		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "rSFOFerror", ws.var('rSFOF%s'%region).getError(), index = x)
 		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "m0error", ws.var('m0').getError(), index = x)
 											
 								
@@ -860,8 +860,8 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 		annotZpred = "N_{pred}^{Z} = %.1f #pm %.1f" % (getattr(theConfig.zPredictions.SF,region.lower()).val , getattr(theConfig.zPredictions.SF,region.lower()).err)
 
 
-	note2 = "m^{edge}_{ll} = %.1f #pm %.1f GeV"
-	note2 = note2%(ws.var("m0").getVal(),ws.var("m0").getError())
+	note2 = "m^{edge}_{ll} = %.1f^{+%.1f}_{-%.1f} GeV"
+	note2 = note2%(ws.var("m0").getVal(),ws.var("m0").getAsymErrorHi(),ws.var("m0").getAsymErrorLo())
 	
 
 	sfosName = '%s/fit2012_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
