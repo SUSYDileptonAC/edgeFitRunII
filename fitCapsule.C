@@ -32,9 +32,9 @@ int main(int argc, char** argv) {
     cout << "Note that the result is written back to the file " << endl;
     
     bool IllustrateResult=false;
-    bool CreateProfile=false;
+    bool CreateProfile=true;
     bool fitSignal = false;
-    bool UseMinos=false; // only deactivate this if you're debugging!
+    bool UseMinos=true; // only deactivate this if you're debugging!
     bool useSumW2 = false;
     
     float ProfilePrecision=1e-1;
@@ -54,17 +54,19 @@ int main(int argc, char** argv) {
     gSystem->Load("shapes/RooDoubleCB_cxx.so");
     gSystem->Load("libFFTW.so");
 
-    if(argc<4||argc>4) {
-        cerr << " You need to provide three arguments: [FILE] [PROFILE] [SIGNAL]" << endl;
+    if(argc<5||argc>5) {
+        cerr << " You need to provide three arguments: [FILE] [PROFILE] [SIGNAL] [NAME]" << endl;
         cerr << " FILE: The file where everything is stored (and the result will be written back to)" << endl;
         cerr << " PROFILE: 0 or 1, if you provide '1' a profile is generated and stored " << endl;
         cerr << " SIGNAL: 0 or 1, if you provide '1' a fit including the signal model is performed " << endl;
+        cerr << " NAME: Name of the fit needed to save profiles" << endl;
 	
         return -1;
     }
     string filename=argv[1];
     CreateProfile=atoi(argv[2]);
     fitSignal=atoi(argv[3]);
+    string fitName = argv[4];
    
     cout << "Have been provided with argument " << filename << endl;
     
@@ -125,23 +127,27 @@ cout << "N(events) in dataset, unweighted : " << combData->numEntries() << endl;
     
     result->Print("v");    
     wa->import(*result);
-    RooRealVar fitQuality("fitQuality", "Quality of fit", result->covQual(), result->covQual() , result->covQual());
+
 
     if (fitSignal) {
         RooRealVar minNllH1("minNllH1", "-log L of fit with signal model", result->minNll(), result->minNll() , result->minNll());
 		wa->import(minNllH1);
 		RooRealVar nParH1("nParSFOSH1", "number of free parameters", result->floatParsFinal().getSize(), result->floatParsFinal().getSize() , result->floatParsFinal().getSize());
 		wa->import(nParH1);
+		RooRealVar fitQuality("fitQualityH1", "Quality of fit", result->covQual(), result->covQual() , result->covQual());
+		wa->import(fitQuality);	
     }
     else {
         RooRealVar minNllH0("minNllH0", "-log L of fit without signal model", result->minNll(), result->minNll() , result->minNll());
 		wa->import(minNllH0); 
 		RooRealVar nParH0("nParSFOSH0", "number of free parameters", result->floatParsFinal().getSize(), result->floatParsFinal().getSize() , result->floatParsFinal().getSize());
-		wa->import(nParH0);		
+		wa->import(nParH0);
+		RooRealVar fitQuality("fitQualityH0", "Quality of fit", result->covQual(), result->covQual() , result->covQual());
+		wa->import(fitQuality);				
 			
     }
 //     RooRealVar minNllH1("minNllH1", "-log L of fit with signal model", result->minNll(), result->minNll() , result->minNll());
-    wa->import(fitQuality);
+    
 //     wa->import(minNllH1);
     cout << "Result has been stored, printing it here for completeness' sake" << endl;
     result->Print("v");
@@ -212,18 +218,17 @@ cout << "N(events) in dataset, unweighted : " << combData->numEntries() << endl;
         pll_mlledge->addOwnedComponents(*NewNll);
         
         
-        RooPlot* frameNE = mlledge->frame(RooFit::Range(20,300),RooFit::Precision(ProfilePrecision),RooFit::Title("-log(L) scan vs m_{ll}^{max}"));
-        pll_mlledge->plotOn(frameNE,RooFit::EvalErrorValue(-1),RooFit::LineColor(TColor::GetColor("#656565")),RooFit::Precision(ProfilePrecision),RooFit::Name("Profile"),RooFit::NumCPU(4));
+        RooPlot* frameNE = mlledge->frame(RooFit::Range(30,300),RooFit::Precision(ProfilePrecision),RooFit::Title("-log(L) scan vs m_{ll}^{max}"));
+        pll_mlledge->plotOn(frameNE,RooFit::EvalErrorValue(-1),RooFit::Precision(ProfilePrecision),RooFit::Name("Profile"),RooFit::NumCPU(4));
         
 //        wa->import(*pll_mlledge);
         wa->import(*frameNE);
         wa->import(*NewNll);
-TCanvas *can = new TCanvas(); can->Divide(2,1);can->cd(1);frameNOne->Draw();can->cd(2);frameNE->Draw();can->SaveAs("ProfileLikelihood.png");can->SaveAs("ProfileLikelihood.C");delete can;
+TCanvas *can = new TCanvas(); can->Divide(2,1);can->cd(1);frameNOne->Draw();can->cd(2);frameNE->Draw();can->SaveAs(("likelihoodScans/"+fitName+"_ProfileLikelihood.pdf").c_str());can->SaveAs(("likelihoodScans/"+fitName+"_ProfileLikelihood.C").c_str());delete can;
     } else {
         cout << "Profile creation not requested. " << endl;
 	cout << "    ( create profile is " << CreateProfile << " and mlledge is set constant ? " << mlledge->isConstant() << endl;
     }
-    
     wa->writeToFile((filename+"_result").c_str());
     
     if(!UseMinos) {

@@ -22,6 +22,9 @@ class edgeConfig:
 		edgePosition = 78
 		fixEdge = False
 		
+		#~ edgePosition = 82.392
+		#~ fixEdge = True
+		
 		title = "None"
 		histoytitle = "None"
 		
@@ -31,11 +34,12 @@ class edgeConfig:
 		isSignal = False
 		runMinos = False
 		isPreliminary = True
+		ownWork = False
 		year = 2012
 		showText = True
-		plotYMax = 200
+		plotYMax = 220
 		### toy-related configuration
-		toyConfig = {"nToys":0,"nSig":1000,"m0":125,"scale":1,"systShift":"None"}
+		toyConfig = {"nToys":1000,"nSig":0,"m0":70,"scale":1,"systShift":"None"}
 
 		dataVersion = "sw53X"
 		dataSetPath = "/home/jan/Trees/sw538v0478/"

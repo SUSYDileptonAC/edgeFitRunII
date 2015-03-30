@@ -325,6 +325,8 @@ def main():
 	# z mass and width
 	# mass resolution in electron and muon channels
 	w.factory("zmean[91.1876]")
+	#~ w.factory("zmean[91.1876,89,98]")
+
 	w.factory("cbmeanMM[3.,-10,10]")
 	w.factory("cbmeanEE[3.00727145780911975e+00,-10,10]")
 	w.factory("zwidthMM[2.4952]")

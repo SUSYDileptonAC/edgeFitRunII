@@ -136,18 +136,13 @@ def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,r
 			
 			wToys.var('m0').setVal(theConfig.toyConfig["m0"])
 			if theConfig.signalShape == "Concave":
-				log.logHighlighted("Dicing concave signal shape")
-				wToys.factory("SUSYX4Pdf::sfosShapeConcave(inv,const,s,m0)")
-				wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s, sigFrac*sfosShapeConcave)"%(region,region))
-				wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s, sigFrac*sfosShapeConcave)"%(region,region))				
+				log.logHighlighted("Dicing concave signal shape")				
 			elif theConfig.signalShape == "Convex":
-				log.logHighlighted("Dicing convex signal shape")
-				wToys.factory("SUSYXM4Pdf::sfosShapeConvex(inv,const,s,m0)")				
-				wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s, sigFrac*sfosShapeConvex)"%(region,region))
-				wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s, sigFrac*sfosShapeConvex)"%(region,region))				
+				log.logHighlighted("Dicing convex signal shape")			
 			else:
-				wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s, sigFrac*sfosShape)"%(region,region))
-				wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s, sigFrac*sfosShape)"%(region,region))
+				log.logHighlighted("Dicing triangular signal shape")	
+			wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s, sigFrac*eeShape%s)"%(region,region,region))
+			wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s, sigFrac*mmShape%s)"%(region,region,region))
 		else:
 			wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s)"%(region,region))
 			wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s)"%(region,region))						
@@ -172,6 +167,9 @@ def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,r
 				
 		genNumEE =  int((tmpNumOFOS*scale*tmpRSFOF + theConfig.toyConfig["nSig"]*scale + zPrediction*scale)*eeFraction)
 		genNumMM =  int((tmpNumOFOS*scale*tmpRSFOF + theConfig.toyConfig["nSig"]*scale + zPrediction*scale)*mmFraction)
+		if region == "Forward":		
+			genNumEE =  int((tmpNumOFOS*scale*tmpRSFOF + theConfig.toyConfig["nSig"]*scale*0.33 + zPrediction*scale)*eeFraction)
+			genNumMM =  int((tmpNumOFOS*scale*tmpRSFOF + theConfig.toyConfig["nSig"]*scale*0.33 + zPrediction*scale)*mmFraction)
 		
 		result = genToys2013(wToys,theConfig.toyConfig["nToys"],genNumEE,genNumMM,int(tmpNumOFOS),region)
 		
@@ -195,7 +193,7 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 	# We know the z mass
 	# z mass and width
 	# mass resolution in electron and muon channels
-	ws.factory("zmean[91.1876,89,95]")
+	ws.factory("zmean[91.1876,89,93]")
 	ws.var('zmean').setConstant(ROOT.kTRUE)
 	ws.factory("zwidth[2.4952]")
 	ws.factory("s[1.65,0.5,3.]")
@@ -341,13 +339,13 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 
 
 	
-	
-	#ws.var("inv").setBins(140,"cache")	
+	### IMPORTANT! If the bin size for the cache is not set to the same used in the the drell-yan fit, things get really fucked up! 
+	ws.var("inv").setBins(140,"cache")	
 
 
 
 
-	ws.factory("m0[55., 35., 300.]")
+	ws.factory("m0[55., 30., 300.]")
 	ws.var('m0').setAttribute("StoreAsymError")
 	ws.factory("m0Show[45., 0., 300.]")
 	#ws.factory("m0[75., 75., 75.]")
@@ -389,14 +387,20 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 
 	elif backgroundShape == 'MA':
 		log.logHighlighted("Using Marco-Andreas shape")				
-		ws.factory("SUSYBkgMAPdf::ofosShape1Central(inv,b1Central[-2000,-8000,8000],b2Central[120.,-800,800],b3Central[-1.,-5,5.],b4Central[0.01,0.0001,0.1], m1Central[50,30,80],m2Central[120,100,160])") #
-		ws.factory("SUSYBkgMAPdf::ofosShape1Forward(inv,b1Forward[-3300,-5000,5000],b2Forward[120.,-800,800],b3Forward[-1.,-5,5.],b4Forward[0.01,0.0001,0.1], m1Forward[50,30,80],m2Forward[120,100,160])") #
-
+		#~ ws.factory("SUSYBkgMAPdf::ofosShape1Central(inv,b1Central[-2000,-8000,8000],b2Central[120.,-800,800],b3Central[-1.,-5,5.],b4Central[0.01,0.0001,0.1], m1Central[50,30,80],m2Central[120,100,160])") #
+		#~ ws.factory("SUSYBkgMAPdf::ofosShape1Forward(inv,b1Forward[-3300,-5000,5000],b2Forward[120.,-800,800],b3Forward[-1.,-5,5.],b4Forward[0.01,0.0001,0.1], m1Forward[50,30,80],m2Forward[120,100,160])") #
+		ws.factory("SUSYBkgMAPdf::ofosShape1Central(inv,b1Central[-2000,-8000,8000],b2Central[120.,-800,800],b3Central[-1.,-5,5.],b4Central[0.01,-0.1,0.1], m1Central[50,20,100],m2Central[120,100,160])") #
+		ws.factory("SUSYBkgMAPdf::ofosShape1Forward(inv,b1Forward[-3300,-5000,5000],b2Forward[120.,-800,800],b3Forward[-1.,-5,5.],b4Forward[0.01,-0.1,0.1], m1Forward[50,20,100],m2Forward[120,100,160])") #
+		
 	elif backgroundShape == 'ETH':
 		log.logHighlighted("Using Marco-Andreas shape for real")
-		ws.factory("TopPairProductionSpline::ofosShape1Central(inv,b1Central[-1800,-8000,8000],b2Central[120.,-800,800],b4Central[0.01,0.0001,0.1], m1Central[50,20,80],m2Central[120,100,160])") #
-		ws.factory("TopPairProductionSpline::ofosShape1Forward(inv,b1Forward[-1800,-5000,5000],b2Forward[120.,-400,400],b4Forward[0.01,0.0001,0.1], m1Forward[50,20,80],m2Forward[120,100,160])") #
-			
+		####### final -  never touch again!
+		ws.factory("TopPairProductionSpline::ofosShape1Central(inv,b1Central[-1800,-5000,5000],b2Central[120.,-400,400],b4Central[0.0025,0.0001,0.01], m1Central[50,20,80],m2Central[120,100,160])") #
+		ws.factory("TopPairProductionSpline::ofosShape1Forward(inv,b1Forward[-1800,-5000,5000],b2Forward[120.,-400,400],b4Forward[0.0025,0.0001,0.01], m1Forward[50,20,80],m2Forward[120,100,160])") #
+		############
+		#~ ws.factory("TopPairProductionSpline::ofosShape1Central(inv,b1Central[-1800,-5000,5000],b2Central[120.,-800,800],b4Central[0.01,0.0001,0.1], m1Central[60,35,90],m2Central[120,100,160])") #
+		#~ ws.factory("TopPairProductionSpline::ofosShape1Forward(inv,b1Forward[-1800,-5000,5000],b2Forward[120.,-400,400],b4Forward[0.01,0.0001,0.1], m1Forward[60,35,90],m2Forward[120,100,160])") #
+		#~ ws.var("m1Central").setConstant()	
 	elif backgroundShape == 'P':
 		log.logHighlighted("Gaussians activated!")
 		ws.factory("SUSYBkgGaussiansPdf::ofosShape1Central(inv,a1Central[30.,0.,60.],a2Central[60.,20.,105.],a3Central[100.,0.,1000.],b1Central[15,10.,80.],b2Central[20.,10.,80.],b3Central[200.,10.,3000.])") #High MET
@@ -421,26 +425,40 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 		log.logHighlighted("No valid background shape selected, exiting")
 		sys.exit()
 		
-		
+
 	if signalShape == "Triangle":
-		ws.factory("SUSYTPdf::sfosShape(inv,const,s,m0)")
-		ws.factory("SUSYTPdf::sfosShapeShow(inv,const,s,m0Show)")
-		ws.factory("SUSYTPdf::eeShape(inv,const,sE,m0)")
-		ws.factory("SUSYTPdf::mmShape(inv,const,sM,m0)")
+		ws.factory("SUSYTPdf::sfosShapeCentral(inv,const,s,m0)")
+		ws.factory("SUSYTPdf::sfosShapeCentralShow(inv,const,s,m0Show)")
+		ws.factory("SUSYTPdf::eeShapeCentral(inv,const,sEECentral,m0)")
+		ws.factory("SUSYTPdf::mmShapeCentral(inv,const,sMMCentral,m0)")
+		ws.factory("SUSYTPdf::sfosShapeForward(inv,const,s,m0)")
+		ws.factory("SUSYTPdf::sfosShapeShowForward(inv,const,s,m0Show)")
+		ws.factory("SUSYTPdf::eeShapeForward(inv,const,sEEForward,m0)")
+		ws.factory("SUSYTPdf::mmShapeForward(inv,const,sMMForward,m0)")
 		ws.var('const').setConstant(ROOT.kTRUE)
 	elif signalShape == 'V' :
 		ws.factory("Voigtian::sfosShape(inv,m0,zwidth,s)")
 		ws.factory("Voigtian::eeShape(inv,m0,zwidth,sE)")
 		ws.factory("Voigtian::mmShape(inv,m0,zwidth,sM)")
 	elif signalShape == 'X4':
-		ws.factory("SUSYX4Pdf::sfosShape(inv,const,s,m0)")
-		ws.factory("SUSYX4Pdf::eeShape(inv,const,sE,m0)")
-		ws.factory("SUSYX4Pdf::mmShape(inv,const,sM,m0)")
+		ws.factory("SUSYX4Pdf::sfosShapeCentral(inv,const,s,m0)")
+		ws.factory("SUSYX4Pdf::sfosShapeCentralShow(inv,const,s,m0Show)")
+		ws.factory("SUSYX4Pdf::eeShapeCentral(inv,const,sEECentral,m0)")
+		ws.factory("SUSYX4Pdf::mmShapeCentral(inv,const,sMMCentral,m0)")
+		ws.factory("SUSYX4Pdf::sfosShapeForward(inv,const,s,m0)")
+		ws.factory("SUSYX4Pdf::sfosShapeShowForward(inv,const,s,m0Show)")
+		ws.factory("SUSYX4Pdf::eeShapeForward(inv,const,sEEForward,m0)")
+		ws.factory("SUSYX4Pdf::mmShapeForward(inv,const,sMMForward,m0)")
 		ws.var('const').setConstant(ROOT.kTRUE)
 	elif signalShape == 'XM4' in Holder.shape:
-		ws.factory("SUSYXM4Pdf::sfosShape(inv,const,s,m0)")
-		ws.factory("SUSYXM4Pdf::eeShape(inv,const,sE,m0)")
-		ws.factory("SUSYXM4Pdf::mmShape(inv,const,sM,m0)")
+		ws.factory("SUSYXM4Pdf::sfosShapeCentral(inv,const,s,m0)")
+		ws.factory("SUSYXM4Pdf::sfosShapeCentralShow(inv,const,s,m0Show)")
+		ws.factory("SUSYXM4Pdf::eeShapeCentral(inv,const,sEECentral,m0)")
+		ws.factory("SUSYXM4Pdf::mmShapeCentral(inv,const,sMMCentral,m0)")
+		ws.factory("SUSYXM4Pdf::sfosShapeForward(inv,const,s,m0)")
+		ws.factory("SUSYXM4Pdf::sfosShapeShowForward(inv,const,s,m0Show)")
+		ws.factory("SUSYXM4Pdf::eeShapeForward(inv,const,sEEForward,m0)")
+		ws.factory("SUSYXM4Pdf::mmShapeForward(inv,const,sMMForward,m0)")
 		ws.var('const').setConstant(ROOT.kTRUE)
 	else:
 		log.logHighlighted("No valid background shape selected, exiting")
@@ -499,7 +517,7 @@ def plotModel(w, data, fitOFOS, theConfig, pdf="model", tag="", frame=None, zPre
 				  'Z': "zShape%s"%region,
 				  #~ 'offShell': "offShell",
 				  'Background': "ofosShape%s"%region,
-				  'Signal': "sfosShape",
+				  'Signal': "sfosShape%s"%region,
 				  }
 	shapeNames.update(overrideShapeNames)
 	nameBGShape = "displayedBackgroundShape"
@@ -512,6 +530,7 @@ def plotModel(w, data, fitOFOS, theConfig, pdf="model", tag="", frame=None, zPre
 	plotOFOS = ROOT.RooArgSet(w.pdf(shapeNames['Background']))
 	plotSignal = ROOT.RooArgSet(w.pdf(shapeNames['Signal']))
 	# different draw modes with and without z prediction
+	zPrediction = 0.
 	if (zPrediction > 0.0):
 		fittedZ = w.var('nZ%s'%region).getVal()
 		zSignal = fittedZ - zPrediction
@@ -553,7 +572,7 @@ def plotModel(w, data, fitOFOS, theConfig, pdf="model", tag="", frame=None, zPre
 							  ROOT.RooFit.LineWidth(2))
 		w.pdf(pdf).plotOn(frame, ROOT.RooFit.Components(plotZ),
 							  slice, projWData,
-							  ROOT.RooFit.LineStyle(ROOT.kDashed), ROOT.RooFit.LineColor(ROOT.kGreen))
+							  ROOT.RooFit.LineStyle(ROOT.kDashed), ROOT.RooFit.LineColor(ROOT.kViolet))
 
 	# plot edge signal component
 	w.pdf(pdf).plotOn(frame, ROOT.RooFit.Components(plotSignal),
@@ -676,7 +695,7 @@ def prepareLegend(useMC,zPrediction,):
 			
 	return [sl,bl]
 
-def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Central"):
+def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Central",H0=False):
 
 	sizeCanvas = 800
 	shape = theConfig.backgroundShape+theConfig.signalShape
@@ -725,19 +744,19 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	else:	
 		nLegendEntries = 5
 
-	sl = tools.myLegend(0.69, 0.92 - 0.05 * nLegendEntries, 0.92, 0.93, borderSize=0)
+	sl = tools.myLegend(0.59, 0.92 - 0.06 * nLegendEntries, 0.92, 0.93, borderSize=0)
 	sl.SetTextAlign(22)
 	if (useMC):
 		sl.AddEntry(dLeg, 'Simulation', "pl")
 	else:
-		sl.AddEntry(dLeg, 'Data', "pl")
+		sl.AddEntry(dLeg, 'Data', "pe")
 	sl.AddEntry(fitLeg, 'Fit', "l")
 
 	if (getattr(theConfig.zPredictions.SF,region.lower()).val > 0.0):
-		sl.AddEntry(sLeg, 'Edge signal', "l")
+		sl.AddEntry(sLeg, 'signal', "l")
 		zLeg.SetLineColor(ROOT.kViolet)
-		sl.AddEntry(zLeg, 'Z signal', "l")
-		sl.AddEntry(bLeg, 'Background (FS + Z)', "l")
+		sl.AddEntry(zLeg, 'Z background', "l")
+		sl.AddEntry(bLeg, 'FS background', "l")
 		#~ sl.AddEntry(oLeg, 'Off-Shell Drell-Yan', "l")
 		if theConfig.plotErrorBands:
 			sl.AddEntry(uLeg, 'OF uncertainty', "f")
@@ -825,7 +844,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	annotNSStar = ""
 	annotZpred = ""
 	if (getattr(theConfig.zPredictions.SF,region.lower()).val > 0.0):
-		annotEdge = 'fitted N_{S}^{edge} = %.1f #pm %.1f' % (nSignal, nSignalError)
+		annotEdge = 'N_{Signal} = %.1f #pm %.1f' % (nSignal, nSignalError)
 		if theConfig.runMinos:
 			nSignalError = max(ws.var('nSig%s'%region).getError(),max(abs(ws.var('nSig%s'%region).getAsymErrorHi()),abs(ws.var('nSig%s'%region).getAsymErrorLo())))
 			annotEdge = 'fitted N_{S}^{edge} = %.1f #pm %.1f' % (nSignal, nSignalError)
@@ -841,7 +860,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 		annotZpred = "N_{pred}^{Z} = %.1f #pm %.1f" % (getattr(theConfig.zPredictions.SF,region.lower()).val , getattr(theConfig.zPredictions.SF,region.lower()).err)
 
 
-	note2 = "m_{ll} > 20, m^{edge}_{ll} = %.1f #pm %.1f"
+	note2 = "m^{edge}_{ll} = %.1f #pm %.1f GeV"
 	note2 = note2%(ws.var("m0").getVal(),ws.var("m0").getError())
 	
 
@@ -849,12 +868,15 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	ofosName = '%s/fit2012OFOS_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
 	eeName = '%s/fit2012EE_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
 	mmName = '%s/fit2012MM_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
-
-	
+	if H0:
+		sfosName = '%s/fit2012_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
+		ofosName = '%s/fit2012OFOS_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
+		eeName = '%s/fit2012EE_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
+		mmName = '%s/fit2012MM_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)	
 
 	# determine y axis range
 	#~ yMaximum = 1.2 * max(frameOFOS.GetMaximum(), frameSFOS.GetMaximum())
-	yMaximum = 200
+	yMaximum = 220
 	if (theConfig.plotYMax > 0.0):
 		yMaximum = theConfig.plotYMax
 
@@ -872,7 +894,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	frameOFOS = ws.var('inv').frame(ROOT.RooFit.Title('Invariant mass of e#mu lepton pairs'))
 	frameOFOS = plotModel(ws, data_obs, fitOFOS, theConfig, pdf="combModel", tag="%sOFOS" % title, frame=frameOFOS, zPrediction=0.0,
 						slice=slice, projWData=projWData, cut=ROOT.RooFit.Cut("cat==cat::OFOS%s"%region),region=region)
-	
+	frameOFOS.GetYaxis().SetTitle(histoytitle)
 	cOFOS = ROOT.TCanvas("OFOS distribtution", "OFOS distribution", sizeCanvas, int(1.25 * sizeCanvas))
 	cOFOS.cd()
 	pads = formatAndDrawFrame(frameOFOS, theConfig, title="OFOS%s"%region, pdf=ws.pdf("combModel"), yMax=yMaximum,
@@ -882,7 +904,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	annotationsTitle = [
 					(0.92, 0.57, "%s" % (theConfig.selection.latex)),
 					]
-	tools.makeCMSAnnotation(0.18, 0.89, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=True)
+	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
 	if (showText):
 		tools.makeAnnotations(annotationsTitle, color=tools.myColors['Grey'], textSize=0.03, align=31)
 	bl.Draw()
@@ -919,7 +941,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 					   (0.92, 0.53, "%s" % (note2)),
 					   ]
 
-	tools.makeCMSAnnotation(0.18, 0.89, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=True)
+	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
 	if (showText):
 		tools.makeAnnotations(annotationsTitle, color=tools.myColors['Grey'], textSize=0.03, align=31)
 
@@ -954,11 +976,11 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 							  residualMode=residualMode)
 
 	annotationsTitle = [
-					   (0.92, 0.57, "%s" % (theConfig.selection.latex)),
-					   (0.92, 0.53, "%s" % (note2)),
+					   (0.92, 0.51, "%s" % (theConfig.selection.latex)),
+					   (0.92, 0.47, "%s" % (note2)),
 					   ]
 
-	tools.makeCMSAnnotation(0.18, 0.89, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=True)
+	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
 	if (showText):
 		tools.makeAnnotations(annotationsTitle, color=tools.myColors['Grey'], textSize=0.03, align=31)
 
@@ -982,22 +1004,22 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 		edgeHypothesis = ws.var('m0').getVal()
 
 	annotationsTitle = [
-					   (0.92, 0.63, "%s" % (theConfig.selection.latex)),
-					   (0.92, 0.59, "%s" % (note2)),
+					   (0.92, 0.53, "%s" % (region)),
+					   (0.92, 0.47, "%s" % (note2)),
 					   ]
 
-	tools.makeCMSAnnotation(0.18, 0.89, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=True)
+	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
 	if (showText):
-		tools.makeAnnotations(annotationsTitle, color=tools.myColors['Grey'], textSize=0.03, align=31)
+		tools.makeAnnotations(annotationsTitle, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
 	annotRangeLow = "Low Mass (20 < m_{ll} < 70):"
 	annotRangeZ = "Z Peak (81 < m_{ll} < 101):"
 	annotationsFitHeader = [
 					   (0.92, 0.55, annotRangeLow),
 					   ]
 	annotationsFit = [
-					   (0.92, 0.51, annotEdge),
+					   (0.92, 0.41, annotEdge),
 					   #~ (0.92, 0.47, annotLowMassZ),
-					   (0.92, 0.42, annotBG),
+					   #~ (0.92, 0.47, annotBG),
 					   ]
 	annotationsFitZHeader = [
 					   (0.92, 0.37, annotRangeZ),
@@ -1015,8 +1037,8 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 #~ 
 					   #~ ]
 	if (showText):
-		tools.makeAnnotations(annotationsFitHeader, color=tools.myColors['Black'], textSize=0.03, align=31)
-		tools.makeAnnotations(annotationsFit, color=tools.myColors['AnnBlue'], textSize=0.03, align=31)
+		#~ tools.makeAnnotations(annotationsFitHeader, color=tools.myColors['Black'], textSize=0.03, align=31)
+		tools.makeAnnotations(annotationsFit, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
 		#~ tools.makeAnnotations(annotationsFitZHeader, color=tools.myColors['Black'], textSize=0.03, align=31)
 		#~ tools.makeAnnotations(annotationsFitZ, color=tools.myColors['AnnBlue'], textSize=0.03, align=31)
 		#~ tools.makeAnnotations(annotationsFitZPred, color=tools.myColors['Grey'], textSize=0.03, align=31)
@@ -1106,6 +1128,10 @@ def main():
 						  help="generate and fit x toys")
 	parser.add_argument("-x", "--private", action="store_true", dest="private", default=False,
 						  help="plot is private work.")		
+	parser.add_argument("-p", "--paper", action="store_true", dest="paper", default=False,
+						  help="plot for paper without preliminary label.")		
+	parser.add_argument("-l", "--likelihoodScan", action="store_true", dest="likelihoodScan", default=False,
+						  help="produce likelihood scan vs edge position.")		
 	parser.add_argument("-w", "--write", action="store_true", dest="write", default=False,
 						  help="write results to central repository")	
 					
@@ -1117,6 +1143,7 @@ def main():
 	signalShape = args.edgeShape
 	runName =args.runRange
 	dataSetConfiguration = args.config
+	produceScan = args.likelihoodScan
 	if not args.config == "Inclusive" and not args.config == "Central" and not args.config == "Forward" and not args.config == "Combined":
 		log.logError("Dataset %s not not known, exiting" % dataSet)
 		sys.exit()
@@ -1125,6 +1152,10 @@ def main():
 	from edgeConfig import edgeConfig
 	theConfig = edgeConfig(region,backgroundShape,signalShape,runName,args.config,args.mc,args.toys)
 	
+	if args.paper:
+		theConfig.isPreliminary = False
+	if args.private:
+		theConfig.ownWork = True
 	
 	# init ROOT
 	gROOT.Reset()
@@ -1340,8 +1371,8 @@ def main():
 		maxZCentral = w.data("dataSFOSCentral").sumEntries("abs(inv-91.2) < 20")	
 		maxZForward = w.data("dataSFOSForward").sumEntries("abs(inv-91.2) < 20")
 		
-		w.factory("nZCentral[%f,0.,%f]" % (5,maxZCentral))
-		w.factory("nZForward[%f,0.,%f]" % (5,maxZForward))
+		w.factory("nZCentral[%f,0.,%f]" % (theConfig.zPredictions.SF.central.val,maxZCentral))
+		w.factory("nZForward[%f,0.,%f]" % (theConfig.zPredictions.SF.forward.val,maxZForward))
 		w.var('nZCentral').setAttribute("StoreAsymError")
 		w.var('nZForward').setAttribute("StoreAsymError")
 		
@@ -1467,9 +1498,9 @@ def main():
 		w.factory("Voigtian::zShapeSeparately(inv,zmean,zwidth,s)")		
 
 
-		w.factory("SUM::modelCentral(nSigCentral*sfosShape, nBCentral*ofosShapeCentral, nZCentral*zShapeCentral)")
-		w.factory("SUM::mEECentral(nSigEECentral*eeShape, nBEECentral*ofosShapeCentral, nZEECentral*zEEShapeCentral)")
-		w.factory("SUM::mMMCentral(nSigMMCentral*mmShape, nBMMCentral*ofosShapeCentral, nZMMCentral*zMMShapeCentral)")
+		w.factory("SUM::modelCentral(nSigCentral*sfosShapeCentral, nBCentral*ofosShapeCentral, nZCentral*zShapeCentral)")
+		w.factory("SUM::mEECentral(nSigEECentral*eeShapeCentral, nBEECentral*ofosShapeCentral, nZEECentral*zEEShapeCentral)")
+		w.factory("SUM::mMMCentral(nSigMMCentral*mmShapeCentral, nBMMCentral*ofosShapeCentral, nZMMCentral*zMMShapeCentral)")
 		
 		
 		w.factory("PROD::constraintMEECentral(mEECentral, constraintRSFOFCentral)")
@@ -1483,9 +1514,9 @@ def main():
 		w.factory("PROD::constraintMEEBgOnlyCentral( mEEBgOnlyCentral, constraintRSFOFCentral)")
 		w.factory("PROD::constraintMMMBgOnlyCentral( mMMBgOnlyCentral, constraintRSFOFCentral)")
 		
-		w.factory("SUM::modelForward(nSigForward*sfosShape, nBForward*ofosShapeForward, nZForward*zShapeForward)")
-		w.factory("SUM::mEEForward(nSigEEForward*eeShape, nBEEForward*ofosShapeForward, nZEEForward*zEEShapeForward)")
-		w.factory("SUM::mMMForward(nSigMMForward*mmShape, nBMMForward*ofosShapeForward, nZMMForward*zMMShapeForward)")
+		w.factory("SUM::modelForward(nSigForward*sfosShapeForward, nBForward*ofosShapeForward, nZForward*zShapeForward)")
+		w.factory("SUM::mEEForward(nSigEEForward*eeShapeForward, nBEEForward*ofosShapeForward, nZEEForward*zEEShapeForward)")
+		w.factory("SUM::mMMForward(nSigMMForward*mmShapeForward, nBMMForward*ofosShapeForward, nZMMForward*zMMShapeForward)")
 		
 		
 		w.factory("PROD::constraintMEEForward(mEEForward,constraintRSFOFForward)")
@@ -1567,14 +1598,14 @@ def main():
 
 		log.logHighlighted("Using capsuled fit to avoid memory problems!")
 		w.writeToFile("workspaces/workSpaceTemp_%s.root"%theConfig.title)
-		bashCommand = "./fitCapsule workspaces/workSpaceTemp_%s.root 0 0"%(theConfig.title)
+		bashCommand = "./fitCapsule workspaces/workSpaceTemp_%s.root 0 0 %s"%(theConfig.title,theConfig.title)
 		import subprocess
 		process = subprocess.Popen(bashCommand.split())
 		output = process.communicate()[0]
 		log.logHighlighted("back in main routine")
 		f = ROOT.TFile("workspaces/workSpaceTemp_%s.root_result"%theConfig.title)
 		w =  f.Get("w")
-		fitResult = w.var("fitQuality")
+		fitResult = w.var("fitQualityH0")
 		parametersToSave["minNllH0"] = w.var("minNllH0").getVal()
 		parametersToSave["nParH0"] = w.var("nParSFOSH0").getVal()
 		log.logHighlighted("Background Only Fit Convergence Quality: %d"%fitResult.getVal())
@@ -1585,10 +1616,50 @@ def main():
 		else:
 				log.logError("Fit did not converge! Do not trust this result!")		
 		
+
+		w.var('inv').setBins(theConfig.nBinsMinv)
+
+		if dataSetConfiguration == "Combined":
+			frameSFOSCentral = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
+			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.SF.central.val,region="Central")
+			frameSFOSCentral.GetYaxis().SetTitle(theConfig.histoytitle)
+			
+			plotFitResults(w,theConfig, frameSFOSCentral,frameOFOSCentral,data_obs,fitOFOSCentral,region="Central",H0=True)	
+			
+			frameSFOSForward = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
+			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.SF.forward.val,region="Forward")
+			frameSFOSForward.GetYaxis().SetTitle(theConfig.histoytitle)
+
+
+			plotFitResults(w,theConfig, frameSFOSForward,frameOFOSForward,data_obs,fitOFOSForward,region="Forward",H0=True)	
+
+		elif dataSetConfiguration == "Central":		
+			frameSFOSCentral = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
+			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.central.val,region="Central")
+			frameSFOSCentral.GetYaxis().SetTitle(theConfig.histoytitle)
+			
+			plotFitResults(w,theConfig, frameSFOSCentral,frameOFOSCentral,data_obs,fitOFOSCentral,region="Central",H0=True)	
+							
+		if dataSetConfiguration == "Forward":		
+			frameSFOSForward = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
+			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.forward.val,region="Forward")
+			frameSFOSForward.GetYaxis().SetTitle(theConfig.histoytitle)
+
+			plotFitResults(w,theConfig, frameSFOSForward,frameOFOSForward,data_obs,fitOFOSForward,region="Forward",H0=True)	
+
+
+
+
+
+
+
+
 					   
 		w.var("rSFOFCentral").setVal(theConfig.rSFOF.central.val)
 		#~ w.var("nSigCentral").setVal(100)
 		w.var("rSFOFForward").setVal(theConfig.rSFOF.forward.val)
+		w.var("nZCentral").setVal(theConfig.zPredictions.SF.central.val)
+		w.var("nZForward").setVal(theConfig.zPredictions.SF.forward.val)
 		#~ w.var("rSFOFCentral").setConstant()
 		#~ w.var("rSFOFForward").setConstant()
 		if (theConfig.edgePosition > 0):
@@ -1608,13 +1679,16 @@ def main():
 		log.logWarning("Attempting combined Fit!")
 		log.logHighlighted("Using capsuled fit to avoid memory problems!")
 		w.writeToFile("workspaces/workSpaceTemp_%s.root"%theConfig.title)
-		bashCommand = "./fitCapsule workspaces/workSpaceTemp_%s.root 0 1"%(theConfig.title)
+		if produceScan:
+			bashCommand = "./fitCapsule workspaces/workSpaceTemp_%s.root 1 1 %s"%(theConfig.title,theConfig.title)
+		else:
+			bashCommand = "./fitCapsule workspaces/workSpaceTemp_%s.root 0 1 %s"%(theConfig.title,theConfig.title)			
 		process = subprocess.Popen(bashCommand.split())
 		output = process.communicate()[0]
 		log.logHighlighted("back in main routine")
 		f = ROOT.TFile("workspaces/workSpaceTemp_%s.root_result"%theConfig.title)
 		w =  f.Get("w")
-		fitResult = w.var("fitQuality")
+		fitResult = w.var("fitQualityH1")
 		parametersToSave["minNllH1"] = w.var("minNllH1").getVal()
 		parametersToSave["nParH1"] = w.var("nParSFOSH1").getVal()
 		log.logHighlighted("Main Fit Convergence Quality: %d"%fitResult.getVal())
@@ -1627,7 +1701,7 @@ def main():
 
 		sizeCanvas = 800
 		
-		w.var('inv').setBins(theConfig.nBinsMinv)
+		
 		
 		
 
