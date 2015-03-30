@@ -1,4 +1,4 @@
 
 # DO NOT DELETE
-./shapes/RooSUSYOldBkgPdf_cxx.so: /home/jan/root/include/cintdictversion.h /home/jan/root/include/RVersion.h
-RooSUSYOldBkgPdf_cxx__ROOTBUILDVERSION= 5.34/21
+./shapes/RooSUSYOldBkgPdf_cxx.so: /usr/lib/root-5.34.25/include/cintdictversion.h /usr/lib/root-5.34.25/include/RVersion.h
+RooSUSYOldBkgPdf_cxx__ROOTBUILDVERSION= 5.34/25

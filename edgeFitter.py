@@ -1302,6 +1302,8 @@ def main():
 				theConfig.title = theConfig.title + "_" + theConfig.toyConfig["systShift"]
 			if theConfig.signalShape != "T":
 				theConfig.title = theConfig.title + "_" + signalShape
+			if theConfig.allowNegSignal:
+				theConfig.title = theConfig.title + "_" + "allowNegSignal"	
 			theConfig.title = theConfig.title + "_" + x
 				
 		else:
@@ -1361,9 +1363,12 @@ def main():
 		
 		predictedSignalYieldCentral = w.data("dataSFOSCentral").sumEntries() - 0.8*w.data("dataSFOSCentral").sumEntries()
 		predictedSignalYieldForward = w.data("dataSFOSForward").sumEntries() - 0.8*w.data("dataSFOSForward").sumEntries()
-		w.factory("nSigCentral[%f,%f,%f]" % (0.,0, 2*predictedSignalYieldCentral))
-		w.factory("nSigForward[%f,%f,%f]" % (0.,0, 2*predictedSignalYieldForward))
-
+		if theConfig.allowNegSignal:
+			w.factory("nSigCentral[%f,%f,%f]" % (0.,-2*2*predictedSignalYieldCentral, 2*predictedSignalYieldCentral))
+			w.factory("nSigForward[%f,%f,%f]" % (0.,-2*2*predictedSignalYieldForward, 2*predictedSignalYieldForward))
+		else:
+			w.factory("nSigCentral[%f,%f,%f]" % (0.,0, 2*predictedSignalYieldCentral))
+			w.factory("nSigForward[%f,%f,%f]" % (0.,0, 2*predictedSignalYieldForward))		
 		w.var('nSigCentral').setAttribute("StoreAsymError")
 		w.var('nSigForward').setAttribute("StoreAsymError")
 

@@ -173,7 +173,7 @@ class InfoHolder(object):
 	}
 
 	theMasterFile = {
-		'sw53X': "/home/jan/Doktorarbeit/Dilepton/projects/SubmitScripts/Input/Master53X.ini",
+		'sw53X':"/home/home4/institut_1b/jschulte/Doktorarbeit/Dilepton/newProjects/SubmitScripts/Input/Master53X.ini",
 	}
 
 	theXSectionUncertainty = {

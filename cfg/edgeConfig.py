@@ -9,7 +9,7 @@ from locations import locations
 class edgeConfig:
 		
 		
-		flag = "sw538v0478"
+		flag = "sw538v0477"
 		task = "cutsV23DileptonFinalTrees"
 		dataset = "Data"
 		figPath = "fig/"
@@ -19,8 +19,8 @@ class edgeConfig:
 		plotErrorBands = False	
 		year = 2012	
 		
-		edgePosition = 78
-		fixEdge = False
+		edgePosition = 70
+		fixEdge = True
 		
 		#~ edgePosition = 82.392
 		#~ fixEdge = True
@@ -34,6 +34,7 @@ class edgeConfig:
 		isSignal = False
 		runMinos = False
 		isPreliminary = True
+		allowNegSignal = True
 		ownWork = False
 		year = 2012
 		showText = True
