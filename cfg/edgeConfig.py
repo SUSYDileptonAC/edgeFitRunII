@@ -19,8 +19,8 @@ class edgeConfig:
 		plotErrorBands = False	
 		year = 2012	
 		
-		edgePosition = 70
-		fixEdge = True
+		edgePosition = 80
+		fixEdge = False
 		
 		#~ edgePosition = 82.392
 		#~ fixEdge = True
@@ -40,7 +40,7 @@ class edgeConfig:
 		showText = True
 		plotYMax = 220
 		### toy-related configuration
-		toyConfig = {"nToys":1000,"nSig":0,"m0":70,"scale":1,"systShift":"None"}
+		toyConfig = {"nToys":1000,"nSig":125,"m0":200,"scale":1,"systShift":"None"}
 
 		dataVersion = "sw53X"
 		dataSetPath = "/home/jan/Trees/sw538v0478/"

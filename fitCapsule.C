@@ -116,7 +116,7 @@ cout << "N(events) in dataset, unweighted : " << combData->numEntries() << endl;
 
 
     while(nattempts<5 && !HasConverged) {
-         result = simPdf->fitTo(*combData,"1s",RooFit::Save(),RooFit::Extended(),RooFit::Minos(UseMinos),RooFit::ExternalConstraints(RooArgSet(*constrainingR_SF_OF_C,*constrainingR_SF_OF_F)),RooFit::NumCPU(4));
+         result = simPdf->fitTo(*combData,"1s",RooFit::Save(),RooFit::Extended(),RooFit::Minos(UseMinos),RooFit::ExternalConstraints(RooArgSet(*constrainingR_SF_OF_C,*constrainingR_SF_OF_F)),RooFit::NumCPU(1));
 //          result = simPdf->fitTo(*combData,"1s",RooFit::Save(),RooFit::Extended(),RooFit::Minos(UseMinos),RooFit::NumCPU(1),RooFit::SumW2Error(useSumW2));
 
         if(result->covQual()==3) HasConverged=true;
