@@ -415,12 +415,12 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 	elif backgroundShape == "Hist":
 		log.logHighlighted("HistSubtraction activated!")
 		ws.var('inv').setBins(nBinsMinv)
-		tempDataHistCentral = ROOT.RooDataHist("dataHistOFOSCentral", "dataHistOFOSCentral", ROOT.RooArgSet(ws.var('inv')), dataOFOSCentral)
-		getattr(w, 'import')(tempDataHistCentral)
-		tempDataHistForward = ROOT.RooDataHist("dataHistOFOSForward", "dataHistOFOSForward", ROOT.RooArgSet(ws.var('inv')), dataOFOSForward)
-		getattr(w, 'import')(tempDataHistForward)
-		w.factory("RooHistPdf::ofosShape1Central(inv, dataHistOFOSCentral)")
-		w.factory("RooHistPdf::ofosShape1Forward(inv, dataHistOFOSForward)")
+		tempDataHistCentral = ROOT.RooDataHist("dataHistOFOSCentral", "dataHistOFOSCentral", ROOT.RooArgSet(ws.var('inv')), ws.data("dataOFOSCentral"))
+		getattr(ws, 'import')(tempDataHistCentral)
+		tempDataHistForward = ROOT.RooDataHist("dataHistOFOSForward", "dataHistOFOSForward", ROOT.RooArgSet(ws.var('inv')), ws.data("dataOFOSForward"))
+		getattr(ws, 'import')(tempDataHistForward)
+		ws.factory("RooHistPdf::ofosShape1Central(inv, dataHistOFOSCentral)")
+		ws.factory("RooHistPdf::ofosShape1Forward(inv, dataHistOFOSForward)")
 	else:
 		log.logHighlighted("No valid background shape selected, exiting")
 		sys.exit()
@@ -599,11 +599,15 @@ def saveFitResults(ws,theConfig,x = None,region="Central"):
 		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "minNllOFOS", parametersToSave["minNllOFOS%s"%region],basePath=theConfig.shelvePath)											
 				
 
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nSerror", max(max(abs(ws.var("nSig%s"%region).getAsymErrorHi()),abs(ws.var("nSig%s"%region).getAsymErrorLo())),ws.var('nSig%s'%region).getError()),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nSerror", ws.var('nSig%s'%region).getError(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nSerrorHi", ws.var("nSig%s"%region).getAsymErrorHi(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nSerrorLo", ws.var("nSig%s"%region).getAsymErrorLo(),basePath=theConfig.shelvePath)
 		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nZerror", ws.var('nZ%s'%region).getError(),basePath=theConfig.shelvePath)
 		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nBerror", ws.var('nB%s'%region).getError(),basePath=theConfig.shelvePath)
 		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "rSFOFerror", ws.var('rSFOF%s'%region).getError(),basePath=theConfig.shelvePath)		
 		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "m0error", ws.var('m0').getError(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "m0errorHi", ws.var('m0').getAsymErrorHi(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "m0errorLo", ws.var('m0').getAsymErrorLo(),basePath=theConfig.shelvePath)
 				
 	else:
 		title = theConfig.title.split("_%s"%x)[0]
@@ -860,7 +864,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 		annotZpred = "N_{pred}^{Z} = %.1f #pm %.1f" % (getattr(theConfig.zPredictions.SF,region.lower()).val , getattr(theConfig.zPredictions.SF,region.lower()).err)
 
 
-	note2 = "m^{edge}_{ll} = %.1f^{+%.1f}_{-%.1f} GeV"
+	note2 = "m^{edge}_{ll} = %.1f^{+%.1f}_{%.1f} GeV"
 	note2 = note2%(ws.var("m0").getVal(),ws.var("m0").getAsymErrorHi(),ws.var("m0").getAsymErrorLo())
 	
 
@@ -1364,8 +1368,8 @@ def main():
 		predictedSignalYieldCentral = w.data("dataSFOSCentral").sumEntries() - 0.8*w.data("dataSFOSCentral").sumEntries()
 		predictedSignalYieldForward = w.data("dataSFOSForward").sumEntries() - 0.8*w.data("dataSFOSForward").sumEntries()
 		if theConfig.allowNegSignal:
-			w.factory("nSigCentral[%f,%f,%f]" % (0.,-2*2*predictedSignalYieldCentral, 2*predictedSignalYieldCentral))
-			w.factory("nSigForward[%f,%f,%f]" % (0.,-2*2*predictedSignalYieldForward, 2*predictedSignalYieldForward))
+			w.factory("nSigCentral[%f,%f,%f]" % (0.,-2*predictedSignalYieldCentral, 2*predictedSignalYieldCentral))
+			w.factory("nSigForward[%f,%f,%f]" % (0.,-4*predictedSignalYieldForward, 4*predictedSignalYieldForward))
 		else:
 			w.factory("nSigCentral[%f,%f,%f]" % (0.,0, 2*predictedSignalYieldCentral))
 			w.factory("nSigForward[%f,%f,%f]" % (0.,0, 2*predictedSignalYieldForward))		
@@ -1576,7 +1580,7 @@ def main():
 									   ROOT.RooFit.Import('EECentral', w.data("dataEECentral")),
 									   ROOT.RooFit.Import('MMCentral', w.data("dataMMCentral")))
 			getattr(w, 'import')(data_obs)
-			
+			w.var("rSFOFForward").setConstant()
 
 		elif dataSetConfiguration == "Forward":
 			w.factory("SIMUL::combModelBgOnly(cat[EEForward=0,MMForward=1,OFOSForward=2], EEForward=mEEBgOnlyForward, MMForward=mMMBgOnlyForward, OFOSForward=ofosShapeForward)")
@@ -1597,6 +1601,7 @@ def main():
 									   ROOT.RooFit.Import('MMForward', w.data("dataMMForward")))
 			getattr(w, 'import')(data_obs)
 
+			w.var("rSFOFCentral").setConstant()
 
 						
 		log.logWarning("Attempting background only Fit!")
@@ -1640,14 +1645,14 @@ def main():
 
 		elif dataSetConfiguration == "Central":		
 			frameSFOSCentral = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.central.val,region="Central")
+			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.SF.central.val,region="Central")
 			frameSFOSCentral.GetYaxis().SetTitle(theConfig.histoytitle)
 			
 			plotFitResults(w,theConfig, frameSFOSCentral,frameOFOSCentral,data_obs,fitOFOSCentral,region="Central",H0=True)	
 							
 		if dataSetConfiguration == "Forward":		
 			frameSFOSForward = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.forward.val,region="Forward")
+			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.SF.forward.val,region="Forward")
 			frameSFOSForward.GetYaxis().SetTitle(theConfig.histoytitle)
 
 			plotFitResults(w,theConfig, frameSFOSForward,frameOFOSForward,data_obs,fitOFOSForward,region="Forward",H0=True)	
@@ -1746,7 +1751,7 @@ def main():
 			saveFitResults(w,theConfig,x,region="Forward")	
 		elif dataSetConfiguration == "Central":		
 			frameSFOSCentral = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.central.val,region="Central")
+			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.SF.central.val,region="Central")
 			frameSFOSCentral.GetYaxis().SetTitle(theConfig.histoytitle)
 			
 			plotFitResults(w,theConfig, frameSFOSCentral,frameOFOSCentral,data_obs,fitOFOSCentral,region="Central")	
@@ -1757,7 +1762,7 @@ def main():
 			saveFitResults(w,theConfig,x,region="Central")		
 		if dataSetConfiguration == "Forward":		
 			frameSFOSForward = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.forward.val,region="Forward")
+			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.SF.forward.val,region="Forward")
 			frameSFOSForward.GetYaxis().SetTitle(theConfig.histoytitle)
 
 			parametersToSave["chi2SFOSForward"] = frameSFOSForward.chiSquare(int(parametersToSave["nParH1"]))
