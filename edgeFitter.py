@@ -597,7 +597,7 @@ def saveFitResults(ws,theConfig,x = None,region="Central"):
 		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "minNllH0", parametersToSave["minNllH0"],basePath=theConfig.shelvePath)
 		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "minNllH1", parametersToSave["minNllH1"],basePath=theConfig.shelvePath)											
 		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "minNllOFOS", parametersToSave["minNllOFOS%s"%region],basePath=theConfig.shelvePath)											
-				
+		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "initialM0", parametersToSave["initialM0"],basePath=theConfig.shelvePath)				
 
 		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nSerror", ws.var('nSig%s'%region).getError(),basePath=theConfig.shelvePath)
 		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nSerrorHi", ws.var("nSig%s"%region).getAsymErrorHi(),basePath=theConfig.shelvePath)
@@ -623,6 +623,7 @@ def saveFitResults(ws,theConfig,x = None,region="Central"):
 		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "minNllH0", parametersToSave["minNllH0"], index = x)				
 		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "minNllH1", parametersToSave["minNllH1"], index = x)				
 		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "minNllOFOS", parametersToSave["minNllOFOS%s"%region], index = x)				
+		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "initialM0", parametersToSave["initialM0"], index = x)	
 				
 		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "nSerror", ws.var('nSig%s'%region).getError(), index = x)
 		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "nZerror", ws.var('nZ%s'%region).getError(), index = x)
@@ -1308,7 +1309,10 @@ def main():
 				theConfig.title = theConfig.title + "_" + signalShape
 			if theConfig.allowNegSignal:
 				theConfig.title = theConfig.title + "_" + "allowNegSignal"	
+			if theConfig.toyConfig["rand"]:
+				theConfig.title = theConfig.title + "_" + "randM0"				
 			theConfig.title = theConfig.title + "_" + x
+			
 				
 		else:
 			x = None		
@@ -1676,7 +1680,14 @@ def main():
 			w.var('m0').setVal(float(theConfig.edgePosition))
 			if not x == None:
 				w.var('m0').setVal(float(theConfig.toyConfig["m0"]))
-				
+				if theConfig.toyConfig["rand"]:
+
+					randomm0 = random.random()*300
+					if randomm0 < 35:
+						randomm0 = 35
+					log.logWarning("Warning! Randomized initial value of m0 = %.1f"%randomm0)
+
+					w.var('m0').setVal(float(randomm0))					
 			if (theConfig.fixEdge):
 				w.var('m0').setConstant(ROOT.kTRUE)
 			else:
@@ -1701,6 +1712,9 @@ def main():
 		fitResult = w.var("fitQualityH1")
 		parametersToSave["minNllH1"] = w.var("minNllH1").getVal()
 		parametersToSave["nParH1"] = w.var("nParSFOSH1").getVal()
+		parametersToSave["initialM0"] = theConfig.edgePosition
+		if theConfig.toyConfig["rand"]:
+			parametersToSave["initialM0"] = randomm0
 		log.logHighlighted("Main Fit Convergence Quality: %d"%fitResult.getVal())
 
 		if fitResult == 3:

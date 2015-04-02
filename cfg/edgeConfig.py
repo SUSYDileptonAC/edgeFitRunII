@@ -40,7 +40,7 @@ class edgeConfig:
 		showText = True
 		plotYMax = 220
 		### toy-related configuration
-		toyConfig = {"nToys":1000,"nSig":125,"m0":200,"scale":1,"systShift":"None"}
+		toyConfig = {"nToys":1000,"nSig":125,"m0":70,"scale":1,"systShift":"None","rand":True}
 
 		dataVersion = "sw53X"
 		dataSetPath = "/home/jan/Trees/sw538v0478/"
