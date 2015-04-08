@@ -148,6 +148,7 @@ class InfoHolder(object):
 
 	
 				'TTJets': ["TTJets_madgraph_Summer12"],
+				'TTJetsPowheg': ["TT_Powheg_Summer12_v1"],
 				'TTJetsSC': ["TTJets_MGDecays_madgraph_Summer12"],
 				'SingleTop': ["TBar_sChannel_Powheg_Summer12","TBar_tChannel_Powheg_Summer12","TBar_tWChannel_Powheg_Summer12","TBar_sChannel_Powheg_Summer12","TBar_tChannel_Powheg_Summer12","TBar_tWChannel_Powheg_Summer12"],
 				'ZJets' : ["ZJets_madgraph_Summer12", "AStar_madgraph_Summer12"],
@@ -159,7 +160,10 @@ class InfoHolder(object):
 				'DibosonMadgraphWW' : ["WWJetsTo2L2Nu_madgraph_Summer12"],
 				'DibosonMadgraphWZ' : ["WZJetsTo3LNu_madgraph_Summer12", "WZJetsTo2L2Q_madgraph_Summer12"],
 				'DibosonMadgraphZZ' : ["ZZJetsTo2L2Nu_madgraph_Summer12", "ZZJetsTo2L2Q_madgraph_Summer12", "ZZJetsTo4L_madgraph_Summer12"],
-				'CMSSM_4610_202': ["SUSY_CMSSM_4640_202_Summer12"],
+				'edge_400_150_80': ["SUSY_Simplified_Model_Madgraph_FastSim_T6bblledge_400_150_80_8TeV"],
+				'slepton_550_275_100': ["SUSY_Simplified_Model_Madgraph_FastSim_T6bbslepton_550_275_100_8TeV"],
+				'slepton_450_275_100': ["SUSY_Simplified_Model_Madgraph_FastSim_T6bbslepton_450_275_100_8TeV"],
+				'slepton_550_175_100': ["SUSY_Simplified_Model_Madgraph_FastSim_T6bbslepton_550_175_100_8TeV"],
 				},
 }
 
@@ -173,7 +177,7 @@ class InfoHolder(object):
 	}
 
 	theMasterFile = {
-		'sw53X':"/home/home4/institut_1b/jschulte/Doktorarbeit/Dilepton/newProjects/SubmitScripts/Input/Master53X.ini",
+		'sw53X':"/home/jan/Doktorarbeit/Dilepton/projects/SubmitScripts/Input/Master53X.ini",
 	}
 
 	theXSectionUncertainty = {

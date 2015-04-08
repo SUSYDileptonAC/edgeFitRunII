@@ -40,7 +40,7 @@ def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,r
 	tmpAddEE = None
 	tmpAddMM = None
 	tmpAddOFOS = None
-	if (addDataset != None and addTrees != None):
+	if (addDataset != None and len(addTrees) > 0):
 		tmpAddEE = ROOT.RooDataSet("tmpAddEE", "tmpAddEE", vars, ROOT.RooFit.Import(addTrees["EE"]), ROOT.RooFit.WeightVar("weight"))
 		tmpAddMM = ROOT.RooDataSet("tmpAddMM", "tmpAddMM", vars, ROOT.RooFit.Import(addTrees["MM"]), ROOT.RooFit.WeightVar("weight"))
 		tmpAddOFOS = ROOT.RooDataSet("tmpAddOFOS", "tmpAddOFOS", vars, ROOT.RooFit.Import(addTrees["OFOS"]), ROOT.RooFit.WeightVar("weight"))
@@ -133,16 +133,28 @@ def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,r
 		wToys.var('sigFrac').setConstant(ROOT.kTRUE)	
 		if theConfig.toyConfig["nSig"] > 0:
 			log.logHighlighted("Dicing %d Signal Events at %.1f GeV edge position"%(theConfig.toyConfig["nSig"],theConfig.toyConfig["m0"]))
+
+
 			
 			wToys.var('m0').setVal(theConfig.toyConfig["m0"])
-			if theConfig.signalShape == "Concave":
-				log.logHighlighted("Dicing concave signal shape")				
-			elif theConfig.signalShape == "Convex":
-				log.logHighlighted("Dicing convex signal shape")			
+			if theConfig.toyConfig["sShape"] == "Concave":
+				log.logHighlighted("Dicing concave signal shape")
+				wToys.factory("SUSYX4Pdf::eeShape%sForToys(inv,const,sEECentral,m0)"%region)
+				wToys.factory("SUSYX4Pdf::mmShape%sForToys(inv,const,sMMCentral,m0)"%region)		
+				wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s, sigFrac*eeShape%sForToys)"%(region,region,region))
+				wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s, sigFrac*mmShape%sForToys)"%(region,region,region))
+								
+			elif theConfig.toyConfig["sShape"] == "Convex":
+				log.logHighlighted("Dicing convex signal shape")
+				wToys.factory("SUSYXM4Pdf::eeShape%sForToys(inv,const,sEECentral,m0)"%region)
+				wToys.factory("SUSYXM4Pdf::mmShape%sForToys(inv,const,sMMCentral,m0)"%region)		
+				wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s, sigFrac*eeShape%sForToys)"%(region,region,region))
+				wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s, sigFrac*mmShape%sForToys)"%(region,region,region))
+							
 			else:
 				log.logHighlighted("Dicing triangular signal shape")	
-			wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s, sigFrac*eeShape%s)"%(region,region,region))
-			wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s, sigFrac*mmShape%s)"%(region,region,region))
+				wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s, sigFrac*eeShape%s)"%(region,region,region))
+				wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s, sigFrac*mmShape%s)"%(region,region,region))
 		else:
 			wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s)"%(region,region))
 			wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s)"%(region,region))						
@@ -608,6 +620,33 @@ def saveFitResults(ws,theConfig,x = None,region="Central"):
 		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "m0error", ws.var('m0').getError(),basePath=theConfig.shelvePath)
 		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "m0errorHi", ws.var('m0').getAsymErrorHi(),basePath=theConfig.shelvePath)
 		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "m0errorLo", ws.var('m0').getAsymErrorLo(),basePath=theConfig.shelvePath)
+		
+		
+		ws.var("inv").setRange("fullRange",20,300)
+		ws.var("inv").setRange("lowMass",20,70)
+		argSet = ROOT.RooArgSet(ws.var("inv"))
+		
+		fittedZInt = ws.pdf("zShape%s"%region).createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("zPeak"))
+		fittedZ = fittedZInt.getVal()*ws.var("nZ%s"%region).getVal()
+		
+		fittedLowMassZInt = ws.pdf("zShape%s"%region).createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("lowMass"))
+		fittedLowMassZ = fittedLowMassZInt.getVal()*ws.var("nZ%s"%region).getVal()
+		
+		fittedLowMassSInt = ws.pdf("sfosShape%s"%region).createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("lowMass"))
+		fittedLowMassS = fittedLowMassSInt.getVal()*ws.var("nSig%s"%region).getVal()
+		
+		fittedLowMassBInt = ws.pdf("ofosShape%s"%region).createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("lowMass"))
+		fittedLowMassB = fittedLowMassBInt.getVal()*ws.var("nB%s"%region).getVal()*ws.var("rSFOF%s"%region).getVal()
+
+		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "onZZYield",fittedZ,basePath=theConfig.shelvePath)				
+		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "lowMassZYield",fittedLowMassZ,basePath=theConfig.shelvePath)				
+		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "lowMassSYield",fittedLowMassS,basePath=theConfig.shelvePath)				
+		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "lowMassBYield",fittedLowMassB,basePath=theConfig.shelvePath)				
+
+		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "onZZYielderror",fittedZInt.getVal()*ws.var("nZ%s"%region).getError(),basePath=theConfig.shelvePath)				
+		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "lowMassZYielderror",fittedLowMassZInt.getVal()*ws.var("nZ%s"%region).getError(),basePath=theConfig.shelvePath)				
+		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "lowMassSYielderror",fittedLowMassSInt.getVal()*ws.var("nSig%s"%region).getError(),basePath=theConfig.shelvePath)				
+		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "lowMassBYielderror",fittedLowMassBInt.getVal()*ws.var("nB%s"%region).getError(),basePath=theConfig.shelvePath)				
 				
 	else:
 		title = theConfig.title.split("_%s"%x)[0]
@@ -864,9 +903,12 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 		#~ annotZ = "N_{S}^{Z} = %.1f #pm %.1f" % (nsZ, nsZError)
 		annotZpred = "N_{pred}^{Z} = %.1f #pm %.1f" % (getattr(theConfig.zPredictions.SF,region.lower()).val , getattr(theConfig.zPredictions.SF,region.lower()).err)
 
-
-	note2 = "m^{edge}_{ll} = %.1f^{+%.1f}_{%.1f} GeV"
-	note2 = note2%(ws.var("m0").getVal(),ws.var("m0").getAsymErrorHi(),ws.var("m0").getAsymErrorLo())
+	if theConfig.plotAsymErrs:
+		note2 = "m^{edge}_{ll} = %.1f^{+%.1f}_{%.1f} GeV"
+		note2 = note2%(ws.var("m0").getVal(),ws.var("m0").getAsymErrorHi(),ws.var("m0").getAsymErrorLo())
+	else:
+		note2 = "m^{edge}_{ll} = %.1f #pm %.1f GeV"
+		note2 = note2%(ws.var("m0").getVal(),ws.var("m0").getError())
 	
 
 	sfosName = '%s/fit2012_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
@@ -1131,6 +1173,8 @@ def main():
 						  help="dataset configuration, default Combined")
 	parser.add_argument("-t", "--toys", dest="toys", action="store", default=0,
 						  help="generate and fit x toys")
+	parser.add_argument("-a", "--addSignal", action="store", dest="addSignal", default="",
+						  help="add signal MC.")		
 	parser.add_argument("-x", "--private", action="store_true", dest="private", default=False,
 						  help="plot is private work.")		
 	parser.add_argument("-p", "--paper", action="store_true", dest="paper", default=False,
@@ -1155,7 +1199,7 @@ def main():
 	useExistingDataset = args.useExisting
 		
 	from edgeConfig import edgeConfig
-	theConfig = edgeConfig(region,backgroundShape,signalShape,runName,args.config,args.mc,args.toys)
+	theConfig = edgeConfig(region,backgroundShape,signalShape,runName,args.config,args.mc,args.toys,args.addSignal)
 	
 	if args.paper:
 		theConfig.isPreliminary = False
@@ -1219,34 +1263,41 @@ def main():
 			treeEEForward = dataInterface.DataInterface.convertDileptonTree(treeEEraw)
 			treeMMForward = dataInterface.DataInterface.convertDileptonTree(treeMMraw)
 		if (theConfig.addDataset != None):
-			treeAddOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut)
-			treeAddEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut)
-			treeAddMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut)
+			treeAddOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
+			treeAddEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
+			treeAddMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
 		
 
 			xsection = 0.0
 			nTotal = 1.0
-			scale = xsection * theConfig.luminosity / nTotal
+			scale = xsection * theConfig.runRange.lumi / nTotal
 
 
 			# dynamic scaling
-			jobs = dataInterface.InfotheConfig.theDataSamples[theConfig.dataVersion][theConfig.addDataset]
+			jobs = dataInterface.InfoHolder.theDataSamples[theConfig.dataVersion][theConfig.addDataset]
 			if (len(jobs) > 1):
 				log.logError("Scaling of added MC samples not implemented. MC yield is wrong!")
 			for job in jobs:
 				dynNTotal = theDataInterface.getEventCount(job, theConfig.flag, theConfig.task)
 				dynXsection = theDataInterface.getCrossSection(job)
-				dynScale = dynXsection * theConfig.luminosity / dynNTotal
+				dynScale = dynXsection * theConfig.runRange.lumi / dynNTotal
 				scale = dynScale
 
 
 			log.logHighlighted("Scaling added dataset (%s) with %f (dynamic)" % (theConfig.addDataset, scale))
 
 			# convert trees
-			treeAddOFOS = dataInterface.dataInterface.convertDileptonTree(treeAddOFOSraw, weight=scale)
-			treeAddEE = dataInterface.dataInterface.convertDileptonTree(treeAddEEraw, weight=scale)
-			treeAddMM = dataInterface.dataInterface.convertDileptonTree(treeAddMMraw, weight=scale)
+			treeAddOFOSCentral = dataInterface.DataInterface.convertDileptonTree(treeAddOFOSraw, weight=scale)
+			treeAddEECentral = dataInterface.DataInterface.convertDileptonTree(treeAddEEraw, weight=scale)
+			treeAddMMCentral = dataInterface.DataInterface.convertDileptonTree(treeAddMMraw, weight=scale)
+			
+			treeAddOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
+			treeAddEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
+			treeAddMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
 
+			treeAddOFOSForward = dataInterface.DataInterface.convertDileptonTree(treeAddOFOSraw, weight=scale)
+			treeAddEEForward = dataInterface.DataInterface.convertDileptonTree(treeAddEEraw, weight=scale)
+			treeAddMMForward = dataInterface.DataInterface.convertDileptonTree(treeAddMMraw, weight=scale)
 
 
 		treesCentral = {"EE":treeEECentral,"MM":treeMMCentral,"OFOS":treeOFOSCentral}
@@ -1290,7 +1341,7 @@ def main():
 	if theConfig.useMC:
 		theConfig.title = theConfig.title+"_MC"
  	if theConfig.isSignal:
-		theConfig.title = theConfig.title+"_SignalInjected"   	
+		theConfig.title = theConfig.title+"_SignalInjected_"+theConfig.signalDataSets[0]   	
 					
 	titleSave = theConfig.title	
 	
@@ -1307,6 +1358,8 @@ def main():
 				theConfig.title = theConfig.title + "_" + theConfig.toyConfig["systShift"]
 			if theConfig.signalShape != "T":
 				theConfig.title = theConfig.title + "_" + signalShape
+			if theConfig.toyConfig["sShape"] != "Triangular":
+				theConfig.title = theConfig.title + "_" + theConfig.toyConfig["sShape"]
 			if theConfig.allowNegSignal:
 				theConfig.title = theConfig.title + "_" + "allowNegSignal"	
 			if theConfig.toyConfig["rand"]:
@@ -1358,7 +1411,40 @@ def main():
 				f = ROOT.TFile("workspaces/saveDataSet_%s_MC.root"%theConfig.selection.name)
 			else:
 				f = ROOT.TFile("workspaces/saveDataSet_%s_Data.root"%theConfig.selection.name)
-			w =  f.Get("w")			
+			w = f.Get("w")
+			w.Print()			
+			
+			if len(theConfig.signalDataSets) > 0:
+				(treeOFOSCentralSignal, treeEECentralSignal, treeMMCentralSignal) = tools.getTrees(theConfig, theConfig.signalDataSets,central=True)
+				(treeOFOSForwardSignal, treeEEForwardSignal, treeMMForwardSignal) = tools.getTrees(theConfig, theConfig.signalDataSets,central=False)
+			
+				signalTreesCentral = {"EE":treeEECentralSignal,"MM":treeMMCentralSignal,"OFOS":treeOFOSCentralSignal}
+				addSignalTreesCentral = {}
+				signalTreesForward = {"EE":treeEEForwardSignal,"MM":treeMMForwardSignal,"OFOS":treeOFOSForwardSignal}
+				addSignalTreesForward = {}				
+										
+				typeName = "signalCentral"
+				dataSetsCentral = prepareDatasets(w.var("inv"),w.var('weight'),signalTreesCentral,addSignalTreesCentral,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.central.val,theConfig.rSFOF.central.err,False,theConfig,region="Central")
+				typeName = "signalForward"
+				dataSetsForward = prepareDatasets(w.var("inv"),w.var('weight'),signalTreesForward,addSignalTreesForward,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.forward.val,theConfig.rSFOF.forward.err,False,theConfig,region="Forward")
+
+				#~ print w.data("dataEECentral")
+				#~ data = w.data("dataCentralEE").Clone("test")
+				#~ data.__class__ = ROOT.RooDataSet
+				#~ print dataSetsCentral
+				#~ print dataSetsCentral[0]["EE"]
+				#~ data.append(dataSetsCentral[0]["EE"])
+				
+				w.data("dataEECentral").append(dataSetsCentral[index]["EE"].Clone("signalEECentral"))
+				w.data("dataMMCentral").append(dataSetsCentral[index]["MM"].Clone("signalMMCentral"))
+				w.data("dataOFOSCentral").append(dataSetsCentral[index]["OFOS"].Clone("signalOFOSCentral"))
+				w.data("dataSFOSCentral").append(dataSetsCentral[index]["SFOS"].Clone("signalSFOSCentral"))
+				
+				w.data("dataEEForward").append(dataSetsForward[index]["EE"].Clone("signalEEForward"))
+				w.data("dataMMForward").append(dataSetsForward[index]["MM"].Clone("signalMMForward"))
+				w.data("dataOFOSForward").append(dataSetsForward[index]["OFOS"].Clone("signalOFOSForward"))
+				w.data("dataSFOSForward").append(dataSetsForward[index]["SFOS"].Clone("signalSFOSForward"))
+
 			
 		vars = ROOT.RooArgSet(w.var('inv'), w.var('weight'))
 		selectShapes(w,theConfig.backgroundShape,theConfig.signalShape,theConfig.nBinsMinv)
