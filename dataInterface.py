@@ -165,6 +165,11 @@ class InfoHolder(object):
 				'slepton_450_275_100': ["SUSY_Simplified_Model_Madgraph_FastSim_T6bbslepton_450_275_100_8TeV"],
 				'slepton_550_175_100': ["SUSY_Simplified_Model_Madgraph_FastSim_T6bbslepton_550_175_100_8TeV"],
 				},
+			'sw7X': {
+				'Data': ["MergedData"],				
+				'TTJets': ["TTJets_MSDecaysCKM_central_Tune4C_13TeV_madgraph_tauola_Phys14DR_PU20BX25_miniAOD"],
+				},				
+				
 }
 
 	theSampleDescriptions = {
@@ -178,6 +183,7 @@ class InfoHolder(object):
 
 	theMasterFile = {
 		'sw53X':"/home/jan/Doktorarbeit/Dilepton/projects/SubmitScripts/Input/Master53X.ini",
+		'sw7X':"/home/jan/Doktorarbeit/Dilepton/projects/runII/SubmitScripts/Input/Master70X.ini",
 	}
 
 	theXSectionUncertainty = {

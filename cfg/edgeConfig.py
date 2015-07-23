@@ -9,8 +9,8 @@ from locations import locations
 class edgeConfig:
 		
 		
-		flag = "sw538v0477"
-		task = "cutsV23DileptonFinalTrees"
+		flag = "miniAODMiniIsoPFWeightsTrees"
+		task = "cutsV24DileptonMiniAODFinalTrees"
 		dataset = "Data"
 		figPath = "fig/"
 		shelvePath = "shelves/"
@@ -29,29 +29,31 @@ class edgeConfig:
 		histoytitle = "None"
 		
 		useMC = True
-		mcdatasets = ["TTJets", "ZJets"]
+		mcdatasets = ["TTJets"]
+		signalDataSets = []
 		addDataset = None
 		isSignal = False
 		runMinos = False
+		plotAsymErrs = True		
 		isPreliminary = True
 		allowNegSignal = True
 		ownWork = False
-		year = 2012
+		year = 2015
 		showText = True
-		plotYMax = 220
+		plotYMax = 800
 		### toy-related configuration
-		toyConfig = {"nToys":1000,"nSig":125,"m0":70,"scale":1,"systShift":"None","rand":True}
+		toyConfig = {"nToys":1000,"nSig":125,"m0":70,"scale":1,"systShift":"None","rand":False}
 
-		dataVersion = "sw53X"
-		dataSetPath = "/home/jan/Trees/sw538v0478/"
+		dataVersion = "sw7X"
+		dataSetPath = "/home/jan/Trees/13TeV/"
 		
-		maxInv = 300
+		maxInv = 500
 		minInv = 20
-		plotMaxInv = 300
+		plotMaxInv = 500
 		plotMinInv = 20
-		nBinsMinv = 56
+		nBinsMinv = 96
 		
-		def __init__(self,region="SignalInclusive",backgroundShape="ETH",signalShape="T",runName = "Full2012",dataSet="Combined",useMC=False,toys=0):
+		def __init__(self,region="SignalInclusive",backgroundShape="ETH",signalShape="T",runName = "Full2012",dataSet="Combined",useMC=False,toys=0,addSignal=""):
 			sys.path.append(pathes.basePath)
 			
 			self.dataSetPath = locations.dataSetPath
@@ -90,3 +92,8 @@ class edgeConfig:
 			
 			if toys > 0:
 				self.useMC = True
+				
+			if addSignal is not "":
+				self.signalDataSets.append(addSignal)
+				self.isSignal = True
+				self.addDataset = addSignal

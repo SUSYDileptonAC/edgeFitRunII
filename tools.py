@@ -214,6 +214,8 @@ def makeCMSAnnotation(xPos, yPos, luminosity, mcOnly=False, preliminary=True, ye
 			energy = 7
 		elif (year == 2012):
 			energy = 8
+		elif (year == 2015):
+			energy = 13
 
 		color = kBlack
 

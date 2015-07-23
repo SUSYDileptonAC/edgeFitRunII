@@ -55,7 +55,8 @@
    // ENTER EXPRESSION IN TERMS OF VARIABLE ARGUMENTS HERE 
    //~ return TMath::Power((inv+c2),a1)*TMath::Exp(-b1*TMath::Max((inv+c1),0.));//+TMath::Power(inv,a2)*TMath::Exp(-b2*inv); 
    //~ return TMath::Power((inv+c2),a1+a2*inv)*TMath::Exp(-b1*(inv+c1));//+TMath::Power(inv,a2)*TMath::Exp(-b2*inv); 
-   return TMath::Power(inv,a1)*TMath::Exp(-b1*inv);//+TMath::Power(inv,a2)*TMath::Exp(-b2*inv); 
+   return TMath::Power(inv/2,a1)*TMath::Exp(-b1*inv);//+TMath::Power(inv,a2)*TMath::Exp(-b2*inv); 
+   //~ return TMath::Power(TMath::Log(inv),a1)*TMath::Exp(-b1*TMath::Log(inv)); slighly better
    //~ return TMath::Power(inv,a1)*TMath::Exp(-b1*inv)+TMath::Gaus((inv - a2), a2, b2); 
  } 
 
