@@ -19,6 +19,26 @@ import random
 parametersToSave  = {}
 rootContainer = []
 
+def createHistoFromTree(tree, variable, weight, nBins, firstBin, lastBin, nEvents = -1):
+	"""
+	tree: tree to create histo from)
+	variable: variable to plot (must be a branch of the tree)
+	weight: weights to apply (e.g. "var1*(var2 > 15)" will use weights from var1 and cut on var2 > 15
+	nBins, firstBin, lastBin: number of bins, first bin and last bin (same as in TH1F constructor)
+	nEvents: number of events to process (-1 = all)
+	"""
+	from ROOT import TH1F
+	from random import randint
+	from sys import maxint
+	if nEvents < 0:
+		nEvents = maxint
+	#make a random name you could give something meaningfull here,
+	#but that would make this less readable
+	name = "%x"%(randint(0, maxint))
+	result = TH1F(name, "", nBins, firstBin, lastBin)
+	result.Sumw2()
+	tree.Draw("%s>>%s"%(variable, name), weight, "goff", nEvents)
+	return result
 
 
 
@@ -65,6 +85,14 @@ def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,r
 							   vars, ROOT.RooFit.WeightVar('weight'), ROOT.RooFit.Import(tmpSFOS))
 	dataOFOS = ROOT.RooDataSet("%sOFOS" % (typeName), "Dataset with invariant mass of OFOS lepton pairs",
 							   vars, ROOT.RooFit.WeightVar('weight'), ROOT.RooFit.Import(tmpOFOS))
+
+	
+	histOFOS = createHistoFromTree(trees["OFOS"],"inv","weight",(theConfig.maxInv - theConfig.minInv) / 5,theConfig.minInv,theConfig.maxInv)
+	histEE = createHistoFromTree(trees["EE"],"inv","weight",(theConfig.maxInv - theConfig.minInv) / 5,theConfig.minInv,theConfig.maxInv)
+	histMM = createHistoFromTree(trees["MM"],"inv","weight",(theConfig.maxInv - theConfig.minInv) / 5,theConfig.minInv,theConfig.maxInv)
+	
+	histSFOS = histEE.Clone()
+	histSFOS.Add(histMM)
 
 	
 
@@ -186,7 +214,7 @@ def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,r
 		result = genToys2013(wToys,theConfig.toyConfig["nToys"],genNumEE,genNumMM,int(tmpNumOFOS),region)
 		
 	else:
-		result = [{"EE":dataEE,"MM":dataMM,"SFOS":dataSFOS,"OFOS":dataOFOS}]		
+		result = [{"EE":dataEE,"MM":dataMM,"SFOS":dataSFOS,"OFOS":dataOFOS,"EEHist":histEE,"MMHist":histMM,"SFOSHist":histSFOS,"OFOSHist":histOFOS}]		
 		
 	return result	
 
@@ -369,9 +397,6 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 		ws.factory("Landau::ofosShape1Forward(inv,a1Forward[30,0,100],b1Forward[20,0,100])")
 	elif backgroundShape == 'CH':
 		log.logHighlighted("Using Chebychev")
-		#~ ws.factory("Chebychev::ofosShape1Central(inv,{a1Central[0,-2,2],b1Central[0,-100,100],c1Central[0,-100,100],d1Central[0,-100,100],e1Central[0,-100,100],f1Central[0,-100,100],g1Central[0,-100,100]})")
-		#~ ws.factory("Chebychev::ofosShape1Forward(inv,{a1Forward[0,-2,2],b1Forward[0,-100,100],c1Forward[0,-100,100],d1Forward[0,-100,100],e1Forward[0,-100,100],f1Forward[0,-100,100],g1Forward[0,-100,100]})")
-		#~ 
 		#works!
 		#~ ws.factory("Chebychev::ofosShape1Central(inv,{a1Central[0,-2,2],b1Central[0,-2,2],c1Central[0,-1,1],d1Central[0,-1,1],e1Central[0,-1,1],f1Central[0,-1,1]})")
 		#~ ws.factory("Chebychev::ofosShape1Forward(inv,{a1Forward[0,-2,2],b1Forward[0,-2,2],c1Forward[0,-1,1],d1Forward[0,-1,1],e1Forward[0,-1,1],f1Forward[0,-1,1]})")
@@ -384,6 +409,17 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 		#~ ws.factory("PROD::ofosShape1Forward(chebyForward, expForward)")
 		ws.Print()
 		
+	elif backgroundShape == 'CB':
+		log.logHighlighted("Using crystall ball shape")
+		ws.factory("CBShape::ofosShape1Central(inv,cbMeanCentral[50.,0.,200.],cbSigmaCentral[20.,0.,100.],alphaCentral[-1,-10.,0.],nCentral[1.,0.,20.])")
+		ws.factory("CBShape::ofosShape1Forward(inv,cbMeanForward[50.,0.,200.],cbSigmaForward[20.,0.,100.],alphaForward[-1,-10.,0.],nForward[1.,0.,20.])")
+					
+	elif backgroundShape == 'DSCB':
+		log.logHighlighted("Using double sided crystall ball shape")
+		ws.factory("DoubleCB::ofosShape1Central(inv,cbMeanCentral[50.,0.,200.],cbSigmaCentral[20.,0.,100.],alphaLCentral[5.],nLCentral[1.],alphaRCentral[1.,0.,10.],nRCentral[1.,0.,100.])")
+		ws.factory("DoubleCB::ofosShape1Forward(inv,cbMeanForward[50.,0.,200.],cbSigmaForward[20.,0.,100.],alphaLForward[5.],nLForward[1.],alphaRForward[1.,0.,10.],nRForward[1.,0.,100.])")
+					
+		
 	elif backgroundShape == 'B':
 		log.logHighlighted("Using BH shape")
 		ws.factory("SUSYBkgBHPdf::ofosShape1Central(inv,a1Central[1.],a2Central[1,0,400],a3Central[1,0,100],a4Central[0.1,-2,2])")
@@ -394,13 +430,23 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 		#~ ws.factory("PROD::ofosShape1Forward(chebyForward, expForward)")				
 	elif backgroundShape == 'B2':
 		log.logHighlighted("Using BH2 shape")
-		ws.factory("SUSYBkgBH2Pdf::ofosShape1Central(inv,a1Central[1.],a2Central[1,0,400],a3Central[1,0,100],a4Central[-0.1,0,2])")
-		ws.factory("SUSYBkgBH2Pdf::ofosShape1Forward(inv,a1Forward[1.],a2Forward[1,0,200],a3Forward[1,0,100],a4Forward[-0.1,0,2])")
+		ws.factory("SUSYBkgBH2Pdf::ofosShape1Central(inv,a1Central[1.],a2Central[1,0,400],a3Central[1,0,100],a4Central[0.1,0,2])")
+		ws.factory("SUSYBkgBH2Pdf::ofosShape1Forward(inv,a1Forward[1.],a2Forward[1,0,200],a3Forward[1,0,100],a4Forward[0.1,0,2])")
 		#~ ws.factory("Exponential::expCentral(inv,cContinuum[-0.2,-10,0])")
 		#~ ws.factory("Exponential::expForward(inv,fContinuum[-0.2,-10,0])")		
 		#~ ws.factory("PROD::ofosShape1Central(chebyCentral, expCentral)")
 		#~ ws.factory("PROD::ofosShape1Forward(chebyForward, expForward)")				
 		
+	#~ elif backgroundShape == 'MD':
+		#~ log.logHighlighted("Using old shape")
+		#~ ws.factory("SUSYBkgPdf::ofosShape1Central(inv,a1Central[1.0,0.,100.],a2Central[1.],b1Central[0.001,0.00001,100.],b2Central[0.001,0.000001,100.])") 
+		#~ ws.factory("SUSYBkgPdf::ofosShape1Forward(inv,a1Forward[1.0,0.,100.],a2Forward[1.],b1Forward[0.001,0.00001,100.],b2Forward[0.001,0.000001,100.])") 
+#~ 
+	elif backgroundShape == 'MD':
+		log.logHighlighted("Using old shape")
+		ws.factory("EXPR::ofosShape1Central('TMath::Power(inv,a1Central)*TMath::Exp(-b1Central*inv-b2Central*TMath::Power(inv,2))',inv,a1Central[1.0,0.,100.],b1Central[0.001,0.00001,100.],b2Central[0.001,0.000001,100.])") 
+		ws.factory("EXPR::ofosShape1Forward('TMath::Power(inv,a1Forward)*TMath::Exp(-b1Forward*inv-b2Forward*TMath::Power(inv,2))',inv,a1Forward[1.0,0.,100.],b1Forward[0.001,0.00001,100.],b2Forward[0.001,0.000001,100.])") 
+
 	elif backgroundShape == 'G':
 		log.logHighlighted("Using old shape")
 		ws.factory("SUSYBkgPdf::ofosShape1Central(inv,a1Central[1.6.,0.,8.],a2Central[0.1,-1.,1.],b1Central[0.028,0.001,1.],b2Central[1.],c1Central[0.],c2Central[1.])") #trying to get rid of paramteres
@@ -419,18 +465,13 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 		ws.factory("SUSYBkgMoreParamsPdf::ofosShape1Central(inv,a1Central[1.0,0.,400.],b1Central[1,0.00001,100.],c1Central[0.,-20.,30.])")
 		ws.factory("SUSYBkgMoreParamsPdf::ofosShape1Forward(inv,a1Forward[1.0,0.0,400.],b1Forward[1,0.00001,100.],c1Forward[0.,-20.,30.])")	
 
-	elif backgroundShape == 'MA':
-		log.logHighlighted("Using Marco-Andreas shape")				
-		#~ ws.factory("SUSYBkgMAPdf::ofosShape1Central(inv,b1Central[-2000,-8000,8000],b2Central[120.,-800,800],b3Central[-1.,-5,5.],b4Central[0.01,0.0001,0.1], m1Central[50,30,80],m2Central[120,100,160])") #
-		#~ ws.factory("SUSYBkgMAPdf::ofosShape1Forward(inv,b1Forward[-3300,-5000,5000],b2Forward[120.,-800,800],b3Forward[-1.,-5,5.],b4Forward[0.01,0.0001,0.1], m1Forward[50,30,80],m2Forward[120,100,160])") #
-		ws.factory("SUSYBkgMAPdf::ofosShape1Central(inv,b1Central[-2000,-8000,8000],b2Central[120.,-800,800],b3Central[-1.,-5,5.],b4Central[0.01,-0.1,0.1], m1Central[50,20,100],m2Central[120,100,160])") #
-		ws.factory("SUSYBkgMAPdf::ofosShape1Forward(inv,b1Forward[-3300,-5000,5000],b2Forward[120.,-800,800],b3Forward[-1.,-5,5.],b4Forward[0.01,-0.1,0.1], m1Forward[50,20,100],m2Forward[120,100,160])") #
-		
 	elif backgroundShape == 'ETH':
 		log.logHighlighted("Using Marco-Andreas shape for real")
 		####### final -  never touch again!
-		ws.factory("TopPairProductionSpline::ofosShape1Central(inv,b1Central[-1800,-5000,5000],b2Central[120.,-400,400],b4Central[0.0025,0.0001,0.01], m1Central[50,20,80],m2Central[120,100,160])") #
-		ws.factory("TopPairProductionSpline::ofosShape1Forward(inv,b1Forward[-1800,-5000,5000],b2Forward[120.,-400,400],b4Forward[0.0025,0.0001,0.01], m1Forward[50,20,80],m2Forward[120,100,160])") #
+		#~ ws.factory("TopPairProductionSpline::ofosShape1Central(inv,b1Central[-1800,-5000,5000],b2Central[120.,-400,400],b4Central[0.0025,0.0001,0.01], m1Central[50,20,80],m2Central[120,100,160])") #
+		#~ ws.factory("TopPairProductionSpline::ofosShape1Forward(inv,b1Forward[-1800,-5000,5000],b2Forward[120.,-400,400],b4Forward[0.0025,0.0001,0.01], m1Forward[50,20,80],m2Forward[120,100,160])") #
+		ws.factory("TopPairProductionSpline::ofosShape1Central(inv,b1Central[-1800,-5000,5000],b2Central[120.,-400,400],b4Central[0.0025,0.0001,0.01], m1Central[50.],m2Central[105.])") #
+		ws.factory("TopPairProductionSpline::ofosShape1Forward(inv,b1Forward[-1800,-5000,5000],b2Forward[120.,-400,400],b4Forward[0.0025,0.0001,0.01], m1Forward[50.],m2Forward[145.])") #
 		############
 		#~ ws.factory("TopPairProductionSpline::ofosShape1Central(inv,b1Central[-1800,-5000,5000],b2Central[120.,-800,800],b4Central[0.01,0.0001,0.1], m1Central[60,35,90],m2Central[120,100,160])") #
 		#~ ws.factory("TopPairProductionSpline::ofosShape1Forward(inv,b1Forward[-1800,-5000,5000],b2Forward[120.,-400,400],b4Forward[0.01,0.0001,0.1], m1Forward[60,35,90],m2Forward[120,100,160])") #
@@ -583,9 +624,6 @@ def plotModel(w, data, fitOFOS, theConfig, pdf="model", tag="", frame=None, zPre
 		w.pdf(pdf).plotOn(frame, ROOT.RooFit.Components(plotZ), ROOT.RooFit.Normalization(relScale, ROOT.RooAbsReal.Relative), ROOT.RooFit.Name(nameBGZShape),
 							  slice, projWData,
 							  ROOT.RooFit.LineStyle(ROOT.kDashed), ROOT.RooFit.LineColor(ROOT.kBlack), ROOT.RooFit.Invisible())
-		#~ w.pdf(pdf).plotOn(frame, ROOT.RooFit.Components(plotOffShell), ROOT.RooFit.Name(nameBGOffShellShape),
-							  #~ slice, projWData,
-							  #~ ROOT.RooFit.LineStyle(ROOT.kDashed), ROOT.RooFit.LineColor(ROOT.kOrange+1))
 		w.pdf(pdf).plotOn(frame, ROOT.RooFit.Components(plotOFOS), ROOT.RooFit.AddTo(nameBGZShape, 1.0, 1.0),
 						  slice, projWData,
 						  ROOT.RooFit.LineStyle(ROOT.kDashed), ROOT.RooFit.LineColor(ROOT.kBlack))
@@ -715,13 +753,6 @@ def prepareLegend(useMC,zPrediction,):
 	bLeg = dLeg.Clone()
 	bLeg.SetLineStyle(2)
 	bLeg.SetLineColor(ROOT.kBlack)
-	#~ oLeg = dLeg.Clone()
-	#~ oLeg.SetLineStyle(2)
-	#~ oLeg.SetLineColor(ROOT.kOrange + 2)
-	#~ uLeg = dLeg.Clone()
-	#~ uLeg.SetLineColor(ROOT.kGreen + 2)
-	#~ uLeg.SetFillColor(ROOT.kGreen + 2)
-	#~ uLeg.SetFillStyle(3009)
 	lmLeg = dLeg.Clone()
 	lmLeg.SetLineColor(ROOT.kViolet)
 	lmLeg.SetLineStyle(ROOT.kDotted)
@@ -741,15 +772,11 @@ def prepareLegend(useMC,zPrediction,):
 		zLeg.SetLineColor(ROOT.kViolet)
 		sl.AddEntry(zLeg, 'Z signal', "l")
 		sl.AddEntry(bLeg, 'FS Background', "l")
-		#~ ol.AddEntry(bLeg, 'Off-Shell Drell-Yan', "l")
-		#~ sl.AddEntry(uLeg, 'OF uncertainty', "f")
+		
 	else:
 		sl.AddEntry(sLeg, 'Signal', "l")
 		sl.AddEntry(zLeg, 'DY', "l")
-		#sl.AddEntry(zLeg, 'Z^{0}/#gamma', "l")
 		sl.AddEntry(bLeg, 'FS background', "l")
-		#~ sl.AddEntry(uLeg, 'Uncertainty', "f")
-		#sl.AddEntry(lmLeg, 'LM1 x 0.2', "l")
 		
 		
 	nLegendEntries = 2
@@ -948,7 +975,6 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 		mmName = '%s/fit2012MM_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)	
 
 	# determine y axis range
-	#~ yMaximum = 1.2 * max(frameOFOS.GetMaximum(), frameSFOS.GetMaximum())
 	yMaximum = 220
 	if (theConfig.plotYMax > 0.0):
 		yMaximum = theConfig.plotYMax
@@ -958,9 +984,6 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	#---------------
 	print "before OFOS plot"
 	projWData = ROOT.RooFit.ProjWData(ROOT.RooArgSet(ws.cat("cat")), data_obs)
-	#~ cOFOS = ROOT.TCanvas("OFOS distribution", "OFOS distribution", sizeCanvas, int(sizeCanvas * 1.25))
-	#~ cOFOS.cd()
-	#~ pads = formatAndDrawFrame(frameOFOS, title="OFOS", pdf=ws.pdf("ofosShape"), yMax=yMaximum,residualMode = residualMode)
 	#if not Holder.nToys > 0:
 	slice = ROOT.RooFit.Slice(ws.cat("cat"), "OFOS%s"%region)
 	
@@ -1110,11 +1133,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 #~ 
 					   #~ ]
 	if (showText):
-		#~ tools.makeAnnotations(annotationsFitHeader, color=tools.myColors['Black'], textSize=0.03, align=31)
 		tools.makeAnnotations(annotationsFit, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
-		#~ tools.makeAnnotations(annotationsFitZHeader, color=tools.myColors['Black'], textSize=0.03, align=31)
-		#~ tools.makeAnnotations(annotationsFitZ, color=tools.myColors['AnnBlue'], textSize=0.03, align=31)
-		#~ tools.makeAnnotations(annotationsFitZPred, color=tools.myColors['Grey'], textSize=0.03, align=31)
 	#~ pads[0].SetLogy()
 	sl.Draw()
 	cSFOS.Print(sfosName)
@@ -1191,8 +1210,8 @@ def main():
 						  help="selection which to apply.")
 	parser.add_argument("-r", "--runRange", dest="runRange", action="store", default="Full2012",
 						  help="name of run range.")
-	parser.add_argument("-b", "--backgroundShape", dest="backgroundShape", action="store", default="ETH",
-						  help="background shape, default ETH")
+	parser.add_argument("-b", "--backgroundShape", dest="backgroundShape", action="store", default="CB",
+						  help="background shape, default crystal ball")
 	parser.add_argument("-e", "--edgeShape", dest="edgeShape", action="store", default="Triangle",
 						  help="edge shape, default Triangle")
 	parser.add_argument("-c", "--configuration", dest="config", action="store", default="Combined",
@@ -1337,7 +1356,7 @@ def main():
 			addTreesForward = {"EE":treeAddEEForward,"MM":treeAddMMForward,"OFOS":treeAddOFOSForward}
 
 		weight = ROOT.RooRealVar("weight","weight",1.,-100.,10.)
-		inv = ROOT.RooRealVar("inv","inv",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
+		inv = ROOT.RooRealVar("inv","inv",(theConfig.maxInv - theConfig.minInv) / 5,theConfig.minInv,theConfig.maxInv)
 		
 		
 		typeName = "dataCentral"
@@ -1396,7 +1415,7 @@ def main():
 			
 				
 		else:
-			x = None		
+			x = None
 		
 		if not useExistingDataset:
 		
@@ -1416,7 +1435,7 @@ def main():
 			dataMMForward = dataSetsForward[index]["MM"].Clone("dataMMForward")
 			dataOFOSForward = dataSetsForward[index]["OFOS"].Clone("dataOFOSForward")
 			dataSFOSForward = dataSetsForward[index]["SFOS"].Clone("dataSFOSForward")
-
+			
 			getattr(w, 'import')(dataEECentral)
 			getattr(w, 'import')(dataMMCentral)
 			getattr(w, 'import')(dataOFOSCentral)
@@ -1427,6 +1446,7 @@ def main():
 			getattr(w, 'import')(dataOFOSForward)
 			getattr(w, 'import')(dataSFOSForward)
 		
+			
 			if x == None:
 				if theConfig.useMC:
 					w.writeToFile("workspaces/saveDataSet_%s_MC.root"%theConfig.selection.name)		
@@ -1455,14 +1475,7 @@ def main():
 				dataSetsCentral = prepareDatasets(w.var("inv"),w.var('weight'),signalTreesCentral,addSignalTreesCentral,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.central.val,theConfig.rSFOF.central.err,False,theConfig,region="Central")
 				typeName = "signalForward"
 				dataSetsForward = prepareDatasets(w.var("inv"),w.var('weight'),signalTreesForward,addSignalTreesForward,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.forward.val,theConfig.rSFOF.forward.err,False,theConfig,region="Forward")
-
-				#~ print w.data("dataEECentral")
-				#~ data = w.data("dataCentralEE").Clone("test")
-				#~ data.__class__ = ROOT.RooDataSet
-				#~ print dataSetsCentral
-				#~ print dataSetsCentral[0]["EE"]
-				#~ data.append(dataSetsCentral[0]["EE"])
-				
+		
 				w.data("dataEECentral").append(dataSetsCentral[index]["EE"].Clone("signalEECentral"))
 				w.data("dataMMCentral").append(dataSetsCentral[index]["MM"].Clone("signalMMCentral"))
 				w.data("dataOFOSCentral").append(dataSetsCentral[index]["OFOS"].Clone("signalOFOSCentral"))
@@ -1499,8 +1512,6 @@ def main():
 		maxZCentral = w.data("dataSFOSCentral").sumEntries("abs(inv-91.2) < 20")	
 		maxZForward = w.data("dataSFOSForward").sumEntries("abs(inv-91.2) < 20")
 		
-		#~ w.factory("nZCentral[%f,0.,%f]" % (theConfig.zPredictions.SF.central.val,maxZCentral))
-		#~ w.factory("nZForward[%f,0.,%f]" % (theConfig.zPredictions.SF.forward.val,maxZForward))
 		w.factory("nZCentral[%f,0.,%f]" % (0.01,maxZCentral))
 		w.factory("nZForward[%f,0.,%f]" % (0.01,maxZForward))
 		w.var('nZCentral').setAttribute("StoreAsymError")
@@ -1522,12 +1533,6 @@ def main():
 		w.var('nBForward').setAttribute("StoreAsymError")
 
 		#create background only shapes
-		
-		#~ w.factory("Gaussian::gx(inv,mean[90,0,100],sigma[3,0,10])")
-		#~ convCentral = ROOT.RooFFTConvPdf("bgModelCentral","bla",w.var("inv"),w.pdf("gx"),w.pdf("ofosShape1Central"))
-		#~ getattr(w, 'import')(convCentral)
-		#~ w.pdf("bgModelCentral").setBufferFraction(5.0)
-
 		
 			
 		w.factory("SUM::ofosShapeCentral(nBCentral*ofosShape1Central)")
@@ -1571,10 +1576,6 @@ def main():
 		c1 = ROOT.TCanvas("c1","c1",800,600)
 
 
-		#~ w.var("a2Central").setVal(58)
-		#~ w.var("a3Central").setVal(9.)
-		#~ w.var("a4Central").setVal(0.92)
-		#~ 
 		ROOT.RooAbsData.plotOn(w.data("dataOFOSCentral"), frameOFOSCentral)
 		w.pdf('ofosShapeCentral').plotOn(frameOFOSCentral)
 		ROOT.RooAbsData.plotOn(w.data("dataOFOSForward"), frameOFOSForward)
@@ -1583,9 +1584,6 @@ def main():
 
 
 		w.pdf('ofosShapeCentral').plotOn(frameOFOSCentral,
-								  #~ ROOT.RooFit.VisualizeError(fitOFOS, 1),
-								  #~ ROOT.RooFit.FillColor(ROOT.kGreen + 2),
-								  #~ ROOT.RooFit.FillStyle(3009),
 								  ROOT.RooFit.LineWidth(2))
 		w.pdf('ofosShapeCentral').plotOn(frameOFOSCentral)
 		ROOT.RooAbsData.plotOn(w.data("dataOFOSCentral"), frameOFOSCentral)
@@ -1629,9 +1627,6 @@ def main():
 		c1.Print("OF_Central_%s.pdf"%theConfig.backgroundShape)
 		c1.Clear()
 		w.pdf('ofosShapeForward').plotOn(frameOFOSForward,
-								  #~ ROOT.RooFit.VisualizeError(fitOFOS, 1),
-								  #~ ROOT.RooFit.FillColor(ROOT.kGreen + 2),
-								  #~ ROOT.RooFit.FillStyle(3009),
 								  ROOT.RooFit.LineWidth(2))
 		w.pdf('ofosShapeForward').plotOn(frameOFOSForward)
 		ROOT.RooAbsData.plotOn(w.data("dataOFOSForward"), frameOFOSForward)

@@ -195,33 +195,47 @@ def main():
 		inv = ROOT.RooRealVar("inv","inv",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
 		getattr(w,'import')(inv)
 		w.factory("weight[1.,0.,10.]")
+		#~ w.factory("genWeight[1.,-1.1,1.1]")
+		#~ vars = ROOT.RooArgSet(inv, w.var('weight'), w.var('genWeight'))		
 		vars = ROOT.RooArgSet(inv, w.var('weight'))		
 		if (theConfig.useMC):
 			
 			log.logHighlighted("Using MC instead of data.")
 			datasets = theConfig.mcdatasets # ["TTJets", "ZJets", "DibosonMadgraph", "SingleTop"]
 			if args.config == "Central":
-				(treeOFOS, treeEE, treeMM) = tools.getTrees(theConfig, datasets,central=True)
+				(treeOFOS, treeEE, treeMM) = tools.getTrees(theConfig, datasets,etaRegion="Central")
 			elif args.config == "Forward":
-				(treeOFOS, treeEE, treeMM) = tools.getTrees(theConfig, datasets,central=False)
+				(treeOFOS, treeEE, treeMM) = tools.getTrees(theConfig, datasets,etaRegion="Forward")
+			elif args.config == "Inclusive":
+				(treeOFOS, treeEE, treeMM) = tools.getTrees(theConfig, datasets,etaRegion="Inclusive")
 			else:
 				log.logError("Region must be Central or Forward")
 				sys.exit()
 			
 		else:
 			if args.config == "Central":
-				treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
-				treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
-				treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
+				treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
+				treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
+				treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
 
 				# convert trees
 				treeOFOS = dataInterface.DataInterface.convertDileptonTree(treeOFOSraw)
 				treeEE = dataInterface.DataInterface.convertDileptonTree(treeEEraw)
 				treeMM = dataInterface.DataInterface.convertDileptonTree(treeMMraw)
 			elif args.config == "Forward":	
-				treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
-				treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
-				treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
+				treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Forward")
+				treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Forward")
+				treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Forward")
+
+				# convert trees
+				treeOFOS = dataInterface.DataInterface.convertDileptonTree(treeOFOSraw)
+				treeEE = dataInterface.DataInterface.convertDileptonTree(treeEEraw)
+				treeMM = dataInterface.DataInterface.convertDileptonTree(treeMMraw)
+		
+			elif args.config == "Inclusive":	
+				treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Inclusive")
+				treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Inclusive")
+				treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Inclusive")
 
 				# convert trees
 				treeOFOS = dataInterface.DataInterface.convertDileptonTree(treeOFOSraw)
@@ -229,16 +243,9 @@ def main():
 				treeMM = dataInterface.DataInterface.convertDileptonTree(treeMMraw)
 		
 			else:
-				log.logError("Region must be Central or Forward")
+				log.logError("Region must be Central,Forward or Inclusive")
 				sys.exit()
 
-
-
-		tmpEE = ROOT.RooDataSet("tmpEE", "tmpEE", vars, ROOT.RooFit.Import(treeEE), ROOT.RooFit.WeightVar("weight"))
-		tmpMM = ROOT.RooDataSet("tmpMM", "tmpMM", vars, ROOT.RooFit.Import(treeMM), ROOT.RooFit.WeightVar("weight"))
-		tmpOFOS = ROOT.RooDataSet("tmpOFOS", "tmpOFOS", vars, ROOT.RooFit.Import(treeOFOS), ROOT.RooFit.WeightVar("weight"))	
-		tmpSFOS = tmpMM.Clone()
-		tmpSFOS.append(tmpEE.Clone())
 
 
 		tmpEE = ROOT.RooDataSet("tmpEE", "tmpEE", vars, ROOT.RooFit.Import(treeEE), ROOT.RooFit.WeightVar("weight"))
@@ -252,14 +259,14 @@ def main():
 
 
 		dataEE = ROOT.RooDataSet("%sEE" % ("Data"), "Dataset with invariant mass of ee lepton pairs",
-								   vars, ROOT.RooFit.WeightVar('weight'), ROOT.RooFit.Import(tmpEE))
+								   vars, ROOT.RooFit.WeightVar("weight"), ROOT.RooFit.Import(tmpEE))
 		dataMM = ROOT.RooDataSet("%sMM" % ("Data"), "Dataset with invariant mass of mm lepton pairs",
-								   vars, ROOT.RooFit.WeightVar('weight'), ROOT.RooFit.Import(tmpMM))
+								   vars, ROOT.RooFit.WeightVar("weight"),ROOT.RooFit.Import(tmpMM))
 
 		dataSFOS = ROOT.RooDataSet("%sSFOS" % ("Data"), "Dataset with invariant mass of SFOS lepton pairs",
-								   vars, ROOT.RooFit.WeightVar('weight'), ROOT.RooFit.Import(tmpSFOS))
+								   vars, ROOT.RooFit.WeightVar("weight"), ROOT.RooFit.Import(tmpSFOS))
 		dataOFOS = ROOT.RooDataSet("%sOFOS" % ("Data"), "Dataset with invariant mass of OFOS lepton pairs",
-								   vars, ROOT.RooFit.WeightVar('weight'), ROOT.RooFit.Import(tmpOFOS))
+								   vars, ROOT.RooFit.WeightVar("weight"), ROOT.RooFit.Import(tmpOFOS))
 								   
 
 			
@@ -270,11 +277,10 @@ def main():
 		getattr(w, 'import')(dataMM)
 		
 		
-		
-		
-		histOFOS = createHistoFromTree(treeOFOS,"inv","",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
-		histEE = createHistoFromTree(treeEE,"inv","",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
-		histMM = createHistoFromTree(treeMM,"inv","",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
+
+		histOFOS = createHistoFromTree(treeOFOS,"inv","weight",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
+		histEE = createHistoFromTree(treeEE,"inv","weight",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
+		histMM = createHistoFromTree(treeMM,"inv","weight",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
 		
 		
 		if theConfig.useMC:
@@ -286,9 +292,7 @@ def main():
 		
 		histEE.Add(histOFOS,-1*eeFac)
 		histMM.Add(histOFOS,-1*mmFac)
-		
-		#~ print histEE.Integral(histEE.FindBin(20),histEE.FindBin(70))
-		#~ print histEE.Integral(histEE.FindBin(80),histEE.FindBin(100))
+
 		
 		dataHistEE = ROOT.RooDataHist("dataHistEE", "dataHistEE", ROOT.RooArgList(w.var('inv')), ROOT.RooFit.Import(histEE))
 		dataHistMM = ROOT.RooDataHist("dataHistMM", "dataHistMM", ROOT.RooArgList(w.var('inv')), ROOT.RooFit.Import(histMM))
@@ -306,6 +310,7 @@ def main():
 		else:
 			f = ROOT.TFile("workspaces/dyControl_%s_Data.root"%args.config)
 		w =  f.Get("w")		
+		#~ vars = ROOT.RooArgSet(w.var("inv"), w.var('weight'), w.var('genWeight'))
 		vars = ROOT.RooArgSet(w.var("inv"), w.var('weight'))
 
 
@@ -325,7 +330,6 @@ def main():
 	# z mass and width
 	# mass resolution in electron and muon channels
 	w.factory("zmean[91.1876]")
-	#~ w.factory("zmean[91.1876,89,98]")
 
 	w.factory("cbmeanMM[3.,-10,10]")
 	w.factory("cbmeanEE[3.00727145780911975e+00,-10,10]")
@@ -356,10 +360,9 @@ def main():
 	Abkg=ROOT.RooRealVar("Abkg","Abkg",1,0.01,10)
 	getattr(w, 'import')(Abkg)
 	
-	#~ w.var("inv").setBins(250,"cache")
 	w.factory("cContinuumEE[%f,%f,%f]" % (-0.02,-0.1,0))
 	
-	w.factory("nZEE[100000.,500.,%s]" % (1000000))
+	w.factory("nZEE[100000.,500.,%s]" % (2000000))
 
 
 	w.factory("Exponential::offShellEE(inv,cContinuumEE)")
@@ -377,8 +380,8 @@ def main():
 	w.factory("cContinuumMM[%f,%f,%f]" % (-0.02,-0.1,0))
 	w.factory("Exponential::offShellMM(inv,cContinuumMM)")
 	
-	w.factory("nZMM[100000.,500.,%s]" % (1000000))
-	w.factory("nOffShellMM[100000.,500.,%s]" % (1000000))
+	w.factory("nZMM[100000.,500.,%s]" % (2000000))
+	w.factory("nOffShellMM[100000.,500.,%s]" % (2000000))
 
 
 	
@@ -475,7 +478,7 @@ def main():
 	latex.SetTextAlign(31)
 	latex.SetTextSize(0.04)
 
-	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (8 TeV)"%theConfig.runRange.printval)
+	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (13 TeV)"%theConfig.runRange.printval)
 
 	latexCMS = ROOT.TLatex()
 	latexCMS.SetTextFont(61)
@@ -503,9 +506,9 @@ def main():
 	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "nZ", w.var('nZEE').getVal(),basePath="dyShelves/")
 	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "zFraction", w.var('zFractionEE').getVal(),basePath="dyShelves/")
 	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "s", w.var('sEE').getVal(),basePath="dyShelves/")
-	eeName = "fig/expoFitEE_%s"%args.config
+	eeName = "fig/expoFitEE_%s_%s"%(args.config,args.runRange)
 	if theConfig.useMC:
-		mmName = "fig/expoFitEE_%s_MC"%args.config	
+		eeName = "fig/expoFitEE_%s_%s_MC"%(args.config,args.runRange)	
 	cEE.Print(eeName+".pdf")
 	cEE.Print(eeName+".root")	
 	for pad in pads:
@@ -540,7 +543,7 @@ def main():
 	latex.SetTextAlign(31)
 	latex.SetTextSize(0.04)
 
-	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (8 TeV)"%theConfig.runRange.printval)
+	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (13 TeV)"%theConfig.runRange.printval)
 
 	latexCMS = ROOT.TLatex()
 	latexCMS.SetTextFont(61)
@@ -560,9 +563,9 @@ def main():
 	latexCMSExtra.DrawLatex(0.19,yLabelPos,"%s"%(cmsExtra))		
 		
 	pads[0].SetLogy(1)
-	eeName = "fig/expoFitEE_Log_%s"%args.config
+	eeName = "fig/expoFitEE_Log_%s_%s"%(args.config,args.runRange)
 	if theConfig.useMC:
-		mmName = "fig/expoFitEE_Log_%s_MC"%args.config	
+		eeName = "fig/expoFitEE_Log_%s_%s_MC"%(args.config,args.runRange)	
 	cEE.Print(eeName+".pdf")
 	cEE.Print(eeName+".root")	
 	for pad in pads:
@@ -612,7 +615,7 @@ def main():
 	latex.SetTextAlign(31)
 	latex.SetTextSize(0.04)
 
-	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (8 TeV)"%theConfig.runRange.printval)
+	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (13 TeV)"%theConfig.runRange.printval)
 
 	latexCMS = ROOT.TLatex()
 	latexCMS.SetTextFont(61)
@@ -640,9 +643,9 @@ def main():
 	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "nZ", w.var('nZMM').getVal(),basePath="dyShelves/")
 	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "zFraction", w.var('zFractionMM').getVal(),basePath="dyShelves/")		
 	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "s", w.var('sMM').getVal(),basePath="dyShelves/")		
-	mmName = "fig/expoFitMM_%s"%args.config
+	mmName = "fig/expoFitMM_%s_%s"%(args.config,args.runRange)
 	if theConfig.useMC:
-		mmName = "fig/expoFitMM_%s_MC"%args.config	
+		mmName = "fig/expoFitMM_%s_%s_MC"%(args.config,args.runRange)
 	cMM.Print(mmName+".pdf")
 	cMM.Print(mmName+".root")
 	
@@ -679,7 +682,7 @@ def main():
 	latex.SetTextAlign(31)
 	latex.SetTextSize(0.04)
 
-	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (8 TeV)"%theConfig.runRange.printval)
+	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (13 TeV)"%theConfig.runRange.printval)
 
 	latexCMS = ROOT.TLatex()
 	latexCMS.SetTextFont(61)
@@ -699,9 +702,9 @@ def main():
 	latexCMSExtra.DrawLatex(0.19,yLabelPos,"%s"%(cmsExtra))		
 	
 	pads[0].SetLogy(1)
-	mmName = "fig/expoFitMM_Log_%s"%args.config
+	mmName = "fig/expoFitMM_Log_%s_%s"%(args.config,args.runRange)
 	if theConfig.useMC:
-		mmName = "fig/expoFitMM_Log_%s_MC"%args.config
+		mmName = "fig/expoFitMM_Log_%s_%s_MC"%(args.config,args.runRange)
 	
 	cMM.Print(mmName+".pdf")
 	cMM.Print(mmName+".root")	
