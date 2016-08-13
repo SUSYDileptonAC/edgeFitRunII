@@ -9,49 +9,47 @@ from locations import locations
 class edgeConfig:
 		
 		
-		flag = "miniAODMiniIsoPFWeightsTrees"
-		task = "cutsV24DileptonMiniAODFinalTrees"
+		flag = "minimalNtupleTest"
+		task = "cutsV31DileptonFinalTrees"
 		dataset = "Data"
 		figPath = "fig/"
 		shelvePath = "shelves/"
 				
 		residualMode = "pull"
 		plotErrorBands = False	
-		year = 2012	
 		
 		edgePosition = 80
 		fixEdge = False
-		
-		#~ edgePosition = 82.392
-		#~ fixEdge = True
 		
 		title = "None"
 		histoytitle = "None"
 		
 		useMC = True
-		mcdatasets = ["TTJets"]
+		mcdatasets = ["TT_Powheg","ZJets"]
 		signalDataSets = []
 		addDataset = None
 		isSignal = False
-		runMinos = False
+		runMinos = True
 		plotAsymErrs = True		
 		isPreliminary = True
 		allowNegSignal = True
+		randomStartPoint = True
 		ownWork = False
 		year = 2015
 		showText = True
-		plotYMax = 800
+		plotYMax = 80
+		
+		dataVersion = "sw74X"
+		
+		maxInv = 300
+		minInv = 20
+		plotMaxInv = 300
+		plotMinInv = 20
+		nBinsMinv = 96
+		
 		### toy-related configuration
 		toyConfig = {"nToys":1000,"nSig":125,"m0":70,"scale":1,"systShift":"None","rand":False}
 
-		dataVersion = "sw7X"
-		dataSetPath = "/home/jan/Trees/13TeV/"
-		
-		maxInv = 500
-		minInv = 20
-		plotMaxInv = 500
-		plotMinInv = 20
-		nBinsMinv = 96
 		
 		def __init__(self,region="SignalInclusive",backgroundShape="ETH",signalShape="T",runName = "Full2012",dataSet="Combined",useMC=False,toys=0,addSignal=""):
 			sys.path.append(pathes.basePath)

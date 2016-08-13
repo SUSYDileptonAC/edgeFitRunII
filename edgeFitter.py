@@ -117,7 +117,7 @@ def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,r
 			
 			
 		
-		zPrediction = getattr(theConfig.zPredictions.SF,region.lower()).val
+		zPrediction = getattr(theConfig.zPredictions.default.SF,region.lower()).val
 		print zPrediction, theConfig.toyConfig["nSig"], tmpNumOFOS
 		fsFrac = tmpNumOFOS/(tmpNumOFOS+zPrediction*scale+theConfig.toyConfig["nSig"]*scale)
 		zFrac = zPrediction*scale/(tmpNumOFOS+zPrediction*scale+theConfig.toyConfig["nSig"]*scale)
@@ -360,7 +360,6 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 	ws.factory("m0[55., 30., 300.]")
 	ws.var('m0').setAttribute("StoreAsymError")
 	ws.factory("m0Show[45., 0., 300.]")
-	#ws.factory("m0[75., 75., 75.]")
 	ws.factory("const[45,20,100]")	
 
 	if backgroundShape == 'L':
@@ -369,15 +368,9 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 		ws.factory("Landau::ofosShape1Forward(inv,a1Forward[30,0,100],b1Forward[20,0,100])")
 	elif backgroundShape == 'CH':
 		log.logHighlighted("Using Chebychev")
-		#~ ws.factory("Chebychev::ofosShape1Central(inv,{a1Central[0,-2,2],b1Central[0,-100,100],c1Central[0,-100,100],d1Central[0,-100,100],e1Central[0,-100,100],f1Central[0,-100,100],g1Central[0,-100,100]})")
-		#~ ws.factory("Chebychev::ofosShape1Forward(inv,{a1Forward[0,-2,2],b1Forward[0,-100,100],c1Forward[0,-100,100],d1Forward[0,-100,100],e1Forward[0,-100,100],f1Forward[0,-100,100],g1Forward[0,-100,100]})")
-		#~ 
 		#works!
 		ws.factory("Chebychev::ofosShape1Central(inv,{a1Central[0,-2,2],b1Central[0,-2,2],c1Central[0,-1,1],d1Central[0,-1,1],e1Central[0,-1,1],f1Central[0,-1,1]})")
 		ws.factory("Chebychev::ofosShape1Forward(inv,{a1Forward[0,-2,2],b1Forward[0,-2,2],c1Forward[0,-1,1],d1Forward[0,-1,1],e1Forward[0,-1,1],f1Forward[0,-1,1]})")
-		#~ ws.factory("Chebychev::ofosShape1Central(inv,{a1Central[0,-2,2],b1Central[0,-1,1],c1Central[0,-1,1],d1Central[0,-1,1]})")
-		#~ ws.factory("Chebychev::ofosShape1Forward(inv,{a1Forward[0,-2,2],b1Forward[0,-1,1],c1Forward[0,-1,1],d1Forward[0,-1,1]})")
-		
 	elif backgroundShape == 'B':
 		log.logHighlighted("Using BH shape")
 		ws.factory("SUSYBkgBHPdf::ofosShape1Central(inv,a1Central[1.],a2Central[100,0,250],a3Central[1,0,100],a4Central[0.1,0,2])")
@@ -396,23 +389,19 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 		log.logHighlighted("Using new old shape")
 		ws.factory("SUSYBkgMoreParamsPdf::ofosShape1Central(inv,a1Central[1.0,0.,400.],b1Central[1,0.00001,100.],c1Central[0.,-20.,30.])")
 		ws.factory("SUSYBkgMoreParamsPdf::ofosShape1Forward(inv,a1Forward[1.0,0.0,400.],b1Forward[1,0.00001,100.],c1Forward[0.,-20.,30.])")	
-
-	elif backgroundShape == 'MA':
-		log.logHighlighted("Using Marco-Andreas shape")				
-		#~ ws.factory("SUSYBkgMAPdf::ofosShape1Central(inv,b1Central[-2000,-8000,8000],b2Central[120.,-800,800],b3Central[-1.,-5,5.],b4Central[0.01,0.0001,0.1], m1Central[50,30,80],m2Central[120,100,160])") #
-		#~ ws.factory("SUSYBkgMAPdf::ofosShape1Forward(inv,b1Forward[-3300,-5000,5000],b2Forward[120.,-800,800],b3Forward[-1.,-5,5.],b4Forward[0.01,0.0001,0.1], m1Forward[50,30,80],m2Forward[120,100,160])") #
-		ws.factory("SUSYBkgMAPdf::ofosShape1Central(inv,b1Central[-2000,-8000,8000],b2Central[120.,-800,800],b3Central[-1.,-5,5.],b4Central[0.01,-0.1,0.1], m1Central[50,20,100],m2Central[120,100,160])") #
-		ws.factory("SUSYBkgMAPdf::ofosShape1Forward(inv,b1Forward[-3300,-5000,5000],b2Forward[120.,-800,800],b3Forward[-1.,-5,5.],b4Forward[0.01,-0.1,0.1], m1Forward[50,20,100],m2Forward[120,100,160])") #
-		
-	elif backgroundShape == 'ETH':
-		log.logHighlighted("Using Marco-Andreas shape for real")
+	
+	elif backgroundShape == '8TeV':
+		log.logHighlighted("Using 8 TeV shape for real")
 		####### final -  never touch again!
 		ws.factory("TopPairProductionSpline::ofosShape1Central(inv,b1Central[-1800,-5000,5000],b2Central[120.,-400,400],b4Central[0.0025,0.0001,0.01], m1Central[50,20,80],m2Central[120,100,160])") #
 		ws.factory("TopPairProductionSpline::ofosShape1Forward(inv,b1Forward[-1800,-5000,5000],b2Forward[120.,-400,400],b4Forward[0.0025,0.0001,0.01], m1Forward[50,20,80],m2Forward[120,100,160])") #
 		############
-		#~ ws.factory("TopPairProductionSpline::ofosShape1Central(inv,b1Central[-1800,-5000,5000],b2Central[120.,-800,800],b4Central[0.01,0.0001,0.1], m1Central[60,35,90],m2Central[120,100,160])") #
-		#~ ws.factory("TopPairProductionSpline::ofosShape1Forward(inv,b1Forward[-1800,-5000,5000],b2Forward[120.,-400,400],b4Forward[0.01,0.0001,0.1], m1Forward[60,35,90],m2Forward[120,100,160])") #
-		#~ ws.var("m1Central").setConstant()	
+	elif backgroundShape == 'CB':
+			log.logHighlighted("Using crystall ball shape")
+			#~ ws.factory("CBShape::ofosShape1Central(inv,cbMeanCentral[50.,0.,200.],cbSigmaCentral[20.,0.,100.],alphaCentral[-1,-10.,0.],nCentral[1.,0.,20.])")
+			#~ ws.factory("CBShape::ofosShape1Forward(inv,cbMeanForward[50.,0.,200.],cbSigmaForward[20.,0.,100.],alphaForward[-1,-10.,0.],nForward[1.,0.,20.])")
+			ws.factory("CBShape::ofosShape1Central(inv,cbMeanCentral[50.,0.,200.],cbSigmaCentral[20.,0.,100.],alphaCentral[-1,-10.,0.],nCentral[100.])")
+			ws.factory("CBShape::ofosShape1Forward(inv,cbMeanForward[50.,0.,200.],cbSigmaForward[20.,0.,100.],alphaForward[-1,-10.,0.],nForward[100.])")	
 	elif backgroundShape == 'P':
 		log.logHighlighted("Gaussians activated!")
 		ws.factory("SUSYBkgGaussiansPdf::ofosShape1Central(inv,a1Central[30.,0.,70.],a2Central[60.,20.,105.],a3Central[100.,-1000.,1000.],b1Central[15,10.,80.],b2Central[20.,10.,80.],b3Central[200.,10.,3000.])") #High MET
@@ -490,26 +479,15 @@ def genToys2013(ws, nToys=10,genEE=0,genMM=0,genOFOS=0,region="Central"):
 
 	
 	for i in range(nToys):
-		#toyEE = ws.pdf("mEE").generate(ROOT.RooArgSet(ws.var('inv')),ws.data('dataEE').numEntries())
-		#toyMM = ws.pdf("mMM").generate(ROOT.RooArgSet(ws.var('inv')),ws.data('dataMM').numEntries())
-		#toyOFOS = ws.pdf("backmodel").generate(ROOT.RooArgSet(ws.var('inv')),ws.data('dataOFOS').numEntries())
 		toyEE = mcEE.genData(i)
 		toyMM = mcMM.genData(i)
 		toyOFOS = mcOFOS.genData(i)
 		toySFOS = toyEE.Clone()
 		toySFOS.append(toyMM.Clone())
-		#~ toyData = ROOT.RooDataSet("theToy_%s" % (i), "toy_%s" % (i), Holder.vars, ROOT.RooFit.Index(ws.cat('cat')),
-			#~ ROOT.RooFit.Import('OFOS', toyOFOS),
-			#~ ROOT.RooFit.Import('EE', toyEE),
-			#~ ROOT.RooFit.Import('MM', toyMM))
 		toyDataEE = ROOT.RooDataSet("theToyEE_%s" % (i), "toyEE_%s" % (i), vars,ROOT.RooFit.Import(toyEE))
 		toyDataMM = ROOT.RooDataSet("theToyMM_%s" % (i), "toyMM_%s" % (i), vars,ROOT.RooFit.Import(toyMM))
 		toyDataOFOS = ROOT.RooDataSet("theToyOFOS_%s" % (i), "toyOFOS_%s" % (i), vars,ROOT.RooFit.Import(toyOFOS))
 		toyDataSFOS = ROOT.RooDataSet("theToySFOS_%s" % (i), "toySFOS_%s" % (i), vars,ROOT.RooFit.Import(toySFOS))
-		#toyData = mcTData.genData(i)
-		#ws.var("nSig").setConstant(ROOT.kFALSE)
-		#self.plotToy(ws,toyData)
-		#ws.var("nSig").setConstant(ROOT.kTRUE)
 		theToys.append({"EE":toyDataEE,"MM":toyDataMM,"OFOS":toyDataOFOS,"SFOS":toyDataSFOS})
 
 	return theToys
@@ -534,12 +512,11 @@ def plotModel(w, data, fitOFOS, theConfig, pdf="model", tag="", frame=None, zPre
 	shapeNames.update(overrideShapeNames)
 	nameBGShape = "displayedBackgroundShape"
 	nameBGZShape = "displayedBackgroundShapeZ"
-	#~ nameBGOffShellShape = "displayedBackgroundShapeOffShell"
 
 	# get pdfs
 	plotZ = ROOT.RooArgSet(w.pdf(shapeNames['Z']))
-	#~ plotOffShell = ROOT.RooArgSet(w.pdf(shapeNames['offShell']))
 	plotOFOS = ROOT.RooArgSet(w.pdf(shapeNames['Background']))
+	print shapeNames['Signal']
 	plotSignal = ROOT.RooArgSet(w.pdf(shapeNames['Signal']))
 	# different draw modes with and without z prediction
 	zPrediction = 0.
@@ -557,9 +534,6 @@ def plotModel(w, data, fitOFOS, theConfig, pdf="model", tag="", frame=None, zPre
 		w.pdf(pdf).plotOn(frame, ROOT.RooFit.Components(plotZ), ROOT.RooFit.Normalization(relScale, ROOT.RooAbsReal.Relative), ROOT.RooFit.Name(nameBGZShape),
 							  slice, projWData,
 							  ROOT.RooFit.LineStyle(ROOT.kDashed), ROOT.RooFit.LineColor(ROOT.kBlack), ROOT.RooFit.Invisible())
-		#~ w.pdf(pdf).plotOn(frame, ROOT.RooFit.Components(plotOffShell), ROOT.RooFit.Name(nameBGOffShellShape),
-							  #~ slice, projWData,
-							  #~ ROOT.RooFit.LineStyle(ROOT.kDashed), ROOT.RooFit.LineColor(ROOT.kOrange+1))
 		w.pdf(pdf).plotOn(frame, ROOT.RooFit.Components(plotOFOS), ROOT.RooFit.AddTo(nameBGZShape, 1.0, 1.0),
 						  slice, projWData,
 						  ROOT.RooFit.LineStyle(ROOT.kDashed), ROOT.RooFit.LineColor(ROOT.kBlack))
@@ -689,13 +663,6 @@ def prepareLegend(useMC,zPrediction,):
 	bLeg = dLeg.Clone()
 	bLeg.SetLineStyle(2)
 	bLeg.SetLineColor(ROOT.kBlack)
-	#~ oLeg = dLeg.Clone()
-	#~ oLeg.SetLineStyle(2)
-	#~ oLeg.SetLineColor(ROOT.kOrange + 2)
-	#~ uLeg = dLeg.Clone()
-	#~ uLeg.SetLineColor(ROOT.kGreen + 2)
-	#~ uLeg.SetFillColor(ROOT.kGreen + 2)
-	#~ uLeg.SetFillStyle(3009)
 	lmLeg = dLeg.Clone()
 	lmLeg.SetLineColor(ROOT.kViolet)
 	lmLeg.SetLineStyle(ROOT.kDotted)
@@ -715,15 +682,10 @@ def prepareLegend(useMC,zPrediction,):
 		zLeg.SetLineColor(ROOT.kViolet)
 		sl.AddEntry(zLeg, 'Z signal', "l")
 		sl.AddEntry(bLeg, 'FS Background', "l")
-		#~ ol.AddEntry(bLeg, 'Off-Shell Drell-Yan', "l")
-		#~ sl.AddEntry(uLeg, 'OF uncertainty', "f")
 	else:
 		sl.AddEntry(sLeg, 'Signal', "l")
 		sl.AddEntry(zLeg, 'DY', "l")
-		#sl.AddEntry(zLeg, 'Z^{0}/#gamma', "l")
 		sl.AddEntry(bLeg, 'FS background', "l")
-		#~ sl.AddEntry(uLeg, 'Uncertainty', "f")
-		#sl.AddEntry(lmLeg, 'LM1 x 0.2', "l")
 		
 		
 	nLegendEntries = 2
@@ -796,7 +758,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 		sl.AddEntry(dLeg, 'Data', "pe")
 	sl.AddEntry(fitLeg, 'Fit', "l")
 
-	if (getattr(theConfig.zPredictions.SF,region.lower()).val > 0.0):
+	if (getattr(theConfig.zPredictions.default.SF,region.lower()).val > 0.0):
 		sl.AddEntry(sLeg, 'signal', "l")
 		zLeg.SetLineColor(ROOT.kViolet)
 		sl.AddEntry(zLeg, 'Drell-Yan background', "l")
@@ -887,7 +849,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	annotBG = 'N_{B}^{OF} = %.1f #pm %.1f (%.1f #pm %.1f)' % (bgLowMass, bgLowMassErr,varBack, varBackErr)
 	annotNSStar = ""
 	annotZpred = ""
-	if (getattr(theConfig.zPredictions.SF,region.lower()).val > 0.0):
+	if (getattr(theConfig.zPredictions.default.SF,region.lower()).val > 0.0):
 		annotEdge = 'N_{Signal} = %.1f #pm %.1f' % (nSignal, nSignalError)
 		if theConfig.runMinos:
 			nSignalError = max(ws.var('nSig%s'%region).getError(),max(abs(ws.var('nSig%s'%region).getAsymErrorHi()),abs(ws.var('nSig%s'%region).getAsymErrorLo())))
@@ -898,10 +860,10 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 		nSStar = 0
 		nSStarError = 0
 		annotNSStar = 'corrected N_{S}^{edge} = %.1f #pm %.1f' % (nSStar,nSStarError)
-		nsZ = fittedZ - getattr(theConfig.zPredictions.SF,region.lower()).val 
-		nsZError = math.sqrt(fittedZErr**2 + getattr(theConfig.zPredictions.SF,region.lower()).err ** 2)
+		nsZ = fittedZ - getattr(theConfig.zPredictions.default.SF,region.lower()).val 
+		nsZError = math.sqrt(fittedZErr**2 + getattr(theConfig.zPredictions.default.SF,region.lower()).err ** 2)
 		#~ annotZ = "N_{S}^{Z} = %.1f #pm %.1f" % (nsZ, nsZError)
-		annotZpred = "N_{pred}^{Z} = %.1f #pm %.1f" % (getattr(theConfig.zPredictions.SF,region.lower()).val , getattr(theConfig.zPredictions.SF,region.lower()).err)
+		annotZpred = "N_{pred}^{Z} = %.1f #pm %.1f" % (getattr(theConfig.zPredictions.default.SF,region.lower()).val , getattr(theConfig.zPredictions.default.SF,region.lower()).err)
 
 	if theConfig.plotAsymErrs:
 		note2 = "m^{edge}_{ll} = %.1f^{+%.1f}_{%.1f} GeV"
@@ -911,15 +873,15 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 		note2 = note2%(ws.var("m0").getVal(),ws.var("m0").getError())
 	
 
-	sfosName = '%s/fit2012_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
-	ofosName = '%s/fit2012OFOS_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
-	eeName = '%s/fit2012EE_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
-	mmName = '%s/fit2012MM_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
+	sfosName = '%s/fit_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
+	ofosName = '%s/fit_OFOS_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
+	eeName = '%s/fit_EE_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
+	mmName = '%s/fit_MM_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
 	if H0:
-		sfosName = '%s/fit2012_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
-		ofosName = '%s/fit2012OFOS_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
-		eeName = '%s/fit2012EE_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
-		mmName = '%s/fit2012MM_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)	
+		sfosName = '%s/fit_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
+		ofosName = '%s/fit_OFOS_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
+		eeName = '%s/fit_EE_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
+		mmName = '%s/fit_MM_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)	
 
 	# determine y axis range
 	#~ yMaximum = 1.2 * max(frameOFOS.GetMaximum(), frameSFOS.GetMaximum())
@@ -932,9 +894,6 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	#---------------
 	print "before OFOS plot"
 	projWData = ROOT.RooFit.ProjWData(ROOT.RooArgSet(ws.cat("cat")), data_obs)
-	#~ cOFOS = ROOT.TCanvas("OFOS distribution", "OFOS distribution", sizeCanvas, int(sizeCanvas * 1.25))
-	#~ cOFOS.cd()
-	#~ pads = formatAndDrawFrame(frameOFOS, title="OFOS", pdf=ws.pdf("ofosShape"), yMax=yMaximum,residualMode = residualMode)
 	#if not Holder.nToys > 0:
 	slice = ROOT.RooFit.Slice(ws.cat("cat"), "OFOS%s"%region)
 	
@@ -967,7 +926,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 
 	shapeNames['Z'] = "zEEShape%s"%region
 	shapeNames['offShell'] = "offShell%s"%region
-	shapeNames['Signal'] = "eeShape"
+	shapeNames['Signal'] = "eeShape%s"%region
 
 	slice = ROOT.RooFit.Slice(ws.cat("cat"), "EE%s"%region)
 
@@ -1005,7 +964,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	# make mm plot
 	#------------
 	shapeNames['Z'] = "zMMShape%s"%region
-	shapeNames['Signal'] = "mmShape"
+	shapeNames['Signal'] = "mmShape%s"%region
 	shapeNames['offShell'] = "offShell%s"%region
 
 	slice = ROOT.RooFit.Slice(ws.cat("cat"), "MM%s"%region)
@@ -1163,10 +1122,10 @@ def main():
 						  help="use existing datasets from pickle, default is false.")
 	parser.add_argument("-s", "--selection", dest = "selection" , action="store", default="SignalInclusive",
 						  help="selection which to apply.")
-	parser.add_argument("-r", "--runRange", dest="runRange", action="store", default="Full2012",
+	parser.add_argument("-r", "--runRange", dest="runRange", action="store", default="Run2015_25ns",
 						  help="name of run range.")
-	parser.add_argument("-b", "--backgroundShape", dest="backgroundShape", action="store", default="ETH",
-						  help="background shape, default ETH")
+	parser.add_argument("-b", "--backgroundShape", dest="backgroundShape", action="store", default="CB",
+						  help="background shape, default CB")
 	parser.add_argument("-e", "--edgeShape", dest="edgeShape", action="store", default="Triangle",
 						  help="edge shape, default Triangle")
 	parser.add_argument("-c", "--configuration", dest="config", action="store", default="Combined",
@@ -1245,27 +1204,27 @@ def main():
 			(treeOFOSCentral, treeEECentral, treeMMCentral) = tools.getTrees(theConfig, datasets,central=True)
 			(treeOFOSForward, treeEEForward, treeMMForward) = tools.getTrees(theConfig, datasets,central=False)
 		else:
-			treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
-			treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
-			treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
+			treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
+			treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
+			treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
 
 			# convert trees
 			treeOFOSCentral = dataInterface.DataInterface.convertDileptonTree(treeOFOSraw)
 			treeEECentral = dataInterface.DataInterface.convertDileptonTree(treeEEraw)
 			treeMMCentral = dataInterface.DataInterface.convertDileptonTree(treeMMraw)
 			
-			treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
-			treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
-			treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
+			treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Forward")
+			treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Forward")
+			treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Forward")
 
 			# convert trees
 			treeOFOSForward = dataInterface.DataInterface.convertDileptonTree(treeOFOSraw)
 			treeEEForward = dataInterface.DataInterface.convertDileptonTree(treeEEraw)
 			treeMMForward = dataInterface.DataInterface.convertDileptonTree(treeMMraw)
 		if (theConfig.addDataset != None):
-			treeAddOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
-			treeAddEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
-			treeAddMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
+			treeAddOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
+			treeAddEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
+			treeAddMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
 		
 
 			xsection = 0.0
@@ -1291,9 +1250,9 @@ def main():
 			treeAddEECentral = dataInterface.DataInterface.convertDileptonTree(treeAddEEraw, weight=scale)
 			treeAddMMCentral = dataInterface.DataInterface.convertDileptonTree(treeAddMMraw, weight=scale)
 			
-			treeAddOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
-			treeAddEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
-			treeAddMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
+			treeAddOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Forward")
+			treeAddEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Forward")
+			treeAddMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Forward")
 
 			treeAddOFOSForward = dataInterface.DataInterface.convertDileptonTree(treeAddOFOSraw, weight=scale)
 			treeAddEEForward = dataInterface.DataInterface.convertDileptonTree(treeAddEEraw, weight=scale)
@@ -1427,13 +1386,6 @@ def main():
 				dataSetsCentral = prepareDatasets(w.var("inv"),w.var('weight'),signalTreesCentral,addSignalTreesCentral,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.central.val,theConfig.rSFOF.central.err,False,theConfig,region="Central")
 				typeName = "signalForward"
 				dataSetsForward = prepareDatasets(w.var("inv"),w.var('weight'),signalTreesForward,addSignalTreesForward,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.forward.val,theConfig.rSFOF.forward.err,False,theConfig,region="Forward")
-
-				#~ print w.data("dataEECentral")
-				#~ data = w.data("dataCentralEE").Clone("test")
-				#~ data.__class__ = ROOT.RooDataSet
-				#~ print dataSetsCentral
-				#~ print dataSetsCentral[0]["EE"]
-				#~ data.append(dataSetsCentral[0]["EE"])
 				
 				w.data("dataEECentral").append(dataSetsCentral[index]["EE"].Clone("signalEECentral"))
 				w.data("dataMMCentral").append(dataSetsCentral[index]["MM"].Clone("signalMMCentral"))
@@ -1470,14 +1422,8 @@ def main():
 		maxZCentral = w.data("dataSFOSCentral").sumEntries("abs(inv-91.2) < 20")	
 		maxZForward = w.data("dataSFOSForward").sumEntries("abs(inv-91.2) < 20")
 		
-		#~ w.factory("nZCentral[%f,0.,%f]" % (theConfig.zPredictions.SF.central.val,maxZCentral))
-		#~ w.factory("nZForward[%f,0.,%f]" % (theConfig.zPredictions.SF.forward.val,maxZForward))
-		w.factory("nZCentral[%f,0.,%f]" % (0.01,maxZCentral))
-		w.factory("nZForward[%f,0.,%f]" % (0.01,maxZForward))
-		w.var('nZCentral').setAttribute("StoreAsymError")
-		w.var('nZForward').setAttribute("StoreAsymError")
-		w.var('nZCentral').setConstant()
-		w.var('nZForward').setConstant()
+		w.factory("nZCentral[%f,0.,%f]" % (theConfig.zPredictions.default.SF.central.val,maxZCentral))
+		w.factory("nZForward[%f,0.,%f]" % (theConfig.zPredictions.default.SF.forward.val,maxZForward))
 		
 		
 		nBMinCentral = w.data("dataOFOSCentral").sumEntries()*0
@@ -1540,17 +1486,11 @@ def main():
 
 
 		w.pdf('ofosShapeCentral').plotOn(frameOFOSCentral,
-								  #~ ROOT.RooFit.VisualizeError(fitOFOS, 1),
-								  #~ ROOT.RooFit.FillColor(ROOT.kGreen + 2),
-								  #~ ROOT.RooFit.FillStyle(3009),
 								  ROOT.RooFit.LineWidth(2))
 		w.pdf('ofosShapeCentral').plotOn(frameOFOSCentral)
 		ROOT.RooAbsData.plotOn(w.data("dataOFOSCentral"), frameOFOSCentral)
 
 		w.pdf('ofosShapeForward').plotOn(frameOFOSForward,
-								  #~ ROOT.RooFit.VisualizeError(fitOFOS, 1),
-								  #~ ROOT.RooFit.FillColor(ROOT.kGreen + 2),
-								  #~ ROOT.RooFit.FillStyle(3009),
 								  ROOT.RooFit.LineWidth(2))
 		w.pdf('ofosShapeForward').plotOn(frameOFOSForward)
 		ROOT.RooAbsData.plotOn(w.data("dataOFOSForward"), frameOFOSForward)
@@ -1700,39 +1640,39 @@ def main():
 
 						
 		log.logWarning("Attempting background only Fit!")
-
-		log.logHighlighted("Using capsuled fit to avoid memory problems!")
-		w.writeToFile("workspaces/workSpaceTemp_%s.root"%theConfig.title)
-		bashCommand = "./fitCapsule workspaces/workSpaceTemp_%s.root 0 0 %s"%(theConfig.title,theConfig.title)
-		import subprocess
-		process = subprocess.Popen(bashCommand.split())
-		output = process.communicate()[0]
-		log.logHighlighted("back in main routine")
-		f = ROOT.TFile("workspaces/workSpaceTemp_%s.root_result"%theConfig.title)
-		w =  f.Get("w")
-		fitResult = w.var("fitQualityH0")
-		parametersToSave["minNllH0"] = w.var("minNllH0").getVal()
-		parametersToSave["nParH0"] = w.var("nParSFOSH0").getVal()
-		log.logHighlighted("Background Only Fit Convergence Quality: %d"%fitResult.getVal())
+			
+		bgOnlyFit = w.pdf('combModelBgOnly').fitTo(w.data('data_obs'),
+											ROOT.RooFit.Save(),
+											ROOT.RooFit.SumW2Error(ROOT.kFALSE),
+											ROOT.RooFit.Minos(theConfig.runMinos),
+											ROOT.RooFit.ExternalConstraints(ROOT.RooArgSet(w.pdf("constraintRSFOFCentral"),
+																							w.pdf("constraintRSFOFForward"))),
+											ROOT.RooFit.Extended(ROOT.kTRUE),
+											ROOT.RooFit.Strategy(1))
+											
+		fitResult = bgOnlyFit.covQual()
+		parametersToSave["minNllH0"] = bgOnlyFit.minNll()
+		parametersToSave["nParH0"] = bgOnlyFit.floatParsFinal().getSize()
+		log.logHighlighted("Background Only Fit Convergence Quality: %d"%fitResult)
 
 		if fitResult == 3:
 			hasConverged = True
 			log.logHighlighted("Fit converged, congrats!")
 		else:
-				log.logError("Fit did not converge! Do not trust this result!")		
+				log.logError("Fit did not converge! Do not trust this result!")
 		
 
 		w.var('inv').setBins(theConfig.nBinsMinv)
 
 		if dataSetConfiguration == "Combined":
 			frameSFOSCentral = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.SF.central.val,region="Central")
+			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.default.SF.central.val,region="Central")
 			frameSFOSCentral.GetYaxis().SetTitle(theConfig.histoytitle)
 			
 			plotFitResults(w,theConfig, frameSFOSCentral,frameOFOSCentral,data_obs,fitOFOSCentral,region="Central",H0=True)	
 			
 			frameSFOSForward = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.SF.forward.val,region="Forward")
+			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.default.SF.forward.val,region="Forward")
 			frameSFOSForward.GetYaxis().SetTitle(theConfig.histoytitle)
 
 
@@ -1740,35 +1680,35 @@ def main():
 
 		elif dataSetConfiguration == "Central":		
 			frameSFOSCentral = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.SF.central.val,region="Central")
+			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.default.SF.central.val,region="Central")
 			frameSFOSCentral.GetYaxis().SetTitle(theConfig.histoytitle)
 			
 			plotFitResults(w,theConfig, frameSFOSCentral,frameOFOSCentral,data_obs,fitOFOSCentral,region="Central",H0=True)	
 							
 		if dataSetConfiguration == "Forward":		
 			frameSFOSForward = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.SF.forward.val,region="Forward")
+			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.default.SF.forward.val,region="Forward")
 			frameSFOSForward.GetYaxis().SetTitle(theConfig.histoytitle)
 
 			plotFitResults(w,theConfig, frameSFOSForward,frameOFOSForward,data_obs,fitOFOSForward,region="Forward",H0=True)	
 
 
 
-
-
-
-
-
 					   
 		w.var("rSFOFCentral").setVal(theConfig.rSFOF.central.val)
-		#~ w.var("nSigCentral").setVal(100)
 		w.var("rSFOFForward").setVal(theConfig.rSFOF.forward.val)
-		#~ w.var("nZCentral").setVal(theConfig.zPredictions.SF.central.val)
-		#~ w.var("nZForward").setVal(theConfig.zPredictions.SF.forward.val)
-		#~ w.var("rSFOFCentral").setConstant()
-		#~ w.var("rSFOFForward").setConstant()
 		if (theConfig.edgePosition > 0):
 			w.var('m0').setVal(float(theConfig.edgePosition))
+			if theConfig.randomStartPoint:
+
+				randomm0 = random.random()*300
+				if randomm0 < 35:
+					randomm0 = 35
+				log.logWarning("Warning! Randomized initial value of m0 = %.1f"%randomm0)
+
+				w.var('m0').setVal(float(randomm0))	
+			
+			
 			if not x == None:
 				w.var('m0').setVal(float(theConfig.toyConfig["m0"]))
 				if theConfig.toyConfig["rand"]:
@@ -1788,25 +1728,24 @@ def main():
 
 						
 		hasConverged = False
-		log.logWarning("Attempting combined Fit!")
-		log.logHighlighted("Using capsuled fit to avoid memory problems!")
-		w.writeToFile("workspaces/workSpaceTemp_%s.root"%theConfig.title)
-		if produceScan:
-			bashCommand = "./fitCapsule workspaces/workSpaceTemp_%s.root 1 1 %s"%(theConfig.title,theConfig.title)
-		else:
-			bashCommand = "./fitCapsule workspaces/workSpaceTemp_%s.root 0 1 %s"%(theConfig.title,theConfig.title)			
-		process = subprocess.Popen(bashCommand.split())
-		output = process.communicate()[0]
-		log.logHighlighted("back in main routine")
-		f = ROOT.TFile("workspaces/workSpaceTemp_%s.root_result"%theConfig.title)
-		w =  f.Get("w")
-		fitResult = w.var("fitQualityH1")
-		parametersToSave["minNllH1"] = w.var("minNllH1").getVal()
-		parametersToSave["nParH1"] = w.var("nParSFOSH1").getVal()
+		log.logWarning("Attempting combined Fit!")		
+		
+		signalFit = w.pdf('combModel').fitTo(w.data('data_obs'),
+											ROOT.RooFit.Save(),
+											ROOT.RooFit.SumW2Error(ROOT.kFALSE),
+											ROOT.RooFit.Minos(theConfig.runMinos),
+											ROOT.RooFit.ExternalConstraints(ROOT.RooArgSet(w.pdf("constraintRSFOFCentral"),
+																							w.pdf("constraintRSFOFForward"))),
+											ROOT.RooFit.Extended(ROOT.kTRUE),
+											ROOT.RooFit.Strategy(1))
+											
+		fitResult = signalFit.covQual()
+		parametersToSave["minNllH1"] = signalFit.minNll()
+		parametersToSave["nParH1"] = signalFit.floatParsFinal().getSize()
 		parametersToSave["initialM0"] = theConfig.edgePosition
 		if theConfig.toyConfig["rand"]:
 			parametersToSave["initialM0"] = randomm0
-		log.logHighlighted("Main Fit Convergence Quality: %d"%fitResult.getVal())
+		log.logHighlighted("Main Fit Convergence Quality: %d"%fitResult)
 
 		if fitResult == 3:
 			hasConverged = True
@@ -1816,31 +1755,15 @@ def main():
 
 		sizeCanvas = 800
 		
-		
-		
-		
-
-		
-
-
-		#~ frameOFOSCentral = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of OFOS lepton pairs'))
-		#~ frameOFOSCentral.GetXaxis().SetTitle('m_{e#mu} [GeV]')
-		#~ frameOFOSCentral.GetYaxis().SetTitle(theConfig.histoytitle)
-		#~ frameOFOSForward = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of OFOS lepton pairs'))
-		#~ frameOFOSForward.GetXaxis().SetTitle('m_{e#mu} [GeV]')
-		#~ frameOFOSForward.GetYaxis().SetTitle(theConfig.histoytitle)
-
-
-
 		if dataSetConfiguration == "Combined":
 			frameSFOSCentral = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.SF.central.val,region="Central")
+			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.default.SF.central.val,region="Central")
 			frameSFOSCentral.GetYaxis().SetTitle(theConfig.histoytitle)
 			
 			plotFitResults(w,theConfig, frameSFOSCentral,frameOFOSCentral,data_obs,fitOFOSCentral,region="Central")	
 			
 			frameSFOSForward = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.SF.forward.val,region="Forward")
+			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.default.SF.forward.val,region="Forward")
 			frameSFOSForward.GetYaxis().SetTitle(theConfig.histoytitle)
 			
 			
@@ -1856,7 +1779,7 @@ def main():
 			saveFitResults(w,theConfig,x,region="Forward")	
 		elif dataSetConfiguration == "Central":		
 			frameSFOSCentral = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.SF.central.val,region="Central")
+			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.default.SF.central.val,region="Central")
 			frameSFOSCentral.GetYaxis().SetTitle(theConfig.histoytitle)
 			
 			plotFitResults(w,theConfig, frameSFOSCentral,frameOFOSCentral,data_obs,fitOFOSCentral,region="Central")	
@@ -1865,9 +1788,9 @@ def main():
 			log.logDebug("Chi2 SFOS: %f" % parametersToSave["chi2SFOSCentral"])
 
 			saveFitResults(w,theConfig,x,region="Central")		
-		if dataSetConfiguration == "Forward":		
+		elif dataSetConfiguration == "Forward":		
 			frameSFOSForward = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.SF.forward.val,region="Forward")
+			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.default.SF.forward.val,region="Forward")
 			frameSFOSForward.GetYaxis().SetTitle(theConfig.histoytitle)
 
 			parametersToSave["chi2SFOSForward"] = frameSFOSForward.chiSquare(int(parametersToSave["nParH1"]))

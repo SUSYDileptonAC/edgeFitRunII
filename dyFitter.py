@@ -131,10 +131,10 @@ def main():
 						  help="use existing datasets from pickle, default is false.")
 	parser.add_argument("-s", "--selection", dest = "selection" , action="store", default="DrellYanControl",
 						  help="selection which to apply.")
-	parser.add_argument("-r", "--runRange", dest="runRange", action="store", default="Full2012",
+	parser.add_argument("-r", "--runRange", dest="runRange", action="store", default="Run2015_25ns",
 						  help="name of run range.")
 	parser.add_argument("-c", "--configuration", dest="config", action="store", default="Central",
-						  help="dataset configuration, default Combined")
+						  help="dataset configuration, default Central")
 	parser.add_argument("-x", "--private", action="store_true", dest="private", default=False,
 						  help="plot is private work.")		
 	parser.add_argument("-w", "--write", action="store_true", dest="write", default=False,
@@ -194,9 +194,7 @@ def main():
 		w = ROOT.RooWorkspace("w", ROOT.kTRUE)
 		inv = ROOT.RooRealVar("inv","inv",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
 		getattr(w,'import')(inv)
-		w.factory("weight[1.,0.,10.]")
-		#~ w.factory("genWeight[1.,-1.1,1.1]")
-		#~ vars = ROOT.RooArgSet(inv, w.var('weight'), w.var('genWeight'))		
+		w.factory("weight[1.,0.,10.]")	
 		vars = ROOT.RooArgSet(inv, w.var('weight'))		
 		if (theConfig.useMC):
 			
@@ -310,7 +308,6 @@ def main():
 		else:
 			f = ROOT.TFile("workspaces/dyControl_%s_Data.root"%args.config)
 		w =  f.Get("w")		
-		#~ vars = ROOT.RooArgSet(w.var("inv"), w.var('weight'), w.var('genWeight'))
 		vars = ROOT.RooArgSet(w.var("inv"), w.var('weight'))
 
 
@@ -397,14 +394,12 @@ def main():
 	
 	
 	fitEE = w.pdf('modelEE').fitTo(w.data('dataHistEE'),
-										#ROOT.RooFit.Save(), ROOT.RooFit.SumW2Error(ROOT.kFALSE), ROOT.RooFit.Minos(2.0))
 										ROOT.RooFit.Save(), ROOT.RooFit.SumW2Error(ROOT.kFALSE), ROOT.RooFit.Minos(ROOT.kFALSE), ROOT.RooFit.Extended(ROOT.kTRUE))
 										
 										
 
 		
 	fitMM = w.pdf('modelMM').fitTo(w.data('dataHistMM'),
-										#ROOT.RooFit.Save(), ROOT.RooFit.SumW2Error(ROOT.kFALSE), ROOT.RooFit.Minos(2.0))
 										ROOT.RooFit.Save(), ROOT.RooFit.SumW2Error(ROOT.kFALSE), ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.Extended(ROOT.kTRUE))
 										
 										
@@ -713,9 +708,9 @@ def main():
 
 
 	if theConfig.useMC:
-		w.writeToFile("dyWorkspace_%s_MC.root" % args.config)
+		w.writeToFile("workspaces/dyWorkspace_%s_MC.root" % args.config)
 	else:
-		w.writeToFile("dyWorkspace_%s.root" % args.config)
+		w.writeToFile("workspaces/dyWorkspace_%s.root" % args.config)
 	return w
 
 

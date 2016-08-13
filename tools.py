@@ -12,7 +12,6 @@
 
 import ROOT
 
-#import newCombineSummer as helper
 #import mainConfig
 from messageLogger import messageLogger as log
 
@@ -23,9 +22,6 @@ from math import sqrt
 import math
 import pickle, os, shelve
 
-# paths
-theHistoPath = '/home/epsilon/SUSY/Histos'
-#theSusyLuminosity = 200. #pb-1
 
 
 ## wait for input to keep the GUI (which lives on a ROOT event dispatcher) alive
@@ -359,185 +355,6 @@ def dataExists(project, key):
 		db.close()
 
 	return value
-
-
-#def getNumberOfSUSYEvents(flag, task, dataset, verbose=False):
-#    configDict = mainConfig.MainConfig().getMap()
-#
-#    hSUSYNoScale = helper.getSUSY(configDict['HistosPath'], dataset, flag, task, "Weigths", configDict['Luminosity'], noScale=True)
-#    hSUSYScale = helper.getSUSY(configDict['HistosPath'], dataset, flag, task, "Weigths", configDict['Luminosity'], noScale=False)
-#    susyEvents = 0
-#    totalEvents = -1
-#    susyEventsScaled = 0.0
-#    efficiency = 0.0
-#    if (hSUSYNoScale != None):
-#        susyEvents = int(hSUSYNoScale.GetBinContent(2))
-#        totalEvents = int(helper.cfg.get(dataset, "numevents"))
-#    if (hSUSYScale != None):
-#        susyEventsScaled = hSUSYScale.GetBinContent(2)
-#
-#    if (verbose == True):
-#        print "Number of accepted events in SUSY dataset: " + str(susyEvents) + " (of " + str(totalEvents) + ")"
-#        print "Efficiency: " + str(float(susyEvents) / totalEvents)
-#        print "Number of accepted events in " + str(int(configDict['Luminosity'])) + " pb-1: " + str(susyEventsScaled)
-#
-#    return (susyEvents, totalEvents, susyEventsScaled, efficiency)
-#
-#
-#def getNumberOfBackgroundEvents(flag, task, verbose=False):
-#    configDict = mainConfig.MainConfig().getMap()
-#
-#    hWjetsNoScale = helper.combineWjets(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=True)
-#    hZjetsNoScale = helper.combineZjets(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=True)
-#    httbarNoScale = helper.combinettbar(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=True)
-#    hDibosonNoScale = helper.combineDiboson(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=True)
-#    hQCDNoScale = helper.combineQCD(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=True)
-#
-#    hWjetsScale = helper.combineWjets(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=False)
-#    hZjetsScale = helper.combineZjets(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=False)
-#    httbarScale = helper.combinettbar(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=False)
-#    hDibosonScale = helper.combineDiboson(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=False)
-#    hQCDScale = helper.combineQCD(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=False)
-#
-#    backgroundEvents = 0
-#    totalBackgroundEvents = 0
-#    backgroundEventsScaled = 0.0
-#
-#    # sum up backgrounds
-#    backgroundEvents += int(hWjetsNoScale.GetBinContent(2))
-#    totalBackgroundEvents += int(helper.cfg.get('WJets_madgraph_Fall08', "numevents"))
-#    backgroundEventsScaled += hWjetsScale.GetBinContent(2)
-#
-#    backgroundEvents += int(hZjetsNoScale.GetBinContent(2))
-#    totalBackgroundEvents += int(helper.cfg.get('ZJets_madgraph_Fall08', "numevents"))
-#    totalBackgroundEvents += int(helper.cfg.get('AstarJets_madgraph_Fall08', "numevents"))
-#    backgroundEventsScaled += hZjetsScale.GetBinContent(2)
-#
-#    backgroundEvents += int(httbarNoScale.GetBinContent(2))
-#    totalBackgroundEvents += int(helper.cfg.get('TTJets_madgraph_Fall08', "numevents"))
-#    backgroundEventsScaled += httbarScale.GetBinContent(2)
-#
-#    backgroundEvents += int(hDibosonNoScale.GetBinContent(2))
-#    totalBackgroundEvents += int(helper.cfg.get('VVJets_madgraph_Fall08', "numevents"))
-#    totalBackgroundEvents += int(helper.cfg.get('Wgamma', "numevents"))
-#    totalBackgroundEvents += int(helper.cfg.get('Zgamma', "numevents"))
-#    backgroundEventsScaled += hDibosonScale.GetBinContent(2)
-#
-#    backgroundEventsQCD = int(hQCDNoScale.GetBinContent(2))
-#    backgroundEvents += backgroundEventsQCD
-#    jobs = ['JPsi', 'Upsilon1S', 'Upsilon2S', 'QCDpt80', 'QCDpt170', 'QCDpt300', 'QCDpt470', 'QCDpt800']
-#    for job in jobs:
-#        totalBackgroundEvents += int(helper.cfg.get(job, "numevents"))
-#    backgroundEventsScaledQCD = hQCDScale.GetBinContent(2)
-#    backgroundEventsScaled += backgroundEventsScaledQCD
-#
-#
-#    if (verbose == True):
-#        print "Number of accepted background events: " + str(backgroundEvents) + " (of " + str(totalBackgroundEvents) + ")"
-#        print "Number of accepted background events in " + str(int(configDict['Luminosity'])) + " pb-1: " + str(backgroundEventsScaled)
-#        print "Number of QCD background events: ", backgroundEventsQCD
-#        print "Number of QCD background events in ", int(configDict['Luminosity']), " pb-1: ", backgroundEventsScaledQCD
-#
-#    return (backgroundEvents, totalBackgroundEvents, backgroundEventsScaled)
-
-
-def createLatexTable(fileName, content, format={}):
-	templateTable = """
-\\documentclass[12pt,twoside,a4paper]{article}
-
-\\newcommand{\\MET}{\\ensuremath{\\displaystyle{\\not} E_T~}}
-\\newcommand{\\HT}{\\ensuremath{H_T~}}
-
-\\begin{document}
-	\\begin{table}
-%%        \\tiny
-		\\small
-		\\begin{tabular}{%(cellformat)s}
-			\\hline
-			%(header)s
-			%(content)s
-		\\end{tabular}
-		%(caption)s
-	\\end{table}
-\\end{document}
-	"""
-
-
-	tabMap = {
-		'cellformat': "c",
-		'header': "",
-		'content': "test",
-		'caption': ""
-		}
-
-	tabContent = None
-	nColumns = 1
-	noLineBreak = False
-	for row in content:
-		log.logDebug("row: %s" % row)
-		rowContent = None
-		hline = False
-		for column in row:
-			cellContent = str(column)
-			if (cellContent == "X-HLINE"):
-				hline = True
-
-			# format floats as specified
-			if (format.has_key('floatFormat') and isinstance(column, float)):
-				cellContent = format['floatFormat'] % column
-
-			if (rowContent == None):
-				rowContent = cellContent
-			else:
-				rowContent += " & " + cellContent
-
-		if (tabContent == None):
-			tabContent = rowContent
-		else:
-			if (not noLineBreak):
-				tabContent += "\\\\"
-
-			if (hline):
-				tabContent += "\\hline\n            "
-				noLineBreak = True
-			else:
-				tabContent += "\n            " + rowContent
-				noLineBreak = False
-
-		if (len(row) > nColumns):
-			nColumns = len(row)
-
-	log.logDebug("tabContent: %s" % tabContent)
-	#tabContent = tabContent.replace("_", "\\_")
-	tabMap.update({'content': tabContent})
-
-	if (format.has_key('cellformat')):
-		tabMap.update({'cellformat': format['cellformat']})
-	else:
-		cellformat = ""
-		for i in range(0, nColumns):
-			cellformat += "c"
-		tabMap.update({'cellformat': cellformat})
-
-	if (format.has_key('header')):
-		header = None
-		for string in format['header']:
-			if (header == None):
-				header = "\\textbf{" + string + "}"
-			else:
-				header = header + " & " + "\\textbf{" + string + "}"
-		tabMap.update({'header': header + "\\\\\\hline"})
-
-	if (format.has_key('caption')):
-		tabMap.update({'caption': "\\caption{" + format['caption'] + "}"})
-
-	if (format.has_key("fontsize")):
-		templateTable = templateTable.replace("\\small", "\\%s" % format['fontsize'])
-
-	file = open(fileName, 'w')
-	file.write(templateTable % tabMap)
-	file.close()
-
 
 def createPaveLabel(x1, y1, x2, y2, text,
 					fillColor=1, textColor=0,

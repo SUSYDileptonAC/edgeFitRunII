@@ -22,150 +22,7 @@ import datetime
 
 
 class InfoHolder(object):
-	class DataTypes(object):
-		Unknown = -1
-		Data = 1
-		DataFake = 2
-		MC = 10
-		MCSignal = 11
-		MCBackground = 12
-		MCFake = 13
-		EMuBackground = 20
-
-	theHistograms = {
-		#'electron pt': "Electrons/electron pt",
-		#'electron eta': "Electrons/electron eta",
-		#'electron isolation': "Electrons/electron iso",
-
-		#'electron charge methods': "Electrons/electron charge methods agreeing",
-		#'electron charge method disagree': "Electrons/electron charge method deviating",
-
-		#'muon pt': "Muons/muon pt",
-		#'muon eta': "Muons/muon eta",
-		#'muon isolation': "Muons/muon iso",
-
-		#'jet pt': "Jets/jet pt",
-		#'jet eta': "Jets/jet eta",
-		#'jet pt 1st jet': "Jets/pt first jet",
-		#'jet pt 2nd jet': "Jets/pt second jet",
-
-		'chargeProduct': "",
-		'ht': "MET/HT",
-		'met': "MET/MET",
-		'MHT': "MET/MHT",
-
-		'MET vs HT': "MET/MET - HT",
-		'MET vs MHT': "MET/MET - MHT",
-
-		#'light lepton multiplicity': "Multiplicity/LightLeptonMultiplicity",
-		#'lepton multiplicity (with taus)': "Multiplicity/LeptonMultiplicity",
-		#'muon multiplicity': "Multiplicity/MuonMultiplicity",
-		#'electron multiplicity': "Multiplicity/ElectronMultiplicity",
-		'nJets': "Multiplicity/JetMultiplicity",
-		'nBJets': "",
-
-		'nVertices': "nVErtices",
-
-		#'SS electron invariant mass': "Invariant Mass/Invariant mass of SS electron pairs",
-		#'OS electron invariant mass': "Invariant Mass/Invariant mass of OS electron pairs",
-		#'SS muon invariant mass': "Invariant Mass/Invariant mass of SS muon pairs",
-		#'OS muon invariant mass': "Invariant Mass/Invariant mass of OS muon pairs",
-
-		#'OS emu invariant mass': "Invariant Mass/Invariant mass of OFOS lepton pairs",
-
-		#'Trigger': "Trigger paths",
-
-		# for trees
-		'p4.M()': "p4.M()",
-		'lumiSec': "lumiSec",
-}
-
-	theStandardColors = {
-		'LM0': "Red",
-		#'LM1': "Red",
-		'LM1': "DarkGreen",
-		'LM2': "Red",
-		#'LM3': "Red",
-		'LM3': "DarkGreen",
-		'LM4': "Red",
-		'LM5': "Red",
-		#'LM6': "Red",
-		'LM6': "DarkGreen",
-		'LM7': "Red",
-		'LM8': "Red",
-		'LM9': "Red",
-		'LM13': "DarkRed",
-		'T3lh': "DarkGreen",
-		'QCD': "Magenta",
-		'QCD100': "Magenta",
-		'QCD250': "Magenta",
-		'QCD500': "Magenta",
-		'QCD1000': "Magenta",
-		#'WJets': "Orange",
-		'WJets': "W11WJets",
-		#'ZJets': "MyBlue",
-		'ZJets': "W11ZLightJets",
-		'AStar': "DarkOrange",
-		#'Diboson': "DarkOrange",
-		'Diboson': "W11Diboson",
-		'DibosonMadgraph': "W11Diboson",
-		#'TTJets': "MyGreen",
-		'TTJets': "W11ttbar",
-		'SingleTop': "W11singlet",
-		'JetMETTau': "Black",
-		'EG': "Black",
-		'ElectronHad': "Black",
-		'DoubleEle': "Black",
-		'Mu': "Black",
-		'MuHad': "Black",
-		'DoubleMu': "Black",
-		'Data': "Black",
-		'DataMET': "Black",
-		'DataSS': "Black",
-		'DataFake': "Black",
-		'DataFakeUpper': "Black",
-		'DataFakeLower': "Black",
-		'MCFake': "Brown",
-	}
-
-	theDataSamples = {
-			'sw53X': {
-				'Data': ["MergedData"],				
-				'BlockA': ["MergedData_BlockA"],
-				'DataMET': ["MergedData_METPD"],
-				'DataSingleLepton': ["MergedData_SingleLepton"],
-				'Data2011': ["MergedData_2011"],
-#~ 
-				'DataSS': [],
-				'DataFake': [],
-				'DataFakeUpper': [],
-				'DataFakeLower': [],
-				'HT' : ["HT_1203a_Run2012A", "HT_1203a_Run2012B"],
-#~ 
-				'DoubleElectron': ["DoubleElectron_1203a_Run2012A", "DoubleElectron_1203a_Run2012B"],
-				'DoubleMu': ["DoubleMu_1203a_Run2012A", "DoubleMu_1203a_Run2012B"],
-				'MuEG': ["MuEG_1203a_Run2012A", "MuEG_1203a_Run2012B"],
-#~ 
-	#~ 
-				'TTJets': ["TTJets_madgraph_Summer12"],
-				'TTJetsPowheg': ["TT_Powheg_Summer12_v1"],
-				'TTJetsSC': ["TTJets_MGDecays_madgraph_Summer12"],
-				'SingleTop': ["TBar_sChannel_Powheg_Summer12","TBar_tChannel_Powheg_Summer12","TBar_tWChannel_Powheg_Summer12","TBar_sChannel_Powheg_Summer12","TBar_tChannel_Powheg_Summer12","TBar_tWChannel_Powheg_Summer12"],
-				'ZJets' : ["ZJets_madgraph_Summer12", "AStar_madgraph_Summer12"],
-				'ZJetsOnly' : ["ZJets_madgraph_Summer12"],
-				'AStar': ["AStar_madgraph_Summer12"],
-				"Rare" : ["TTGJets_madgraph_Summer12","TTWJets_madgraph_Summer12","TTWWJets_madgraph_Summer12","TTZJets_madgraph_Summer12","WWGJets_madgraph_Summer12","WWWJets_madgraph_Summer12","WWZNoGstarJets_madgraph_Summer12","WZZNoGstar_madgraph_Summer12"],
-				'DibosonMadgraph' : ["WWJetsTo2L2Nu_madgraph_Summer12", "WZJetsTo3LNu_madgraph_Summer12", "ZZJetsTo2L2Nu_madgraph_Summer12", "ZZJetsTo2L2Q_madgraph_Summer12", "ZZJetsTo4L_madgraph_Summer12"],
-				# "WZJetsTo2L2Q_madgraph_Summer12", 
-				'DibosonMadgraphWW' : ["WWJetsTo2L2Nu_madgraph_Summer12"],
-				'DibosonMadgraphWZ' : ["WZJetsTo3LNu_madgraph_Summer12", "WZJetsTo2L2Q_madgraph_Summer12"],
-				'DibosonMadgraphZZ' : ["ZZJetsTo2L2Nu_madgraph_Summer12", "ZZJetsTo2L2Q_madgraph_Summer12", "ZZJetsTo4L_madgraph_Summer12"],
-				'edge_400_150_80': ["SUSY_Simplified_Model_Madgraph_FastSim_T6bblledge_400_150_80_8TeV"],
-				'slepton_550_275_100': ["SUSY_Simplified_Model_Madgraph_FastSim_T6bbslepton_550_275_100_8TeV"],
-				'slepton_450_275_100': ["SUSY_Simplified_Model_Madgraph_FastSim_T6bbslepton_450_275_100_8TeV"],
-				'slepton_550_175_100': ["SUSY_Simplified_Model_Madgraph_FastSim_T6bbslepton_550_175_100_8TeV"],
-				},
-			
+	theDataSamples = {			
 			'sw74X': {
 				'Data': ["MergedData"],
 	
@@ -188,21 +45,12 @@ class InfoHolder(object):
 				#~ 'DibosonWZ' : ["WZTo1L1Nu2Q_aMCatNLO_Spring15_25ns","WZTo1L3Nu_aMCatNLO_Spring15_25ns","WZTo3LNu_Powheg_Spring15_25ns","WZTo2L2Q_aMCatNLO_Spring15_25ns"],
 				'DibosonWZ' : ["WZTo1L1Nu2Q_aMCatNLO_Spring15_25ns"],
 				'DibosonZZ' : ["ZZTo4Q_aMCatNLO_Spring15_25ns","ZZTo4L_Powheg_Spring15_25ns","ZZTo2Q2Nu_aMCatNLO_Spring15_25ns","ZZTo2L2Q_aMCatNLO_Spring15_25ns"],
-				'edge_400_150_80': ["SUSY_Simplified_Model_Madgraph_FastSim_T6bblledge_400_150_80_8TeV"],
-				'slepton_550_275_100': ["SUSY_Simplified_Model_Madgraph_FastSim_T6bbslepton_550_275_100_8TeV"],
-				'slepton_450_275_100': ["SUSY_Simplified_Model_Madgraph_FastSim_T6bbslepton_450_275_100_8TeV"],
-				'slepton_550_175_100': ["SUSY_Simplified_Model_Madgraph_FastSim_T6bbslepton_550_175_100_8TeV"],
 				'slepton_500_250': ["T6bbllslepton_msbottom_550_mneutralino_250"],
 				'slepton_550_175': ["T6bbllslepton_msbottom_550_mneutralino_175"],
 				'slepton_550_200': ["T6bbllslepton_msbottom_550_mneutralino_200"],
 				'slepton_550_225': ["T6bbllslepton_msbottom_550_mneutralino_225"],
 				'slepton_550_250': ["T6bbllslepton_msbottom_550_mneutralino_250"],
-				},
-			
-			#~ 'sw7X': {
-				#~ 'Data': ["MergedData"],				
-				#~ 'TTJets': ["TTJets_MSDecaysCKM_central_Tune4C_13TeV_madgraph_tauola_Phys14DR_PU20BX25_miniAOD"],
-				#~ },				
+				},				
 				
 }
 
@@ -216,8 +64,7 @@ class InfoHolder(object):
 	}
 
 	theMasterFile = {
-		'sw53X':"/home/home4/institut_1b/schomakers/FrameWork/SubmitScripts/Input/Master53X.ini",
-		'sw74X':"/home/home4/institut_1b/schomakers/FrameWork/SubmitScripts/Input/Master74X_25nsMC_ReMiniAOD.ini",
+		'sw74X':"../frameWorkBase/MasterList.ini",
 	}
 
 	theXSectionUncertainty = {
@@ -259,18 +106,6 @@ class DataInterface(object):
 	def convertDileptonTree(tree, nMax= -1, weight=1.0, selection="", weightString=""):
 		# TODO: make selection more efficient
 		log.logDebug("Converting DileptonTree")
-		#~ ROOT.gROOT.ProcessLine(\
-							   #~ "struct MyDileptonTreeFormat{\
-								 #~ Double_t inv;\
-								 #~ Int_t chargeProduct;\
-								 #~ Int_t nJets;\
-								 #~ Double_t ht;\
-								 #~ Double_t met;\
-								 #~ Double_t pt1;\
-								 #~ Double_t pt2;\
-								 #~ Double_t weight;\
-								 #~ Double_t genWeight;\
-								#~ };")
 		ROOT.gROOT.ProcessLine(\
 							   "struct MyDileptonTreeFormat{\
 								 Double_t inv;\
@@ -294,7 +129,6 @@ class DataInterface(object):
 		newTree.Branch("pt1", ROOT.AddressOf(data, "pt1"), "pt1/D")
 		newTree.Branch("pt2", ROOT.AddressOf(data, "pt2"), "pt2/D")
 		newTree.Branch("weight", ROOT.AddressOf(data, "weight"), "weight/D")
-		#~ newTree.Branch("genWeight", ROOT.AddressOf(data, "genWeight"), "genWeight/D")
 
 		# only part of tree?
 		iMax = tree.GetEntries()
@@ -311,16 +145,11 @@ class DataInterface(object):
 				data.met = tree.met
 				data.pt1 = tree.pt1
 				data.pt2 = tree.pt2
-				#~ data.genWeight = tree.genWeight
 				if (weightString != ""):
 					eventWeight = eval(weightString)
 					data.weight = tree.weight * eventWeight
-					#~ data.weight = tree.weight * tree.genWeight * eventWeight
 				else:
 					data.weight = tree.weight * weight
-					#~ data.weight = tree.weight * tree.genWeight * weight
-				#log.logDebug("cp: %d" % tree.chargeProduct)
-				#log.logDebug("invM = %f" % tree.p4.M())
 				newTree.Fill()
 
 		#return newTree
@@ -359,354 +188,6 @@ class DataInterface(object):
 
 	convertTree = staticmethod(convertTree)
 
-	# other methods
-	#==========
-	#~ def getKFactor(self, dataset, dataSamples=None):
-		#~ if (dataSamples == None):
-			#~ dataSamples = self.theConfigDict['DataSamples']
-#~ 
-		#~ if (not InfoHolder.theDataSamples.has_key(dataSamples)):
-			#~ log.logError("Datasample not registered: %s" % dataSamples)
-			#~ return None
-		#~ if (not InfoHolder.theDataSamples[dataSamples].has_key(dataset)):
-			#~ log.logError("Dataset not found in datasample '%s': %s" % (dataSamples, dataset))
-			#~ return None
-#~ 
-		#~ jobList = (InfoHolder.theDataSamples[dataSamples])[dataset]
-		#~ xSection = self.getXSection(dataset)
-		#~ negWeightFraction = self.getNegWeightFraction(dataset)
-		#~ kFactor = 0.0
-		#~ for job in jobList:
-			#~ kFactor += float(self.cfg.get(job, 'kfactor')) * float(self.cfg.get(job, 'crosssection')) / xSection
-#~ 
-		#~ return kFactor
-
-	#~ def getXSection(self, dataset, dataSamples=None):
-		#~ if (dataSamples == None):
-			#~ dataSamples = self.theConfigDict['DataSamples']
-#~ 
-		#~ if (not InfoHolder.theDataSamples.has_key(dataSamples)):
-			#~ log.logError("Datasample not registered: %s" % dataSamples)
-			#~ return None
-		#~ if (not InfoHolder.theDataSamples[dataSamples].has_key(dataset)):
-			#~ log.logError("Dataset not found in datasample '%s': %s" % (dataSamples, dataset))
-			#~ return None
-#~ 
-		#~ jobList = (InfoHolder.theDataSamples[dataSamples])[dataset]
-		#~ xSection = 0.0
-		#~ for job in jobList:
-			#~ xSection += float(self.cfg.get(job, 'crosssection'))
-#~ 
-		#~ return xSection
-
-	#~ def getNegWeightFraction(self, dataset, dataSamples=None):
-		#~ if (dataSamples == None):
-			#~ dataSamples = self.theConfigDict['DataSamples']
-#~ 
-		#~ if (not InfoHolder.theDataSamples.has_key(dataSamples)):
-			#~ log.logError("Datasample not registered: %s" % dataSamples)
-			#~ return None
-		#~ if (not InfoHolder.theDataSamples[dataSamples].has_key(dataset)):
-			#~ log.logError("Dataset not found in datasample '%s': %s" % (dataSamples, dataset))
-			#~ return None
-#~ 
-		#~ jobList = (InfoHolder.theDataSamples[dataSamples])[dataset]
-		#~ negWeightFraction = 0.0
-		#~ for job in jobList:
-			#~ negWeightFraction += float(self.cfg.get(job, 'negWeightFraction'))
-#~ 
-		#~ return negWeightFraction
-
-	#~ def getResultHistogram(self, flag, task, dataset, histoName, dataSamples=None, scale=True, trees=[], drawString="", cut="", weight=None, triggerEffCorrection=False):
-		#~ if (dataSamples == None):
-			#~ dataSamples = self.theConfigDict['DataSamples']
-#~ 
-		#~ #if (selection == None):
-		#~ #	selection = self.theConfigDict['StandardSelection']
-#~ 
-		#~ if (not InfoHolder.theDataSamples.has_key(dataSamples)):
-			#~ log.logError("Datasample not registered: %s" % dataSamples)
-			#~ return None
-		#~ if (not InfoHolder.theDataSamples[dataSamples].has_key(dataset)):
-			#~ log.logError("Dataset not found in datasample '%s': %s" % (dataSamples, dataset))
-			#~ return None
-#~ 
-		#~ jobList = (InfoHolder.theDataSamples[dataSamples])[dataset]
-		#~ log.logDebug("Getting '%s' from joblist %s" % (histoName, str(jobList)))
-#~ 
-		#~ taskDir = task.split(".", 1)[0]
-		#~ taskInFile = task.split(".", 1)[1]
-		#~ result = self.__combineDatasets(jobList, flag, taskDir, histoName, taskInFile, scale, dataSamples=dataSamples, trees=trees, drawString=drawString, cut=cut, weight=weight, triggerEffCorrection=triggerEffCorrection)
-		#~ if ((not result.scaled) and (result.dataType == InfoHolder.DataTypes.MC or result.dataType == InfoHolder.DataTypes.MCBackground or result.dataType == InfoHolder.DataTypes.MCSignal)):
-			#~ log.logWarning("Not scaling MC histogram %s (%s)" % (histoName, dataset))
-#~ 
-		#~ result.dataName = dataset
-		#~ return result
-
-
-	#~ def __combineDatasets(self, jobs, flag, task, histoName, taskInFile, scale, dataSamples=None, trees=[], drawString="", cut="", weight=None, triggerEffCorrection=False):
-		#~ result = None
-#~ 
-		#~ if (jobs == []):
-			#~ log.logError("JobList empty")
-			#~ return Result(None)
-#~ 
-		#~ for job in jobs:
-			#~ tempResult = None
-#~ 
-			#~ log.logDebug("Trying to get event count for dynamic scaling")
-			#~ eventCount = self.getEventCount(job, flag, task, dataSamples=dataSamples)
-			#~ if (trees != []):
-				#~ if (eventCount > 0.0):
-					#~ log.logDebug("Dynamic scaling active (%f)" % eventCount)
-					#~ tempResult = self.__getHistogramFromDatasetUsingTrees(job, flag, task, trees, taskInFile, drawString=drawString, cut=cut, scaleMC=scale, dataSamples=dataSamples,
-																		  #~ dynamicCount=eventCount, weight=weight, triggerEffCorrection=triggerEffCorrection)
-				#~ else:
-					#~ log.logInfo("Dynamic scaling not possible (%f)" % eventCount)
-					#~ tempResult = self.__getHistogramFromDatasetUsingTrees(job, flag, task, trees, taskInFile, drawString=drawString, cut=cut, scaleMC=scale, dataSamples=dataSamples,
-																		  #~ weight=weight, triggerEffCorrection=triggerEffCorrection)
-			#~ else:
-				#~ if (eventCount > 0.0):
-					#~ log.logDebug("Dynamic scaling active (%f)" % eventCount)
-					#~ tempResult = self.__getHistogramFromDataset(job, flag, task, histoName, taskInFile, scale, dataSamples=dataSamples, dynamicCount=eventCount)
-				#~ else:
-					#~ log.logInfo("Dynamic scaling not possible (%f)" % eventCount)
-					#~ tempResult = self.__getHistogramFromDataset(job, flag, task, histoName, taskInFile, scale, dataSamples=dataSamples)
-#~ 
-			#~ if (tempResult != None):
-				#~ log.logDebug("Got histogram: %s" % str(tempResult.histogram))
-#~ 
-			#~ if (result == None):
-				#~ # first existing histogram
-				#~ result = tempResult
-			#~ else:
-				#~ # not first one, add this
-				#~ result = result.addResult(tempResult)
-				#~ log.logDebug("Result histogram: %s" % str(result.histogram))
-#~ 
-		#~ if (result == None or result.histogram == None):
-			#~ log.logError("Could not load histogram from any of jobs %s" % str(jobs))
-#~ 
-		#~ #hQCD = weightDataset(path, flag, runName, jobs[0][0], histoName, luminosity, analysis, noScale, n=jobs[0][1])
-		#~ return result
-
-
-	#~ def __getHistogramFromDataset(self, job, flag, task, histoName, taskInFile, scaleMC, dataSamples=None, dynamicCount= -1.0):
-		#~ filePath = "%s/%s/%s/%s.%s.%s.root" % (self.theConfigDict['HistosPath'], flag, task, flag, task, job)
-		#~ histoPath = "%s/%s/%s;1" % (taskInFile, self.theConfigDict['InternalHistosPath'], histoName)
-		#~ #log.logDebug("file: %s" % filePath)
-		#~ #log.logDebug("histo: %s" % histoPath)
-#~ 
-		#~ histogram = None
-		#~ if (os.path.exists(filePath)):
-			#~ histogram = self.getHistogramFromFile(filePath, histoPath)
-		#~ else:
-			#~ log.logWarning("File not found %s" % filePath)
-			#~ return Result(None)
-#~ 
-		#~ result = Result(histogram)
-		#~ #result.dataName = job
-		#~ result.taskName = taskInFile
-		#~ result.flagName = flag
-#~ 
-		#~ cfg = self.cfg
-		#~ if (dataSamples != None):
-			#~ log.logDebug("Overriding masterfile with %s" % InfoHolder.theMasterFile[dataSamples])
-			#~ cfg = ConfigParser.ConfigParser()
-			#~ cfg.read(InfoHolder.theMasterFile[dataSamples])
-#~ 
-#~ 
-		#~ if cfg.has_section(job):
-			#~ result.kFactor = cfg.getfloat(job, 'kfactor')
-			#~ result.nEvents = cfg.getfloat(job, 'numevents')
-			#~ if (result.nEvents != cfg.getint(job, 'localevents') and dynamicCount < -0.0):
-				#~ log.logWarning("nEvents incompatible with nLocalEvents and dynamic count disabled!")
-#~ 
-			#~ groups = cfg.get(job, 'groups')
-			#~ if ("Data" in groups):
-				#~ log.logDebug("Data sample found")
-				#~ result.luminosity = abs(cfg.getfloat(job, 'crosssection'))
-				#~ result.dataType = InfoHolder.DataTypes.Data
-#~ 
-			#~ elif ("Fake" in groups):
-				#~ log.logDebug("DataFake sample found")
-				#~ result.luminosity = abs(cfg.getfloat(job, 'crosssection'))
-				#~ result.dataType = InfoHolder.DataTypes.DataFake
-#~ 
-			#~ elif ("MC" in groups):
-				#~ log.logDebug("MC sample found")
-				#~ result.setXSection(cfg.getfloat(job, 'crosssection'))
-				#~ if (dynamicCount > 0.0):
-					#~ log.logDebug("Applying dynamic scaling to MC sample: %f (%f)" % (dynamicCount, result.nEvents))
-					#~ result.nEvents = dynamicCount
-#~ 
-				#~ result.dataType = InfoHolder.DataTypes.MCBackground
-				#~ if ("SUSY" in groups):
-					#~ log.logDebug("Sample is SUSY signal sample")
-					#~ result.dataType = InfoHolder.DataTypes.MCSignal
-#~ 
-				#~ luminosity = self.theConfigDict['Luminosity']
-				#~ if (scaleMC):
-					#~ result.unscaledIntegral = result.integral()
-#~ 
-					#~ scalingFactor = 1
-					#~ if self.theConfigDict['NLO']:
-						#~ scalingFactor = result.xSection / result.nEvents * luminosity * result.kFactor
-					#~ else:
-						#~ scalingFactor = result.xSection / result.nEvents * luminosity
-#~ 
-					#~ log.logDebug("Scaling factor: %f" % scalingFactor)
-					#~ result.scale(scalingFactor)
-					#~ result.luminosity = luminosity
-			#~ else:
-				#~ log.logError("Unknown sample found")
-				#~ result.dataType = InfoHolder.DataTypes.Unknown
-		#~ else:
-			#~ log.logError("No section in master list found for job %s" % job)
-			#~ return result
-#~ 
-		#~ log.logDebug("Number of entries in %s: %f \\pm %f (%d)" % (job, result.integral(), result.integralError(), result.unscaledIntegral))
-		#~ return result
-#~ 
-#~ 
-	#~ def __getHistogramFromDatasetUsingTrees(self, job, flag, task, trees, taskInFile, drawString="", cut="", scaleMC=True, dataSamples=None, dynamicCount= -1.0, weight=None, triggerEffCorrection=False):
-		#~ histogram = None
-		#~ intError = -1.0
-#~ 
-		#~ for tree in trees:
-			#~ filePath = "%s/%s/%s/%s.%s.%s.root" % (self.theConfigDict['HistosPath'], flag, task, flag, task, job)
-			#~ #treePath = "%s/%s;1" % (taskInFile, tree)
-			#~ treePath = "%s/%s" % (taskInFile, tree)
-			#~ #log.logDebug("file: %s" % filePath)
-			#~ #log.logDebug("histo: %s" % treePath)
-#~ 
-			#~ self.logMemoryContent()
-			#~ log.logDebug("Loading tree")
-#~ 
-			#~ if (os.path.exists(filePath)):
-				#~ theTree = self.getTreeFromFile(filePath, treePath)
-#~ 
-#~ 
-				#~ name = "%s%d" % (drawString, datetime.datetime.now().microsecond)
-				#~ name = name.replace(".", "")
-				#~ name = name.replace("(", "")
-				#~ name = name.replace(")", "")
-#~ 
-				#~ factor = 1.0
-				#~ if (triggerEffCorrection):
-					#~ # use SS approval results
-					#~ # 2012
-					#~ # Update: Use Daniel's results
-					#~ year = 2012
-					#~ if (tree.endswith("EEDileptonTree")): factor = 0.934 # 0.95
-					#~ if (tree.endswith("EMuDileptonTree")): factor = 0.896 # 0.92
-					#~ if (tree.endswith("MuMuDileptonTree")): factor = 0.912 # 0.88
-					#~ # 2011
-					#~ #year = 2011
-					#~ #if (tree.endswith("EEDileptonTree")): factor = 0.985 #0.976 # 0.993
-					#~ #if (tree.endswith("EMuDileptonTree")): factor = 0.942 #0.925 # 0.921
-					#~ #if (tree.endswith("MuMuDileptonTree")): factor = 0.921 #0.944 # 0.892
-					#~ log.logHighlighted("Applying %d-trigger efficiency correction of %.3f to %s in %s" % (year, factor, tree, job))
-#~ 
-				#~ #self.logMemoryContent()
-				#~ tempHistogram = self.getHistoFromTree(theTree, drawString, name, cut, weight=weight, triggerEffCorrectionFactor=factor)
-#~ 
-				#~ if (weight != None):
-					#~ weight2 = "(%s)*(%s)" % (weight, weight)
-					#~ tempErrorHistogram = self.getHistoFromTree(theTree, drawString, name, cut, weight=weight2, triggerEffCorrectionFactor=factor)
-					#~ min = 0
-					#~ max = 10000
-					#~ binMin = tempErrorHistogram.FindBin(min)
-					#~ binMax = tempErrorHistogram.FindBin(Result.xMax)
-					#~ intError = sqrt(tempErrorHistogram.Integral(binMin, binMax))
-#~ 
-				#~ if (histogram == None):
-					#~ histogram = tempHistogram
-				#~ else:
-					#~ histogram.Add(tempHistogram)
-#~ 
-			#~ else:
-				#~ log.logWarning("File not found %s" % filePath)
-				#~ return Result(None)
-#~ 
-		#~ result = Result(histogram)
-		#~ log.logDebug("Result: %s" % result)
-		#~ #result.dataName = job
-		#~ result.taskName = taskInFile
-		#~ result.flagName = flag
-#~ 
-		#~ cfg = self.cfg
-		#~ if (dataSamples != None):
-			#~ log.logDebug("Overriding masterfile with %s" % InfoHolder.theMasterFile[dataSamples])
-			#~ cfg = ConfigParser.ConfigParser()
-			#~ cfg.read(InfoHolder.theMasterFile[dataSamples])
-#~ 
-#~ 
-		#~ if cfg.has_section(job):
-			#~ result.kFactor = cfg.getfloat(job, 'kfactor')
-			#~ result.nEvents = cfg.getfloat(job, 'numevents')
-			#~ if (result.nEvents != cfg.getint(job, 'localevents') and dynamicCount < -0.0):
-				#~ log.logWarning("nEvents incompatible with nLocalEvents and dynamic count disabled!")
-#~ 
-			#~ groups = cfg.get(job, 'groups')
-			#~ if ("Data" in groups):
-				#~ log.logDebug("Data sample found")
-				#~ result.luminosity = abs(cfg.getfloat(job, 'crosssection'))
-				#~ result.dataType = InfoHolder.DataTypes.Data
-				#~ if (triggerEffCorrection):
-					#~ log.logError("Applied trigger efficiency correction on Data. This should never happen!")
-#~ 
-			#~ elif ("Fake" in groups and not "MC" in groups):
-				#~ log.logDebug("DataFake sample found")
-				#~ result.luminosity = abs(cfg.getfloat(job, 'crosssection'))
-				#~ result.dataType = InfoHolder.DataTypes.DataFake
-				#~ result.currentIntegralError = intError
-				#~ log.logDebug("Error on DataFake: %f" % intError)
-#~ 
-			#~ elif ("MC" in groups):
-				#~ log.logDebug("MC sample found")
-				#~ if (not triggerEffCorrection):
-					#~ log.logWarning("Using MC without applying trigger efficiency correction!")
-#~ 
-				#~ result.setXSection(cfg.getfloat(job, 'crosssection'))
-				#~ if (dynamicCount > 0.0):
-					#~ log.logDebug("Applying dynamic scaling to MC sample: %f (%f)" % (dynamicCount, result.nEvents))
-					#~ result.nEvents = dynamicCount
-#~ 
-				#~ result.dataType = InfoHolder.DataTypes.MCBackground
-				#~ if ("Fake" in groups):
-					#~ log.logDebug("MCFake sample found")
-					#~ result.dataType = InfoHolder.DataTypes.MCFake
-					#~ result.currentIntegralError = intError
-					#~ log.logDebug("Error on MCFake: %f" % intError)
-				#~ if ("SUSY" in groups):
-					#~ log.logDebug("Sample is SUSY signal sample")
-					#~ result.dataType = InfoHolder.DataTypes.MCSignal
-#~ 
-				#~ luminosity = self.theConfigDict['Luminosity']
-				#~ if (scaleMC):
-					#~ result.unscaledIntegral = result.integral()
-#~ 
-					#~ scalingFactor = 1
-					#~ if self.theConfigDict['NLO']:
-						#~ scalingFactor = result.xSection / result.nEvents * luminosity * result.kFactor
-					#~ else:
-						#~ scalingFactor = result.xSection / result.nEvents * luminosity
-#~ 
-					#~ log.logDebug("Scaling factor: %f" % scalingFactor)
-					#~ result.scale(scalingFactor)
-					#~ result.luminosity = luminosity
-			#~ else:
-				#~ log.logError("Unknown sample found")
-				#~ result.dataType = InfoHolder.DataTypes.Unknown
-#~ 
-		#~ else:
-			#~ log.logError("No section in master list found for job %s" % job)
-			#~ return result
-#~ 
-		#~ log.logDebug("Number of entries in %s: %f \\pm %f (%d)" % (job, result.integral(), result.integralError(), result.unscaledIntegral))
-		#~ return result
-
 
 	def isHistogramInFile(self, fileName, path):
 		log.logDebug("Checking path '%s'\n  in file %s" % (path, fileName))
@@ -740,7 +221,6 @@ class DataInterface(object):
 		value = None
 		if cfg.has_section(job):
 			value = cfg.getfloat(job, 'crosssection')
-			value *= cfg.getfloat(job, 'kfactor')
 		else:
 			log.logError("Cannot get xSection: job %s not found in MasterList." % job)
 
@@ -761,27 +241,10 @@ class DataInterface(object):
 	def getEventCount(self, job, flag, task, dataSamples=None):
 		filePath = "%s/%s.%s.%s.root" % (self.dataSetPath, flag, "processed", job)
 		
-		#~ if job == "TT_Dilepton_Powheg_Spring15_25ns" or job == "WZTo2L2Q_aMCatNLO_Spring15_25ns" or job == "ZZTo2L2Q_aMCatNLO_Spring15_25ns" or "Data" in job or "HT_Run2015" in job or "T6bbllslepton" in job:
-			#~ task = "cutsV29DileptonFinalTrees"
-		#~ else:
-			#~ task = "cutsV28DileptonFinalTrees"
 
 		histoPath = "%sCounters/analysis paths;1" % (task.split("FinalTrees")[0])
 		value = -1.0
 		
-		
-
-		#if (dataSamples == None):
-		#	dataSamples = self.theConfigDict['DataSamples']
-
-		#cfg = ConfigParser.ConfigParser()
-		#cfg.read(InfoHolder.theMasterFile[dataSamples])
-
-		#isMC = False
-		#if cfg.has_section(job):
-		#	if ('MC' in cfg.get(job, 'groups')):
-		#		isMC = True
-
 
 		# normal weighting
 		histogram = None
@@ -914,12 +377,7 @@ class DataInterface(object):
 
 
 	def getTreeFromJob(self, flag, task, job, treePath, dataVersion=None, cut=""):
-		#~ if job == "TT_Dilepton_Powheg_Spring15_25ns" or job == "WZTo2L2Q_aMCatNLO_Spring15_25ns" or job == "ZZTo2L2Q_aMCatNLO_Spring15_25ns" or "Data" in job or "HT_Run2015" in job or "T6bbllslepton" in job:
-			#~ task = "cutsV29DileptonFinalTrees"
-		#~ else:
-			#~ task = "cutsV28DileptonFinalTrees"
 		tree = ROOT.TChain("%s%s" % (task, treePath))
-		#~ fileName = "%s/%s/%s/%s.%s.%s.root" % (self.theConfigDict['HistosPath'], flag, task, flag, task, job)
 		fileName = "%s/%s.%s.%s.root" % (self.dataSetPath, flag, "processed", job)
 		if (os.path.exists(fileName)):
 			tree.Add(fileName)
@@ -936,40 +394,6 @@ class DataInterface(object):
 		else:
 			log.logError("Tree invalid: %s -%s - %s - %s" % (flag, task, dataset, treePath))
 		return tree
-
-
-	#def getHistoFromTree(self, tree, variable, name, cut, nBins=2000, xMin= -1000.0, xMax=1000.0, weight=None, triggerEffCorrectionFactor=1.0):
-	#~ def getHistoFromTree(self, tree, variable, name, cut, nBins=2000, xMin=0.0, xMax=2000.0, weight=None, triggerEffCorrectionFactor=1.0):
-		#~ hTree = ROOT.TH1F("h%s" % name, "Brot%s" % variable, nBins, xMin, xMax)
-		#~ hTree.Sumw2()
-#~ 
-		#~ log.logDebug("Drawing '%s' with cut sequence '%s'" % (variable, cut))
-		#~ #cutTree = tree.CopyTree(cut)
-#~ 
-		#~ if (triggerEffCorrectionFactor != 1.0):
-			#~ log.logDebug("Applying trigger efficiency correction of %f" % triggerEffCorrectionFactor)
-			#~ weight = "%s * %f" % (weight, triggerEffCorrectionFactor)
-#~ 
-		#~ if (tree != None):
-			#~ if (weight != None):
-				#~ log.logDebug("Applying weights to tree: %s" % weight)
-				#~ #cutTree.Draw("%s >> h%s" % (variable, name), weight)
-				#~ tree.Draw("%s >> h%s" % (variable, name), "%s * (%s)" % (weight, cut))
-			#~ else:
-				#~ #cutTree.Draw("%s >> h%s" % (variable, name), "")
-				#~ tree.Draw("%s >> h%s" % (variable, name), cut)
-			#~ hTree = ROOT.gDirectory.Get("h%s" % name)
-		#~ else:
-			#~ #log.logWarning("Tree is not valid (maybe cut down to zero): %s" % name)
-			#~ log.logWarning("Tree is not valid: %s" % name)
-#~ 
-		#~ if hTree != None:
-			#~ hTree.SetDirectory(0)
-			#~ #hTree.Sumw2()
-		#~ else:
-			#~ log.logError("Could not create histogram %s from tree" % name)
-#~ 
-		#~ return hTree
 
 
 	def getTreeFromFile(self, fileName, treePath):
@@ -1023,7 +447,6 @@ class Result:
 		self.scalingFactor = -1
 		self.luminosity = -1
 		self.xSection = -1
-		self.kFactor = -1
 		self.nEvents = -1
 		self.__scaledAndAdded = False
 		self.currentIntegralError = -1
@@ -1054,7 +477,6 @@ class Result:
 		clone.scalingFactor = self.scalingFactor
 		clone.luminosity = self.luminosity
 		clone.xSection = self.xSection
-		clone.kFactor = self.kFactor
 		clone.nEvents = self.nEvents
 		clone.__scaledAndAdded = self.__scaledAndAdded
 		clone.currentIntegralError = self.currentIntegralError
@@ -1166,13 +588,6 @@ class Result:
 			self.xSection = -1
 
 		# xSection info
-		if (self.kFactor > 0 and result.kFactor > 0):
-			if (self.kFactor != result.kFactor):
-				log.logHighlighted("Adding results with different kFactors (%f, %f). Will not be able to track this any more." % (self.kFactor, result.kFactor))
-				self.kFactor = -1
-		else:
-			log.logInfo("Adding results without complete kFactor information (%f, %f)" % (self.kFactor, result.kFactor))
-			self.kFactor = -1
 
 		if (not self.scaled):
 			self.histogram.Add(result.histogram)

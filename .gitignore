@@ -16,6 +16,7 @@ syntax: glob
 *.tex
 *.d
 *.so
+*.pkl
 Crosschecks/tab/*
 Crosschecks/cfg/*
 Crosschecks/shelves/*
@@ -24,3 +25,4 @@ EdgeFitter/shelves/*
 DataMC/shelves/*
 DataMC/tab/*
 TriggerEfficiencies/shelves/*
+

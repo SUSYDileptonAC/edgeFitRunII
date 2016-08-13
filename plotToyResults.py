@@ -14,7 +14,7 @@ from tools import loadParameter
 
 basePath = "shelves/dicts/"
 project = "edgefit"
-selection = "SignalInclusive_Combined_Full2012_OTriangle"
+selection = "SignalInclusive_Central_Run2015_25ns_CBTriangle"
 m0s = [40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200,210,220,230,240,250,260,270,280]
 nSigs = {"SignalInclusive":125}
 xTitles={
@@ -38,28 +38,12 @@ def createColorSpectrum():
 	from numpy import array
 	granularity = 255
 	palette = []
-	#~ _stops = {"red":(0.00, 0.00, 0.87, 1.00, 0.51,1.),"green":(,0.5),"blue":(0,0,255,0.0)}
 	stops = [0.00, 0.34, 0.61, 0.84, 1.00]
 	red = [0.00, 0.09, 0.18, 0.09, 0.00]
 	green = [0.01, 0.02, 0.39, 0.68, 0.97]
 	blue = [0.17, 0.39, 0.62, 0.79, 0.97]
-      #~ Double_t stops[nRGBs] = { 0.00, 0.34, 0.61, 0.84, 1.00 };
-      #~ Double_t red[nRGBs]   = { 0.00, 0.09, 0.18, 0.09, 0.00 };
-      #~ Double_t green[nRGBs] = { 0.01, 0.02, 0.39, 0.68, 0.97 };
-      #~ Double_t blue[nRGBs]  = { 0.17, 0.39, 0.62, 0.79, 0.97 };	
-	#~ stops = [0.00, 0.34, 0.61, 0.84, 1.00]
-	#~ red = [0.00, 0.00, 0.87, 1.00, 0.51]
-	#~ green = [0.00, 0.81, 1.00, 0.20, 0.00]
-	#~ blue = [0.51, 1.00, 0.12, 0.00, 0.00]
 	minStop =0.
 	maxStop = 1.
-	#~ for name in sorted(_stops.keys(), key=lambda x: _stops[x][3]):
-		#~ r, g, b, l = _stops[name]
-		#~ red.append(r * 1. / 255.)
-		#~ green.append(g * 1. / 255.)
-		#~ blue.append(b * 1. / 255.)
-		#~ stops.append((l - minStop) * 1. / maxStop)
-		#~ legendColors[name] = TColor.GetColor(red[-1], green[-1], blue[-1])
 	print stops, red, green, blue
 	ROOT.gStyle.SetNumberContours(granularity)
 	baseColor = TColor.CreateGradientColorTable(len(stops), array( stops,"d"),
@@ -80,32 +64,13 @@ def loadToysForScan(name,region="SignalInclusive"):
 	
 	result = {}
 	for  i in range(0,len(m0s)):
-		#~ if (m0s[i]/2.5)%2 != 0:
-			#~ title = "ETHT_MC_Scale1Mo%.1fSignalN%dSFOS"%(m0s[i],nSigs[region])
-		#~ else:
 		title = "Scale1Mo%dSignalN%d_MC_Triangle_allowNegSignalSFOSCentral"%(m0s[i],nSigs[region])
 		parameters = loadParameter(project, "%s_%s"%(selection,title), name, basePath = basePath)
-		#~ parametersError = loadParameter(project, "%s-%s"%(region,title), name+"error", basePath = basePath)
-		#~ parametersMass = loadParameter(project, "%s-%s"%(region,title), "m0", basePath = basePath)
-		#~ parametersChi2 = loadParameter(project, "%s-%s"%(region,title), "chi2", basePath = basePath)
 		result[i]=([name,m0s[i], parameters, project, region, title, name])	
 	
 	
 	return result
 	
-#~ def loadToysForSignalScan(region = "SignalInclusive"):
-	#~ 
-	#~ result = {}
-	#~ 
-	#~ name = "nS"
-	#~ for  i in range(0,len(m0s)):
-			
-		#~ title = "Scale1Mo%dSignalN%d_MC_Triangle_allowNegSignalSFOSCentral"%(m0s[i],nSigs[region])
-		#~ parameters = loadParameter(project, "%s_%s"%(selection,title), name, basePath = basePath)
-		#~ result[i]=([name,m0s[i], parameters, project, region, title, name])	
-	#~ 
-	#~ 
-	#~ return result
 def loadToys(label):
 	
 			
@@ -419,17 +384,12 @@ def plotToyPlot2D(hist,xMin,xMax,yMin,yMax,xLabel,yLabel,varName1,varName2,plotN
 
 	plotPad.UseCurrentStyle()
 	plotPad.Draw()	
-	plotPad.cd()		
-
-
-	
+	plotPad.cd()			
 			
 	if log:
 		plotPad.SetLogz()
 	plotPad.DrawFrame(xMin,yMin,xMax,yMax,"; %s ; %s ; test" %(xLabel,yLabel))	
-	
-
-	
+		
 	latex = ROOT.TLatex()
 	latex.SetTextSize(0.04)
 	latex.SetNDC(True)
@@ -438,9 +398,6 @@ def plotToyPlot2D(hist,xMin,xMax,yMin,yMax,xLabel,yLabel,varName1,varName2,plotN
 	legend.SetFillStyle(0)
 	legend.SetBorderSize(0)	
 	
-
-	
-
 	createColorSpectrum()	
 			
 	hist.Draw("samecolz")
@@ -500,10 +457,6 @@ def plotToyPlot2D(hist,xMin,xMax,yMin,yMax,xLabel,yLabel,varName1,varName2,plotN
 	#ROOT.gStyle.SetOptFit(0)
 	hCanvas.Print("toyResults/%svs%s_%s.pdf"%(varName2,varName1,plotName))
 	hCanvas.Print("toyResults/%svs%s_%s.root"%(varName2,varName1,plotName))	
-
-
-
-
 
 
 
@@ -652,142 +605,14 @@ def plotPValues(shelves,shelvesFixed,Fit=False,illustrate=False,observedValue=0.
 	hCanvas.Print("toyResults/significanceStudy_BackgroundOnly.root")			
 
 
-
-
-
-
-def plotScanResults():
-
-
-	from ROOT import TH1F, TH2F, TTree, TCanvas, TGraphErrors, TGraph
-	
-	import numpy as n		
-
-		
-	m0pkl = loadToysForScan("m0","SignalInclusive")	
-	nSpkl = loadToysForScan("nS","SignalInclusive")
-	rSFOFpkl = loadToysForScan("rSFOF","SignalInclusive")
-	massHists = []
-	nSHists = []
-	rSFOFHists = []
-
-	
-
-	
-	for i in range(0,len(m0s)):
-		massHists.append(TH1F("hist_%d"%i,"hist_%d"%i,256,0,256))	
-		nSHists.append(TH1F("hist_%d"%i,"hist_%d"%i,50,-100,400))	
-
-	scanHist = TH2F("scanHist","scanHist; fitted m_{ll}^{edge} [GeV]; generated m_{ll}^{edge} [GeV]; N_{results}",int((m0s[-1]+55-25)/2.5),25,m0s[-1]+55,len(m0s),m0s[0]-5,m0s[-1]+5)
-	for index, value in m0pkl.iteritems():
-		
-		m0 = m0s[index]
-		
-		for index2, value2 in value[2].iteritems():	
-				scanHist.Fill(value2,m0)
-				massHists[index].Fill(value2)
-			
-		
-	
-	
-	plotToyPlot2D(scanHist,25,m0s[-1]+55,25,m0s[-1]+5,"fitted m_{ll}^{edge} [GeV]","generated m_{ll}^{edge} [GeV]","fittedM0","generatedM0","signalInjectedN125",showCorr=False,showDiagonal=True,log=False)
-	
-	
-	scanHistSignal = TH2F("scanHist","scanHist; fitted N_{S}^{Central} [GeV]; generated m_{ll}^{edge} [GeV]; N_{results}",50,-100,400,len(m0s),m0s[0]-5,m0s[-1]+5)
-	for index, value in nSpkl.iteritems():
-		
-		m0 = m0s[index]
-		
-		for index2, value2 in value[2].iteritems():	
-				scanHistSignal.Fill(value2,m0)
-				nSHists[index].Fill(value2)
-			
-	
-	plotToyPlot2D(scanHistSignal,-100,400,25,m0s[-1]+70,"fitted N_{S}^{Central}","generated m_{ll}^{edge} [GeV]","fittedNS","generatedM0","signalInjectedN125",showCorr=False,mean=125,log=False)
-	
-	scanHistRSFOF = TH2F("scanHist","scanHist; fitted R_{SF/OF}^{Central}; generated m_{ll}^{edge} [GeV]; N_{results}",80,0.8,1.2,len(m0s),m0s[0]-5,m0s[-1]+5)
-	for index, value in rSFOFpkl.iteritems():
-		
-		m0 = m0s[index]
-		
-		for index2, value2 in value[2].iteritems():	
-				scanHistRSFOF.Fill(value2,m0)
-				#~ nSHists[index].Fill(value2)
-			
-	plotToyPlot2D(scanHistRSFOF,0.8,1.2,25,m0s[-1]+5,"fitted R_{SF/OF}^{Central}","generated m_{ll}^{edge} [GeV]","fittedRSFOF","generatedM0","signalInjectedN125",showCorr=False,mean=1.013,log=False)
-	
-	
-	
-	fitResults = plotMassHistograms(massHists)
-	
-
-	arrayMeans = n.array(fitResults["means"],"d")
-	arrayWidths = n.array(fitResults["widths"],"d")
-	arrayNormMeans = n.array(fitResults["normMeans"],"d")
-	arrayNormWidths = n.array(fitResults["normWidths"],"d")	
-	arrayMeansFit = n.array(fitResults["meansFit"],"d")
-	arrayWidthsFit = n.array(fitResults["widthsFit"],"d")
-	arrayNormMeansFit = n.array(fitResults["normMeansFit"],"d")
-	arrayNormWidthsFit = n.array(fitResults["normWidthsFit"],"d")	
-	
-	xPos = []
-	xPosErr = []
-	for i in range(0,len(m0s)):
-		xPos.append(m0s[i])
-		xPosErr.append(0)
-	
-	arrayXPos = n.array(xPos,"d")
-	arrayXPosErr = n.array(xPosErr,"d")
-	
-	graph = TGraphErrors(len(m0s),arrayXPos,arrayMeans,arrayXPosErr,arrayWidths) 
-	graphFit = TGraphErrors(len(m0s),arrayXPos,arrayMeansFit,arrayXPosErr,arrayWidthsFit) 
-	normGraph = TGraphErrors(len(m0s),arrayXPos,arrayNormMeans,arrayXPosErr,arrayNormWidths) 	
-	widthGraph = TGraph(len(m0s),arrayXPos,arrayWidths) 	
-	widthGraphFit = TGraph(len(m0s),arrayXPos,arrayWidthsFit) 	
-
-
-	plotGraph([graph,graphFit],[ROOT.kBlack,ROOT.kBlue],["mean #pm RMS","gaussian mean #pm #sigma"],m0s[0]-10,m0s[-1]+10,m0s[0]-10,m0s[-1]+10,"generated m_{ll}^{edge} [GeV]","mean fitted m_{ll}^{edge} [GeV]","meanM0vsGenM0","signalInjectedN125")
-	plotGraph([normGraph],[ROOT.kBlack],["RMS"],m0s[0]-10,m0s[-1]+10,0.7,1.3,"generated m_{ll}^{edge} [GeV]","mean fitted / generated  m_{ll}^{edge}","fitvsGenM0Ratio","signalInjectedN125")
-	plotGraph([widthGraph,widthGraphFit],[ROOT.kBlack,ROOT.kBlue],["RMS","gaussian #sigma"],m0s[0]-10,m0s[-1]+10,0,15,"generated m_{ll}^{edge} [GeV]","width of m_{ll}^{edge} dist. [GeV]","WidthsvsGenM0Ratio","signalInjectedN125")
-
-	fitResults = plotSigHistograms(nSHists)
-
-
-	arrayMeans = n.array(fitResults["means"],"d")
-	arrayWidths = n.array(fitResults["widths"],"d")
-	arrayNormMeans = n.array(fitResults["normMeans"],"d")
-	arrayNormWidths = n.array(fitResults["normWidths"],"d")	
-	arrayMeansFit = n.array(fitResults["meansFit"],"d")
-	arrayWidthsFit = n.array(fitResults["widthsFit"],"d")
-	arrayNormMeansFit = n.array(fitResults["normMeansFit"],"d")
-	arrayNormWidthsFit = n.array(fitResults["normWidthsFit"],"d")	
-	
-	xPos = []
-	xPosErr = []
-	for i in range(0,len(m0s)):
-		xPos.append(m0s[i])
-		xPosErr.append(0)
-	
-	arrayXPos = n.array(xPos,"d")
-	arrayXPosErr = n.array(xPosErr,"d")
-	
-	graph = TGraphErrors(len(m0s),arrayXPos,arrayMeans,arrayXPosErr,arrayWidths) 
-	graphFit = TGraphErrors(len(m0s),arrayXPos,arrayMeansFit,arrayXPosErr,arrayWidthsFit) 
-	normGraph = TGraphErrors(len(m0s),arrayXPos,arrayNormMeans,arrayXPosErr,arrayNormWidths) 	
-
-
-	plotGraph([graphFit],[ROOT.kBlack],[],m0s[0]-10,m0s[-1]+10,0,300,"generated m_{ll}^{edge} [GeV]","mean fitted N_{S}^{Central} ","meanNSvsGenM0","signalInjectedN125")
-	#~ plotGraph(normGraph,m0s[0]-10,m0s[-1]+10,0.7,1.3,"generated m_{ll}^{edge} [GeV]","mean fitted / generated  m_{ll}^{edge}","fitvsGenM0Ratio","signalInjectedN125")
-
-
-
 def main():
 	from sys import argv
 
 	from ROOT import TH1F, TH2F
 	
 	
-	plotScanResults()
+	### You will need to update the list of scans and the corresponding names accordingly to the toys you have produced
+	### At some points below, certain different toy configurations are compared and will have to be removed/adapted
 	
 	
 	listOfScans = ["Scale1Mo70SignalN0_MC_TriangleSFOSCentral","Scale1Mo70SignalN0_MC_Triangle_randM0SFOSCentral","Scale1Mo70SignalN0_FixedEdge_70.0_MC_Triangle_allowNegSignalSFOSCentral","Scale1Mo70SignalN125_MC_Triangle_allowNegSignalSFOSCentral","Scale1Mo70SignalN0_MC_Triangle_allowNegSignalSFOSCentral","Scale1Mo150SignalN0_MC_Triangle_allowNegSignalSFOSCentral","Scale1Mo70SignalN0_MC_Down_TriangleSFOSCentral","Scale1Mo70SignalN0_MC_Up_TriangleSFOSCentral","Scale1Mo70SignalN0_MC_Up_Triangle_allowNegSignalSFOSCentral","Scale1Mo70SignalN0_MC_Down_Triangle_allowNegSignalSFOSCentral","Scale1Mo70SignalN125_MC_Triangle_randM0SFOSCentral","Scale1Mo70SignalN125_MC_Triangle_allowNegSignal_randM0SFOSCentral","Scale1Mo70SignalN125_MC_Triangle_Concave_allowNegSignalSFOSCentral","Scale1Mo70SignalN125_MC_Triangle_Convex_allowNegSignalSFOSCentral"]
@@ -797,8 +622,7 @@ def main():
 		pkls = loadToys(name)
 		hist = TH1F("","",100,-10,10)
 		for index, value in pkls[2].iteritems():
-			if not index == "35009d4d" and not index =="28c868c8":
-				hist.Fill(value/pkls[3][index])	
+			hist.Fill(value/pkls[3][index])	
 		
 		
 		plotToyPlot([hist],[ROOT.kBlack],[label],-10,10,"fitted N_{S} / #sigma_{N_{S}}","nS",label,Fit=True)
@@ -827,8 +651,7 @@ def main():
 		for index, value in pkls[4].iteritems():
 				hist.Fill(value)
 				
-		plotToyPlot([hist],[ROOT.kBlack],[label],30,300,"fitted m_{ll}^{max}","m0",label,Fit=False)
-					
+		plotToyPlot([hist],[ROOT.kBlack],[label],30,300,"fitted m_{ll}^{max}","m0",label,Fit=False)					
 
 				
 		hist = TH1F("","",80,0.8,1.2)
@@ -844,9 +667,8 @@ def main():
 
 		hist = TH2F("bckgOnlyHist","bckgOnlyHist",80,0.8,1.2,20,-10,10)
 		for index, value in pkls[2].iteritems():
-			if not index == "35009d4d":
-				hist.Fill(pkls[8][index],value/pkls[3][index])	
-	#~ 
+			hist.Fill(pkls[8][index],value/pkls[3][index])	
+	
 		plotToyPlot2D(hist,0.8,1.2,-10,10,"fitted R_{SF/OF}","fitted N_{S}/#sigma_{N_{S}}","rSFOF","nS",label)
 
 
@@ -858,14 +680,11 @@ def main():
 	histUp = TH1F("","",50,-10,10)
 	histDown = TH1F("","",50,-10,10)
 	for index, value in pkls[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			hist.Fill(value/pkls[3][index])	
+		hist.Fill(value/pkls[3][index])	
 	for index, value in pklsUp[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			histUp.Fill(value/pklsUp[3][index])	
+		histUp.Fill(value/pklsUp[3][index])	
 	for index, value in pklsDown[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			histDown.Fill(value/pklsDown[3][index])	
+		histDown.Fill(value/pklsDown[3][index])	
 	
 	
 	plotToyPlot([hist,histUp,histDown],[ROOT.kBlack,ROOT.kRed,ROOT.kBlue],["mean","+1#sigma","-1#sigma"],-10,10,"fitted N_{S} / #sigma_{N_{S}}","nS","systShift",Fit=False)
@@ -874,14 +693,11 @@ def main():
 	histUp = TH1F("","",40,-200,200)
 	histDown = TH1F("","",40,-200,200)
 	for index, value in pkls[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			hist.Fill(value)	
+		hist.Fill(value)	
 	for index, value in pklsUp[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			histUp.Fill(value)	
+		histUp.Fill(value)	
 	for index, value in pklsDown[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			histDown.Fill(value)	
+		histDown.Fill(value)	
 	
 	
 	plotToyPlot([hist,histUp,histDown],[ROOT.kBlack,ROOT.kRed,ROOT.kBlue],["mean","+1#sigma","-1#sigma"],-200,200,"fitted N_{S}","nSPure","systShift",Fit=False)
@@ -913,26 +729,19 @@ def main():
 			histDown.Fill(value)
 	plotToyPlot([hist,histUp,histDown],[ROOT.kBlack,ROOT.kRed,ROOT.kBlue],["mean","+1#sigma","-1#sigma"],0.8,1.2,"fitted R_{SF/OF}","rSFOF","systShift",Fit=True)
 
-
-
-
-
 		
 	pkls = loadToys("Scale1Mo70SignalN0_MC_Triangle_allowNegSignalSFOSCentral")
 	pklsFixed = loadToys("Scale1Mo70SignalN0_FixedEdge_70.0_MC_Triangle_allowNegSignalSFOSCentral")
 	hist = TH1F("","",100,-10,10)
 	histFixed = TH1F("","",100,-10,10)
 	for index, value in pkls[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			hist.Fill(value/pkls[3][index])	
+		hist.Fill(value/pkls[3][index])	
 	for index, value in pklsFixed[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			histFixed.Fill(value/pklsFixed[3][index])	
+		histFixed.Fill(value/pklsFixed[3][index])	
 
 	
 	
 	plotToyPlot([hist,histFixed],[ROOT.kBlack,ROOT.kBlue],["floating edge","fixed edge"],-10,10,"fitted N_{S} / #sigma_{N_{S}}","nS","floatVsFixed",Fit=True)
-
 
 
 	hist = TH1F("","",80,-200,200)
@@ -941,13 +750,9 @@ def main():
 	for index, value in pkls[2].iteritems():
 			hist.Fill(value)
 	for index, value in pklsFixed[2].iteritems():
-			histFixed.Fill(value)
-			
+			histFixed.Fill(value)			
 			
 	plotToyPlot([hist,histFixed],[ROOT.kBlack,ROOT.kBlue],["floating edge","fixed edge"],-200,200,"fitted N_{S}","nSPure","floatVsFixed",Fit=True)
-	
-	
-
 	
 	
 	
@@ -956,14 +761,11 @@ def main():
 	histFixed = TH1F("","",140,20,300)
 
 	for index, value in pkls[4].iteritems():
-			hist.Fill(value)
+		hist.Fill(value)
 	for index, value in pklsFixed[4].iteritems():
-			histFixed.Fill(value)
-			
+		histFixed.Fill(value)
 			
 	plotToyPlot([hist,histFixed],[ROOT.kBlack,ROOT.kBlue],["floating edge","fixed edge"],30,300,"fitted m_{ll}^{max}","m0","floatVsFixed",Fit=True)
-				
-
 			
 	hist = TH1F("","",80,0.8,1.2)
 	histFixed = TH1F("","",80,0.8,1.2)
@@ -981,12 +783,9 @@ def main():
 	pkls = loadToys("Scale1Mo70SignalN125_MC_Triangle_allowNegSignalSFOSCentral")
 	hist = TH1F("","",50,0,10)
 	for index, value in pkls[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			hist.Fill(value/pkls[3][index])	
+		hist.Fill(value/pkls[3][index])	
 				
 	plotToyPlot([hist],[ROOT.kBlack],["signal injected"],0,10,"fitted N_{S} / #sigma_{N_{S}}","nS","signalInjected",Fit=True)
-
-
 
 	hist = TH1F("","",80,0,400)
 
@@ -994,14 +793,12 @@ def main():
 			hist.Fill(value)
 			
 			
-	plotToyPlot([hist],[ROOT.kBlack],["signal injected"],0,400,"fitted N_{S}","nSPure","signalInjected",Fit=True)
-	
+	plotToyPlot([hist],[ROOT.kBlack],["signal injected"],0,400,"fitted N_{S}","nSPure","signalInjected",Fit=True)	
 		
 	hist = TH1F("","",40,50,90)
 
 	for index, value in pkls[4].iteritems():
-			hist.Fill(value)
-			
+			hist.Fill(value)			
 			
 	plotToyPlot([hist],[ROOT.kBlack],["signal injected"],50,90,"fitted m_{ll}^{max}","m0","signalInjected",Fit=True)
 				
@@ -1012,10 +809,6 @@ def main():
 			hist.Fill(value)
 
 	plotToyPlot([hist],[ROOT.kBlack],["signal injected"],0.8,1.2,"fitted R_{SF/OF}","rSFOF","signalInjected",Fit=True)
-
-
-
-
 
 	pklsNegSig = loadToys("Scale1Mo70SignalN125_MC_Triangle_allowNegSignal_randM0SFOSCentral")
 	pkls = loadToys("Scale1Mo70SignalN125_MC_Triangle_randM0SFOSCentral")
@@ -1029,14 +822,12 @@ def main():
 
 	
 	for index, value in pkls[4].iteritems():
-		if not index == "35009d4d":
-			hist.Fill(pkls[11][index],value)	
-#~ 
+		hist.Fill(pkls[11][index],value)	
+
 	plotToyPlot2D(hist,30,300,30,300,"initial value of m_{ll}^{edge}","final value of m_{ll}^{edge}","initialM0","fittedM0","signalInjectedM70N125")
 	for index, value in pklsNegSig[4].iteritems():
-		if not index == "35009d4d":
-			histNegSig.Fill(pklsNegSig[11][index],value)	
-#~ 
+		histNegSig.Fill(pklsNegSig[11][index],value)	
+
 	plotToyPlot2D(histNegSig,30,300,30,300,"initial value of m_{ll}^{edge}","final value of m_{ll}^{edge}","initialM0","fittedM0","signalInjectedM70N125_NegSig")
 	
 	hist = TH2F("initialVsFittedHist","initialVsFittedHist",150,0,300,150,0,300)
@@ -1044,32 +835,28 @@ def main():
 
 	
 	for index, value in pkls150[4].iteritems():
-		if not index == "35009d4d":
-			hist.Fill(pkls150[11][index],value)	
-#~ 
+		hist.Fill(pkls150[11][index],value)	
+
 	plotToyPlot2D(hist,30,300,30,300,"initial value of m_{ll}^{edge}","final value of m_{ll}^{edge}","initialM0","fittedM0","signalInjectedM150N125")
 	for index, value in pklsNegSig150[4].iteritems():
-		if not index == "35009d4d":
-			histNegSig.Fill(pklsNegSig150[11][index],value)	
-#~ 
+		histNegSig.Fill(pklsNegSig150[11][index],value)	
+
 	plotToyPlot2D(histNegSig,30,300,30,300,"initial value of m_{ll}^{edge}","final value of m_{ll}^{edge}","initialM0","fittedM0","signalInjectedM150N125_NegSig")
 	
 	hist = TH2F("initialVsFittedHist","initialVsFittedHist",150,0,300,150,0,300)
 
 	
 	for index, value in pklsBgOnly[4].iteritems():
-		if not index == "35009d4d":
-			hist.Fill(pklsBgOnly[11][index],value)	
-#~ 
+		hist.Fill(pklsBgOnly[11][index],value)	
+
 	plotToyPlot2D(hist,30,300,30,300,"initial value of m_{ll}^{edge}","final value of m_{ll}^{edge}","initialM0","fittedM0","backgroundOnly_randM0")
 	
 	hist = TH2F("initialVsFittedHist","initialVsFittedHist",150,0,300,150,0,300)
 
 	
 	for index, value in pklsBgOnlyNegSig[4].iteritems():
-		if not index == "35009d4d":
-			hist.Fill(pklsBgOnlyNegSig[11][index],value)	
-#~ 
+		hist.Fill(pklsBgOnlyNegSig[11][index],value)	
+
 	plotToyPlot2D(hist,30,300,30,300,"initial value of m_{ll}^{edge}","final value of m_{ll}^{edge}","initialM0","fittedM0","backgroundOnly_randM0_NegSig")
 
 
@@ -1085,14 +872,11 @@ def main():
 	histConcave = TH1F("","",50,-10,10)
 	histConvex = TH1F("","",50,-10,10)
 	for index, value in pkls[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			hist.Fill(value/pkls[3][index])	
+		hist.Fill(value/pkls[3][index])	
 	for index, value in pklsConcave[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			histConcave.Fill(value/pklsConcave[3][index])	
+		histConcave.Fill(value/pklsConcave[3][index])	
 	for index, value in pklsConvex[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			histConvex.Fill(value/pklsConvex[3][index])	
+		histConvex.Fill(value/pklsConvex[3][index])	
 	
 	
 	plotToyPlot([hist,histConcave,histConvex],[ROOT.kBlack,ROOT.kRed,ROOT.kBlue],["triangle","concave","convex"],-2,10,"fitted N_{S} / #sigma_{N_{S}}","nS","shapeBias",Fit=True)
@@ -1102,19 +886,14 @@ def main():
 	histConcave = TH1F("","",40,-50,350)
 	histConvex = TH1F("","",40,-50,350)
 	for index, value in pkls[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			hist.Fill(value)	
+		hist.Fill(value)	
 	for index, value in pklsConcave[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			histConcave.Fill(value)	
+		histConcave.Fill(value)	
 	for index, value in pklsConvex[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			histConvex.Fill(value)	
+		histConvex.Fill(value)	
 	
 	
 	plotToyPlot([hist,histConcave,histConvex],[ROOT.kBlack,ROOT.kRed,ROOT.kBlue],["triangle","concave","convex"],-50,350,"fitted N_{S}","nSPure","shapeBias",Fit=True)
-
-
 
 	hist = TH1F("","",140,20,300)
 	histConcave = TH1F("","",140,20,300)
@@ -1126,19 +905,18 @@ def main():
 	for index, value in pklsConvex[4].iteritems():
 			histConvex.Fill(value)
 			
-	plotToyPlot([hist,histConcave,histConvex],[ROOT.kBlack,ROOT.kRed,ROOT.kBlue],["triangle","concave","convex"],30,100,"fitted m_{ll}^{max}","m0","shapeBias",Fit=True)
-				
+	plotToyPlot([hist,histConcave,histConvex],[ROOT.kBlack,ROOT.kRed,ROOT.kBlue],["triangle","concave","convex"],30,100,"fitted m_{ll}^{max}","m0","shapeBias",Fit=True)		
 
 			
 	hist = TH1F("","",80,0.8,1.2)
 	histConcave = TH1F("","",80,0.8,1.2)
 	histConvex = TH1F("","",80,0.8,1.2)
 	for index, value in pkls[8].iteritems():
-			hist.Fill(value)
+		hist.Fill(value)
 	for index, value in pklsConcave[8].iteritems():
-			histConcave.Fill(value)
+		histConcave.Fill(value)
 	for index, value in pklsConvex[8].iteritems():
-			histConvex.Fill(value)
+		histConvex.Fill(value)
 	plotToyPlot([hist,histConcave,histConvex],[ROOT.kBlack,ROOT.kRed,ROOT.kBlue],["triangle","concave","convex"],0.8,1.2,"fitted R_{SF/OF}","rSFOF","shapeBias",Fit=True)
 		
 
@@ -1150,11 +928,9 @@ def main():
 	hist = TH1F("","",50,-10,10)
 	histRand = TH1F("","",50,-10,10)
 	for index, value in pkls[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			hist.Fill(value/pkls[3][index])	
+		hist.Fill(value/pkls[3][index])	
 	for index, value in pklsRand[2].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			histRand.Fill(value/pklsRand[3][index])	
+		histRand.Fill(value/pklsRand[3][index])	
 
 	
 	plotToyPlot([hist,histRand],[ROOT.kBlack,ROOT.kRed],["nominal","rand. initial m_{ll}^{edge}"],-10,10,"fitted N_{S} / #sigma_{N_{S}}","nS","randCompare",Fit=False)
@@ -1162,11 +938,9 @@ def main():
 	hist = TH1F("","",70,20,300)
 	histRand = TH1F("","",70,20,300)
 	for index, value in pkls[4].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			hist.Fill(value)	
+		hist.Fill(value)	
 	for index, value in pklsRand[4].iteritems():
-		if not index == "35009d4d" and not index =="28c868c8":
-			histRand.Fill(value)	
+		histRand.Fill(value)	
 
 	
 	plotToyPlot([hist,histRand],[ROOT.kBlack,ROOT.kRed],["nominal","rand. initial m_{ll}^{edge}"],30,300,"fitted m_{ll}^{max}","m0","randCompare",Fit=False,flipLables=True)
