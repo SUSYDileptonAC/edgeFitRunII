@@ -10,6 +10,8 @@ ROOT.PyConfig.IgnoreCommandLineOptions = True
 from ROOT import gROOT, gStyle
 from setTDRStyle import setTDRStyle
 
+ROOT.gROOT.SetBatch(True)
+
 from messageLogger import messageLogger as log
 import dataInterface
 import tools
@@ -137,8 +139,6 @@ def main():
 						  help="dataset configuration, default Central")
 	parser.add_argument("-x", "--private", action="store_true", dest="private", default=False,
 						  help="plot is private work.")		
-	parser.add_argument("-w", "--write", action="store_true", dest="write", default=False,
-						  help="write results to central repository")	
 					
 	args = parser.parse_args()	
 
