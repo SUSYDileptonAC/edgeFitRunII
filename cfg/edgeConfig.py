@@ -9,7 +9,7 @@ from locations import locations
 class edgeConfig:
 		
 		
-		flag = "minimalNtupleTest"
+		flag = "CMSDASNtuples"
 		task = "cutsV31DileptonFinalTrees"
 		dataset = "Data"
 		figPath = "fig/"
@@ -51,7 +51,7 @@ class edgeConfig:
 		toyConfig = {"nToys":1000,"nSig":125,"m0":70,"scale":1,"systShift":"None","rand":False}
 
 		
-		def __init__(self,region="SignalInclusive",backgroundShape="ETH",signalShape="T",runName = "Full2012",dataSet="Combined",useMC=False,toys=0,addSignal=""):
+		def __init__(self,region="SignalInclusive",backgroundShape="CB",signalShape="T",runName = "Run2015_25ns",dataSet="Combined",useMC=False,toys=0,addSignal=""):
 			sys.path.append(pathes.basePath)
 			
 			self.dataSetPath = locations.dataSetPath

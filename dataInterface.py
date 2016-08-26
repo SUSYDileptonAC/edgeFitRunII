@@ -27,24 +27,16 @@ class InfoHolder(object):
 				'Data': ["MergedData"],
 	
 				'TTJets_Madgraph': ["TTJets_Dilepton_Madgraph_MLM_Spring15_25ns_v1"],
-				'TT_aMCatNLO': ["TT_aMCatNLO_FXFX_Spring15_25ns"],
 				'TTJets_aMCatNLO': ["TTJets_aMCatNLO_FXFX_Spring15_25ns"],
 				'TT_Powheg': ["TT_Dilepton_Powheg_Spring15_25ns"],
 				
 				'SingleTop': ["ST_sChannel_4f_aMCatNLO_Spring15_25ns","ST_antitop_tChannel_4f_Powheg_Spring15_25ns","ST_top_tChannel_4f_Powheg_Spring15_25ns","ST_antitop_tWChannel_5f_Powheg_Spring15_25ns","ST_top_tWChannel_5f_Powheg_Spring15_25ns"],
 				'ZJets' : ["ZJets_aMCatNLO_Spring15_25ns","AStar_aMCatNLO_Spring15_25ns"],
-				#~ 'ZJets' : ["AStar_aMCatNLO_Spring15_25ns"],
-				#~ 'ZJets' : ["AStar_Madgraph_Spring15_25ns"],
-				'ZJetsLO' : ["ZJets_Madgraph_Spring15_25ns","AStar_Madgraph_Spring15_25ns"],
+				'ZJetsLO' : ["ZJets_Madgraph_Spring15_25ns","AStar_aMCatNLO_Spring15_25ns"],
 				'ZJetsOnly' : ["ZJets_aMCatNLO_Spring15_25ns"],
 				'AStar': ["AStar_aMCatNLO_Spring15_25ns"],
 				"Rare" : ["TTZToLLNuNu_aMCatNLO_FXFX_Spring15_25ns","TTZToQQ_aMCatNLO_FXFX_Spring15_25ns","TTWToLNu_aMCatNLO_FXFX_Spring15_25ns","TTG_aMCatNLO_FXFX_Spring15_25ns","WZZ_aMCatNLO_FXFX_Spring15_25ns","WWZ_aMCatNLO_FXFX_Spring15_25ns","ZZZ_aMCatNLO_FXFX_Spring15_25ns"],
 				'Diboson' : ["WWTo2L2Nu_Powheg_Spring15_25ns","WWToLNuQQ_Powheg_Spring15_25ns","WZTo1L1Nu2Q_aMCatNLO_Spring15_25ns","WZTo1L3Nu_aMCatNLO_Spring15_25ns","WZTo3LNu_Powheg_Spring15_25ns","WZTo2L2Q_aMCatNLO_Spring15_25ns","ZZTo4Q_aMCatNLO_Spring15_25ns","ZZTo4L_Powheg_Spring15_25ns","ZZTo2Q2Nu_aMCatNLO_Spring15_25ns","ZZTo2L2Q_aMCatNLO_Spring15_25ns"],
-				# "WZJetsTo2L2Q_madgraph_Summer12", 
-				'DibosonWW' : ["WWTo2L2Nu_Powheg_Spring15_25ns","WWToLNuQQ_Powheg_Spring15_25ns"],
-				#~ 'DibosonWZ' : ["WZTo1L1Nu2Q_aMCatNLO_Spring15_25ns","WZTo1L3Nu_aMCatNLO_Spring15_25ns","WZTo3LNu_Powheg_Spring15_25ns","WZTo2L2Q_aMCatNLO_Spring15_25ns"],
-				'DibosonWZ' : ["WZTo1L1Nu2Q_aMCatNLO_Spring15_25ns"],
-				'DibosonZZ' : ["ZZTo4Q_aMCatNLO_Spring15_25ns","ZZTo4L_Powheg_Spring15_25ns","ZZTo2Q2Nu_aMCatNLO_Spring15_25ns","ZZTo2L2Q_aMCatNLO_Spring15_25ns"],
 				'slepton_500_250': ["T6bbllslepton_msbottom_550_mneutralino_250"],
 				'slepton_550_175': ["T6bbllslepton_msbottom_550_mneutralino_175"],
 				'slepton_550_200': ["T6bbllslepton_msbottom_550_mneutralino_200"],
@@ -58,7 +50,7 @@ class InfoHolder(object):
 		'ZJets': "Z+jets",
 		'TTJets': "t#bar{t}+jets",
 		'SingleTop': "t / #bar{t}+jets",
-		'DibosonMadgraph': "WW, WZ, ZZ",
+		'Diboson': "WW, WZ, ZZ",
 		'DataFake': "Fake leptons",
 		'Rare': "Rare SM",
 	}
@@ -66,14 +58,6 @@ class InfoHolder(object):
 	theMasterFile = {
 		'sw74X':"../frameWorkBase/MasterList.ini",
 	}
-
-	theXSectionUncertainty = {
-		'ZJets': 0.0433,
-		'TTJets': 0.1511,
-		'SingleTop': 0.0604, # maximum relative uncertainty of all t processes
-		'DibosonMadgraph': 0.0385, # uncertainty of WZ process
-		'Rare': 0.5, # Conservative  uncertainty on ttV, VVV, etc...
-							  }
 
 
 class DataInterface(object):

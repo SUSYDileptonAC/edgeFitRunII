@@ -112,8 +112,6 @@ def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,r
 		tmpNumOFOS2 = float(numOFOS*scale)
 		print "Signal OFOS %d"%tmpNumOFOS2
 		print "Signal SFOS %d"%tmpNumOFOS
-		
-		#~ if theConfig.toyConfig["nSig"] > 0:
 			
 			
 		
@@ -368,7 +366,6 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 		ws.factory("Landau::ofosShape1Forward(inv,a1Forward[30,0,100],b1Forward[20,0,100])")
 	elif backgroundShape == 'CH':
 		log.logHighlighted("Using Chebychev")
-		#works!
 		ws.factory("Chebychev::ofosShape1Central(inv,{a1Central[0,-2,2],b1Central[0,-2,2],c1Central[0,-1,1],d1Central[0,-1,1],e1Central[0,-1,1],f1Central[0,-1,1]})")
 		ws.factory("Chebychev::ofosShape1Forward(inv,{a1Forward[0,-2,2],b1Forward[0,-2,2],c1Forward[0,-1,1],d1Forward[0,-1,1],e1Forward[0,-1,1],f1Forward[0,-1,1]})")
 	elif backgroundShape == 'B':
@@ -392,10 +389,8 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 	
 	elif backgroundShape == '8TeV':
 		log.logHighlighted("Using 8 TeV shape for real")
-		####### final -  never touch again!
 		ws.factory("TopPairProductionSpline::ofosShape1Central(inv,b1Central[-1800,-5000,5000],b2Central[120.,-400,400],b4Central[0.0025,0.0001,0.01], m1Central[50,20,80],m2Central[120,100,160])") #
 		ws.factory("TopPairProductionSpline::ofosShape1Forward(inv,b1Forward[-1800,-5000,5000],b2Forward[120.,-400,400],b4Forward[0.0025,0.0001,0.01], m1Forward[50,20,80],m2Forward[120,100,160])") #
-		############
 	elif backgroundShape == 'CB':
 			log.logHighlighted("Using crystall ball shape")
 			#~ ws.factory("CBShape::ofosShape1Central(inv,cbMeanCentral[50.,0.,200.],cbSigmaCentral[20.,0.,100.],alphaCentral[-1,-10.,0.],nCentral[1.,0.,20.])")
@@ -733,9 +728,6 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	bLeg = dLeg.Clone()
 	bLeg.SetLineStyle(2)
 	bLeg.SetLineColor(ROOT.kBlack)
-	#~ oLeg = dLeg.Clone()
-	#~ oLeg.SetLineStyle(2)
-	#~ oLeg.SetLineColor(ROOT.kOrange + 2)
 	if theConfig.plotErrorBands:
 		uLeg = dLeg.Clone()
 		uLeg.SetLineColor(ROOT.kGreen + 2)
@@ -763,17 +755,14 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 		zLeg.SetLineColor(ROOT.kViolet)
 		sl.AddEntry(zLeg, 'Drell-Yan background', "l")
 		sl.AddEntry(bLeg, 'FS background', "l")
-		#~ sl.AddEntry(oLeg, 'Off-Shell Drell-Yan', "l")
 		if theConfig.plotErrorBands:
 			sl.AddEntry(uLeg, 'OF uncertainty', "f")
 	else:
 		sl.AddEntry(sLeg, 'Signal', "l")
 		sl.AddEntry(zLeg, 'Drell-Yan background', "l")
-		#sl.AddEntry(zLeg, 'Z^{0}/#gamma', "l")
 		sl.AddEntry(bLeg, 'FS background', "l")
 		if theConfig.plotErrorBands:
 			sl.AddEntry(uLeg, 'Uncertainty', "f")
-		#sl.AddEntry(lmLeg, 'LM1 x 0.2', "l")
 		
 		
 	nLegendEntries = 2
@@ -796,12 +785,8 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	annotEdge = 'fitted N_{S} = %.1f #pm %.1f' % (nSignal, nSignalError)
 
 	if (theConfig.runMinos):
-		# why is asymmetric error always zero?
-		# --> Have to run MINOS during fit to get asym errors
-		# --> MINOS does not take boundaries into account
 		annotEdge = 'N_{S} = %.2f  + %.2f %.2f (%.2f)' % (ws.var('nSig%s'%region).getVal(), ws.var('nSig%s'%region).getAsymErrorHi(), ws.var('nSig%s'%region).getAsymErrorLo(), ws.var('nSig%s'%region).getError())
 
-	#annotZ = 'n_{Z} = %.1f  + %.1f %.1f (%.1f)' % (ws.var('nZ').getVal(), ws.var('nZ').getAsymErrorHi(), ws.var('nZ').getAsymErrorLo(), ws.var('nZ').getError())
 	ws.var("inv").setRange("zPeak",81,101)
 	ws.var("inv").setRange("fullRange",20,300)
 	ws.var("inv").setRange("lowMass",20,70)
@@ -855,14 +840,11 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 			nSignalError = max(ws.var('nSig%s'%region).getError(),max(abs(ws.var('nSig%s'%region).getAsymErrorHi()),abs(ws.var('nSig%s'%region).getAsymErrorLo())))
 			annotEdge = 'fitted N_{S}^{edge} = %.1f #pm %.1f' % (nSignal, nSignalError)
 			
-			#~ annotEdge = 'N_{S} = %.2f  + %.2f %.2f (%.2f)' % (ws.var('nSig').getVal(), ws.var('nSig').getAsymErrorHi(), ws.var('nSig').getAsymErrorLo(), ws.var('nSig').getError())
-
 		nSStar = 0
 		nSStarError = 0
 		annotNSStar = 'corrected N_{S}^{edge} = %.1f #pm %.1f' % (nSStar,nSStarError)
 		nsZ = fittedZ - getattr(theConfig.zPredictions.default.SF,region.lower()).val 
 		nsZError = math.sqrt(fittedZErr**2 + getattr(theConfig.zPredictions.default.SF,region.lower()).err ** 2)
-		#~ annotZ = "N_{S}^{Z} = %.1f #pm %.1f" % (nsZ, nsZError)
 		annotZpred = "N_{pred}^{Z} = %.1f #pm %.1f" % (getattr(theConfig.zPredictions.default.SF,region.lower()).val , getattr(theConfig.zPredictions.default.SF,region.lower()).err)
 
 	if theConfig.plotAsymErrs:
@@ -1036,19 +1018,8 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	annotationsFitZPred = [
 					   (0.92, 0.27, annotZpred),
 					   ]
-	#~ annotationsFit = [
-#~ 
-					   #~ ]
-	#~ annotationsFitZPred = [
-#~ 
-					   #~ ]
 	if (showText):
-		#~ tools.makeAnnotations(annotationsFitHeader, color=tools.myColors['Black'], textSize=0.03, align=31)
 		tools.makeAnnotations(annotationsFit, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
-		#~ tools.makeAnnotations(annotationsFitZHeader, color=tools.myColors['Black'], textSize=0.03, align=31)
-		#~ tools.makeAnnotations(annotationsFitZ, color=tools.myColors['AnnBlue'], textSize=0.03, align=31)
-		#~ tools.makeAnnotations(annotationsFitZPred, color=tools.myColors['Grey'], textSize=0.03, align=31)
-	#~ pads[0].SetLogy()
 	sl.Draw()
 	cSFOS.Print(sfosName)
 	for pad in pads:
@@ -1073,7 +1044,6 @@ def formatAndDrawFrame(frame, theConfig, title, pdf, yMax=0.0, slice=ROOT.RooCmd
 	resPad.SetNumber(2)
 	resPad.Draw()
 	pad.cd()
-	#~ pad.DrawFrame(Holder.plotMinInv,1,Holder.plotMaxInv,yMax,";m_{ll} [GeV];Events / 5 GeV")	
 	frame.Draw()
 	resPad.cd()
 	residualMaxY = 20.
