@@ -6,7 +6,7 @@ print sys.path
 import ROOT
 ROOT.PyConfig.IgnoreCommandLineOptions = True
 ROOT.gROOT.SetBatch(True)
-from ROOT import gROOT, gStyle
+from ROOT import gROOT, gStyle, TFile, TH2F, TH2D
 from setTDRStyle import setTDRStyle
 
 from messageLogger import messageLogger as log
@@ -490,7 +490,7 @@ def genToys2013(ws, nToys=10,genEE=0,genMM=0,genOFOS=0,region="Central"):
 
 def plotModel(w, data, fitOFOS, theConfig, pdf="model", tag="", frame=None, zPrediction= -1.0,
 			  slice=ROOT.RooCmdArg.none(), projWData=ROOT.RooCmdArg.none(), cut=ROOT.RooCmdArg.none(),
-			  overrideShapeNames={},region="Central"):
+			  overrideShapeNames={},region="Central",H0=False):
 	if (frame == None):
 		frame = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
 	frame.GetXaxis().SetTitle('m_{ll} [GeV]')
@@ -556,9 +556,10 @@ def plotModel(w, data, fitOFOS, theConfig, pdf="model", tag="", frame=None, zPre
 							  ROOT.RooFit.LineStyle(ROOT.kDashed), ROOT.RooFit.LineColor(ROOT.kViolet))
 
 	# plot edge signal component
-	w.pdf(pdf).plotOn(frame, ROOT.RooFit.Components(plotSignal),
-						  slice, projWData,
-						  ROOT.RooFit.LineStyle(ROOT.kDashed), ROOT.RooFit.LineColor(ROOT.kRed))
+	if not H0:
+		w.pdf(pdf).plotOn(frame, ROOT.RooFit.Components(plotSignal),
+							  slice, projWData,
+							  ROOT.RooFit.LineStyle(ROOT.kDashed), ROOT.RooFit.LineColor(ROOT.kRed))
 	
 	return frame
 
@@ -881,7 +882,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	
 	frameOFOS = ws.var('inv').frame(ROOT.RooFit.Title('Invariant mass of e#mu lepton pairs'))
 	frameOFOS = plotModel(ws, data_obs, fitOFOS, theConfig, pdf="combModel", tag="%sOFOS" % title, frame=frameOFOS, zPrediction=0.0,
-						slice=slice, projWData=projWData, cut=ROOT.RooFit.Cut("cat==cat::OFOS%s"%region),region=region)
+						slice=slice, projWData=projWData, cut=ROOT.RooFit.Cut("cat==cat::OFOS%s"%region),region=region,H0=H0)
 	frameOFOS.GetYaxis().SetTitle(histoytitle)
 	cOFOS = ROOT.TCanvas("OFOS distribtution", "OFOS distribution", sizeCanvas, int(1.25 * sizeCanvas))
 	cOFOS.cd()
@@ -894,7 +895,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 					]
 	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
 	if (showText):
-		tools.makeAnnotations(annotationsTitle, color=tools.myColors['Grey'], textSize=0.03, align=31)
+		tools.makeAnnotations(annotationsTitle, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
 	bl.Draw()
 	cOFOS.Print(ofosName)	
 	for pad in pads:
@@ -915,7 +916,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	frameEE = ws.var('inv').frame(ROOT.RooFit.Title('Invariant mass of ee lepton pairs'))
 	frameEE = plotModel(ws, data_obs, fitOFOS, theConfig, pdf="combModel", tag="%sEE" % title, frame=frameEE, zPrediction=0.0,
 						slice=slice, projWData=projWData, cut=ROOT.RooFit.Cut("cat==cat::EE%s"%region),
-						overrideShapeNames=shapeNames,region=region)
+						overrideShapeNames=shapeNames,region=region,H0=H0)
 
 	cEE = ROOT.TCanvas("EE distribtution", "EE distribution", sizeCanvas, int(1.25 * sizeCanvas))
 	cEE.cd()
@@ -925,13 +926,13 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 							  residualMode =residualMode)
 
 	annotationsTitle = [
-					   (0.92, 0.57, "%s" % (theConfig.selection.latex)),
-					   (0.92, 0.53, "%s" % (note2)),
+					   (0.92, 0.53, "%s" % (theConfig.selection.latex)),
+					   (0.92, 0.47, "%s" % (note2)),
 					   ]
 
 	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
 	if (showText):
-		tools.makeAnnotations(annotationsTitle, color=tools.myColors['Grey'], textSize=0.03, align=31)
+		tools.makeAnnotations(annotationsTitle, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
 
 	frameEE.GetXaxis().SetTitle('m_{ee} [GeV]')
 	frameEE.GetYaxis().SetTitle(histoytitle)
@@ -954,7 +955,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	frameMM = ws.var('inv').frame(ROOT.RooFit.Title('Invariant mass of mumu lepton pairs'))
 	frameMM = plotModel(ws, data_obs, fitOFOS, theConfig, pdf="combModel", tag="%sMM" % title, frame=frameMM, zPrediction=0.0,
 						slice=slice, projWData=projWData, cut=ROOT.RooFit.Cut("cat==cat::MM%s"%region),
-						overrideShapeNames=shapeNames)
+						overrideShapeNames=shapeNames,region=region,H0=H0)
 
 	cMM = ROOT.TCanvas("MM distribtution", "MM distribution", sizeCanvas, int(1.25 * sizeCanvas))
 	cMM.cd()
@@ -964,13 +965,13 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 							  residualMode=residualMode)
 
 	annotationsTitle = [
-					   (0.92, 0.51, "%s" % (theConfig.selection.latex)),
+					   (0.92, 0.53, "%s" % (theConfig.selection.latex)),
 					   (0.92, 0.47, "%s" % (note2)),
 					   ]
 
 	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
 	if (showText):
-		tools.makeAnnotations(annotationsTitle, color=tools.myColors['Grey'], textSize=0.03, align=31)
+		tools.makeAnnotations(annotationsTitle, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
 
 	frameMM.GetXaxis().SetTitle('m_{#mu#mu} [GeV]')
 	frameMM.GetYaxis().SetTitle(histoytitle)
@@ -991,10 +992,15 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	if (not fixEdge):
 		edgeHypothesis = ws.var('m0').getVal()
 
-	annotationsTitle = [
-					   (0.92, 0.53, "%s" % (region)),
-					   (0.92, 0.47, "%s" % (note2)),
-					   ]
+	if not H0:
+		annotationsTitle = [
+						   (0.92, 0.53, "%s" % (theConfig.selection.latex)),
+						   (0.92, 0.47, "%s" % (note2)),
+						   ]
+	else:
+		annotationsTitle = [
+							(0.92, 0.53, "%s" % (theConfig.selection.latex)),
+							]
 
 	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
 	if (showText):
@@ -1019,7 +1025,8 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 					   (0.92, 0.27, annotZpred),
 					   ]
 	if (showText):
-		tools.makeAnnotations(annotationsFit, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
+		if not H0:
+			tools.makeAnnotations(annotationsFit, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
 	sl.Draw()
 	cSFOS.Print(sfosName)
 	for pad in pads:
@@ -1108,8 +1115,6 @@ def main():
 						  help="plot is private work.")		
 	parser.add_argument("-p", "--paper", action="store_true", dest="paper", default=False,
 						  help="plot for paper without preliminary label.")		
-	parser.add_argument("-l", "--likelihoodScan", action="store_true", dest="likelihoodScan", default=False,
-						  help="produce likelihood scan vs edge position.")		
 	parser.add_argument("-w", "--write", action="store_true", dest="write", default=False,
 						  help="write results to central repository")	
 					
@@ -1121,7 +1126,6 @@ def main():
 	signalShape = args.edgeShape
 	runName =args.runRange
 	dataSetConfiguration = args.config
-	produceScan = args.likelihoodScan
 	if not args.config == "Inclusive" and not args.config == "Central" and not args.config == "Forward" and not args.config == "Combined":
 		log.logError("Dataset %s not not known, exiting" % dataSet)
 		sys.exit()
@@ -1171,8 +1175,8 @@ def main():
 		if (theConfig.useMC):
 			log.logHighlighted("Using MC instead of data.")
 			datasets = theConfig.mcdatasets # ["TTJets", "ZJets", "DibosonMadgraph", "SingleTop"]
-			(treeOFOSCentral, treeEECentral, treeMMCentral) = tools.getTrees(theConfig, datasets,central=True)
-			(treeOFOSForward, treeEEForward, treeMMForward) = tools.getTrees(theConfig, datasets,central=False)
+			(treeOFOSCentral, treeEECentral, treeMMCentral) = tools.getTrees(theConfig, datasets,etaRegion="Central")
+			(treeOFOSForward, treeEEForward, treeMMForward) = tools.getTrees(theConfig, datasets,etaRegion="Forward")
 		else:
 			treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
 			treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
@@ -1192,14 +1196,15 @@ def main():
 			treeEEForward = dataInterface.DataInterface.convertDileptonTree(treeEEraw)
 			treeMMForward = dataInterface.DataInterface.convertDileptonTree(treeMMraw)
 		if (theConfig.addDataset != None):
-			treeAddOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
-			treeAddEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
-			treeAddMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
-		
-
 			xsection = 0.0
 			nTotal = 1.0
 			scale = xsection * theConfig.runRange.lumi / nTotal
+			
+			denominatorFile = TFile("../SignalScan/T6bbllsleptonDenominatorHisto.root")
+			denominatorHisto = TH2F(denominatorFile.Get("massScan"))
+			
+			
+			denominator = denominatorHisto.GetBinContent(denominatorHisto.GetXaxis().FindBin(int(theConfig.addDataset.split("_")[1])),denominatorHisto.GetYaxis().FindBin(int(theConfig.addDataset.split("_")[2])))
 
 
 			# dynamic scaling
@@ -1209,11 +1214,18 @@ def main():
 			for job in jobs:
 				dynNTotal = theDataInterface.getEventCount(job, theConfig.flag, theConfig.task)
 				dynXsection = theDataInterface.getCrossSection(job)
-				dynScale = dynXsection * theConfig.runRange.lumi / dynNTotal
+				#~ dynScale = dynXsection * theConfig.runRange.lumi / dynNTotal
+				dynScale = dynXsection * theConfig.runRange.lumi / denominator
+				print dynXsection
+				print dynNTotal
 				scale = dynScale
 
 
 			log.logHighlighted("Scaling added dataset (%s) with %f (dynamic)" % (theConfig.addDataset, scale))
+			
+			treeAddOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
+			treeAddEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
+			treeAddMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
 
 			# convert trees
 			treeAddOFOSCentral = dataInterface.DataInterface.convertDileptonTree(treeAddOFOSraw, weight=scale)
@@ -1344,8 +1356,8 @@ def main():
 			w.Print()			
 			
 			if len(theConfig.signalDataSets) > 0:
-				(treeOFOSCentralSignal, treeEECentralSignal, treeMMCentralSignal) = tools.getTrees(theConfig, theConfig.signalDataSets,central=True)
-				(treeOFOSForwardSignal, treeEEForwardSignal, treeMMForwardSignal) = tools.getTrees(theConfig, theConfig.signalDataSets,central=False)
+				(treeOFOSCentralSignal, treeEECentralSignal, treeMMCentralSignal) = tools.getTrees(theConfig, theConfig.signalDataSets,etaRegion="Central")
+				(treeOFOSForwardSignal, treeEEForwardSignal, treeMMForwardSignal) = tools.getTrees(theConfig, theConfig.signalDataSets,etaRegion="Forward")
 			
 				signalTreesCentral = {"EE":treeEECentralSignal,"MM":treeMMCentralSignal,"OFOS":treeOFOSCentralSignal}
 				addSignalTreesCentral = {}
@@ -1636,13 +1648,13 @@ def main():
 
 		if dataSetConfiguration == "Combined":
 			frameSFOSCentral = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.default.SF.central.val,region="Central")
+			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.default.SF.central.val,region="Central",H0=True)
 			frameSFOSCentral.GetYaxis().SetTitle(theConfig.histoytitle)
 			
 			plotFitResults(w,theConfig, frameSFOSCentral,frameOFOSCentral,data_obs,fitOFOSCentral,region="Central",H0=True)	
 			
 			frameSFOSForward = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.default.SF.forward.val,region="Forward")
+			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.default.SF.forward.val,region="Forward",H0=True)
 			frameSFOSForward.GetYaxis().SetTitle(theConfig.histoytitle)
 
 
@@ -1650,14 +1662,14 @@ def main():
 
 		elif dataSetConfiguration == "Central":		
 			frameSFOSCentral = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.default.SF.central.val,region="Central")
+			frameSFOSCentral = plotModel(w, w.data("dataSFOSCentral"), fitOFOSCentral, theConfig, pdf="modelCentral", tag="%sSFOSCentral" % theConfig.title, frame=frameSFOSCentral, zPrediction=theConfig.zPredictions.default.SF.central.val,region="Central",H0=True)
 			frameSFOSCentral.GetYaxis().SetTitle(theConfig.histoytitle)
 			
 			plotFitResults(w,theConfig, frameSFOSCentral,frameOFOSCentral,data_obs,fitOFOSCentral,region="Central",H0=True)	
 							
 		if dataSetConfiguration == "Forward":		
 			frameSFOSForward = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
-			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.default.SF.forward.val,region="Forward")
+			frameSFOSForward = plotModel(w, w.data("dataSFOSForward"), fitOFOSForward, theConfig, pdf="modelForward", tag="%sSFOSForward" % theConfig.title, frame=frameSFOSForward, zPrediction=theConfig.zPredictions.default.SF.forward.val,region="Forward",H0=True)
 			frameSFOSForward.GetYaxis().SetTitle(theConfig.histoytitle)
 
 			plotFitResults(w,theConfig, frameSFOSForward,frameOFOSForward,data_obs,fitOFOSForward,region="Forward",H0=True)	

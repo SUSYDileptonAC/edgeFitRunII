@@ -183,10 +183,10 @@ def makeAnnotations(annotations, textSize=0.04, color=None, align=None):
 		for annotation in annotations:
 			if "CMS" in annotation[2]:
 				latex.SetTextFont(61)
-				latex.SetTextSize(0.06)
+				latex.SetTextSize(0.05)
 			elif "Preliminary" in annotation[2] or "Private" in annotation[2] or "Simulation" in annotation[2]:
 				latex.SetTextFont(52) 
-				latex.SetTextSize(0.045)
+				latex.SetTextSize(0.0375)
 			latex.DrawLatex(*annotation)
 			latex.SetTextFont(42)
 			latex.SetTextSize(textSize)
@@ -219,13 +219,18 @@ def makeCMSAnnotation(xPos, yPos, luminosity, mcOnly=False, preliminary=True, ye
 			cmsString = "CMS"
 			if (ownWork):
 				cmsExtra = "Simulation"
+				annotationsCMS = [
+						   (xPos, yPos, cmsString),
+						   (xPos, yPos-0.04, cmsExtra),
+						   (0.7, 0.965, "%.1f fb^{-1} (%d TeV)" % (float(luminosity) / 1000,energy)),
+						   ]
 			else:
 				cmsExtra = "#splitline{Private Work}{Simulation}"
-			annotationsCMS = [
-					   (xPos, yPos, cmsString),
-					   (xPos, yPos-0.04, cmsExtra),
-					   (0.7, 0.965, "%.1f fb^{-1} (%d TeV)" % (float(luminosity) / 1000,energy)),
-					   ]
+				annotationsCMS = [
+						   (xPos, yPos, cmsString),
+						   (xPos, yPos-0.07, cmsExtra),
+						   (0.7, 0.965, "%.1f fb^{-1} (%d TeV)" % (float(luminosity) / 1000,energy)),
+						   ]
 
 			makeAnnotations(annotationsCMS, color=color)
 		else:
@@ -428,7 +433,7 @@ def createMyColors():
 
 	return containerMyColors
 
-def getTrees(theConfig, datasets, central=True):
+def getTrees(theConfig, datasets, etaRegion="Central"):
 	import dataInterface
 	#~ theDataInterface = dataInterface.dataInterface(dataVersion=dataVersion)
 	theDataInterface = dataInterface.DataInterface(theConfig.dataSetPath,theConfig.dataVersion)
@@ -440,9 +445,11 @@ def getTrees(theConfig, datasets, central=True):
 	treesMCEE = ROOT.TList()
 	treesMCMM = ROOT.TList()
 
-	if central:
+	if etaRegion=="Inclusive":
+		cut = theConfig.selection.cut
+	elif etaRegion=="Central":
 		cut = theConfig.selection.cut + " && abs(eta1) < 1.4 && abs(eta2) < 1.4"
-	else:
+	elif etaRegion=="Forward":
 		cut = theConfig.selection.cut + " && 1.6 <= TMath::Max(abs(eta1),abs(eta2)) && !(abs(eta1) > 1.4 && abs(eta1) < 1.6) && !(abs(eta2) > 1.4 && abs(eta2) < 1.6)"
 
 	for dataset in datasets:

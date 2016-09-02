@@ -15,7 +15,6 @@ from tools import loadParameter
 basePath = "shelves/dicts/"
 project = "edgefit"
 selection = "SignalInclusive_Central_Run2015_25ns_CBTriangle"
-m0s = [40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200,210,220,230,240,250,260,270,280]
 nSigs = {"SignalInclusive":125}
 xTitles={
 "m0":"m_{ll}^{edge} [GeV]",
@@ -58,18 +57,6 @@ def createColorSpectrum():
 	print invertedPalette
 	ROOT.gStyle.SetPalette(granularity,array(invertedPalette,"i"))												
 
-
-
-def loadToysForScan(name,region="SignalInclusive"):
-	
-	result = {}
-	for  i in range(0,len(m0s)):
-		title = "Scale1Mo%dSignalN%d_MC_Triangle_allowNegSignalSFOSCentral"%(m0s[i],nSigs[region])
-		parameters = loadParameter(project, "%s_%s"%(selection,title), name, basePath = basePath)
-		result[i]=([name,m0s[i], parameters, project, region, title, name])	
-	
-	
-	return result
 	
 def loadToys(label):
 	
@@ -461,7 +448,7 @@ def plotToyPlot2D(hist,xMin,xMax,yMin,yMax,xLabel,yLabel,varName1,varName2,plotN
 
 
 
-def plotPValues(shelves,shelvesFixed,Fit=False,illustrate=False,observedValue=0.,observedValueFixed=0.):
+def plotPValues(shelves,shelvesFixed,Fit=False,illustrate=False,observedValue=0.):
 	from ROOT import TH1F, TCanvas, TLegend
 	from setTDRStyle import setTDRStyle
 
@@ -495,11 +482,11 @@ def plotPValues(shelves,shelvesFixed,Fit=False,illustrate=False,observedValue=0.
 		bckgOnlyHistFixed.Fill(-2*(shelvesFixed[7][index]-shelvesFixed[6][index]))	
 		if shelvesFixed[4][index] > 0:
 			denominatorHistFullFixed.Fill(0.5)
-			if -2*(shelvesFixed[7][index]-shelvesFixed[6][index]) >= observedValueFixed:
+			if -2*(shelvesFixed[7][index]-shelvesFixed[6][index]) >= observedValue:
 				nominatorHistFullFixed.Fill(0.5)
 			if shelvesFixed[4][index] < 90 and shelvesFixed[4][index] > 0:	
 				denominatorHistFixed.Fill(0.5)
-				if -2*(shelvesFixed[7][index]-shelvesFixed[6][index]) >= observedValueFixed:
+				if -2*(shelvesFixed[7][index]-shelvesFixed[6][index]) >= observedValue:
 					nominatorHistFixed.Fill(0.5)
 			
 	hCanvas = TCanvas("hCanvas", "Distribution", 800,800)
@@ -610,10 +597,12 @@ def main():
 
 	from ROOT import TH1F, TH2F
 	
+	### add the values for minNllH1 and minNllH0 from the shelve of your fit result on data here
+	### observed_deltaNll = -2*(minNllH1 - minNllH0)
+	observed_deltaNll = -2*(6062.4634323868586-6062.7287976719617)	
 	
 	### You will need to update the list of scans and the corresponding names accordingly to the toys you have produced
-	### At some points below, certain different toy configurations are compared and will have to be removed/adapted
-	
+	### At some points below, certain different toy configurations are compared and will have to be removed/adapted	
 	
 	listOfScans = ["Scale1Mo70SignalN0_MC_TriangleSFOSCentral","Scale1Mo70SignalN0_MC_Triangle_randM0SFOSCentral","Scale1Mo70SignalN0_FixedEdge_70.0_MC_Triangle_allowNegSignalSFOSCentral","Scale1Mo70SignalN125_MC_Triangle_allowNegSignalSFOSCentral","Scale1Mo70SignalN0_MC_Triangle_allowNegSignalSFOSCentral","Scale1Mo150SignalN0_MC_Triangle_allowNegSignalSFOSCentral","Scale1Mo70SignalN0_MC_Down_TriangleSFOSCentral","Scale1Mo70SignalN0_MC_Up_TriangleSFOSCentral","Scale1Mo70SignalN0_MC_Up_Triangle_allowNegSignalSFOSCentral","Scale1Mo70SignalN0_MC_Down_Triangle_allowNegSignalSFOSCentral","Scale1Mo70SignalN125_MC_Triangle_randM0SFOSCentral","Scale1Mo70SignalN125_MC_Triangle_allowNegSignal_randM0SFOSCentral","Scale1Mo70SignalN125_MC_Triangle_Concave_allowNegSignalSFOSCentral","Scale1Mo70SignalN125_MC_Triangle_Convex_allowNegSignalSFOSCentral"]
 	names = {"Scale1Mo70SignalN0_MC_TriangleSFOSCentral":"backgroundOnly_m070","Scale1Mo70SignalN0_MC_Triangle_randM0SFOSCentral":"backgroundOnly_m070_randM0","Scale1Mo70SignalN0_FixedEdge_70.0_MC_Triangle_allowNegSignalSFOSCentral":"backgroundOnly_m070Fixed","Scale1Mo70SignalN125_MC_Triangle_allowNegSignalSFOSCentral":"signalInjected_m070nS125","Scale1Mo70SignalN0_MC_Triangle_allowNegSignalSFOSCentral":"backgroundOnly_m070_negSig","Scale1Mo150SignalN0_MC_Triangle_allowNegSignalSFOSCentral":"backgroundOnly_m0150_negSig","Scale1Mo70SignalN0_MC_Down_TriangleSFOSCentral":"backgroundOnly_m070_SystDown","Scale1Mo70SignalN0_MC_Up_TriangleSFOSCentral":"backgroundOnly_m070_SystUp","Scale1Mo70SignalN0_MC_Up_Triangle_allowNegSignalSFOSCentral":"backgroundOnly_m070_negSig_SystUp","Scale1Mo70SignalN0_MC_Down_Triangle_allowNegSignalSFOSCentral":"backgroundOnly_m070_negSig_SystDown","Scale1Mo70SignalN125_MC_Triangle_randM0SFOSCentral":"signalInjected_m070nS125_randM0","Scale1Mo70SignalN125_MC_Triangle_allowNegSignal_randM0SFOSCentral":"signalInjected_m070nS125_randM0_allowNegSig","Scale1Mo70SignalN125_MC_Triangle_Concave_allowNegSignalSFOSCentral":"signalInjected_m070nS125_Concave","Scale1Mo70SignalN125_MC_Triangle_Convex_allowNegSignalSFOSCentral":"signalInjected_m070nS125_Convex"}
@@ -777,7 +766,7 @@ def main():
 	plotToyPlot([hist,histFixed],[ROOT.kBlack,ROOT.kBlue],["floating edge","fixed edge"],0.8,1.2,"fitted R_{SF/OF}","rSFOF","floatVsFixed",Fit=True)
 
 
-	plotPValues(pkls,pklsFixed,illustrate=True,Fit=False,observedValue=8.565427984283815,observedValueFixed=8.584575826738728)
+	plotPValues(pkls,pklsFixed,illustrate=True,Fit=False,observedValue=observed_deltaNll)
 
 
 	pkls = loadToys("Scale1Mo70SignalN125_MC_Triangle_allowNegSignalSFOSCentral")

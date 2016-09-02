@@ -306,9 +306,6 @@ class DataInterface(object):
 		if (weightValueExternal >= 0.0):
 			value = weightValueExternal
 
-		if (weightValue < 0.0 and weightValueExternal < 0.0):
-			log.logHighlighted("No 3D weight found for %s" % (job))
-
 		return value
 
 	def getTreeFromDataset(self, flag, task, dataset, treePath, dataVersion=None, cut="", reduce=1.0,etaRegion="Inclusive"):
@@ -535,76 +532,6 @@ class Result:
 
 		#log.logDebug("Result: Scaling factor afterwards = %f" % (self.scalingFactor))
 		self.scaled = True
-
-	def addResult(self, result):
-		if (self.histogram == None):
-			log.logWarning("Adding to empty result!")
-			if (result.histogram == None): log.logWarning("... also adding empty result!")
-			return result
-		if (result.histogram == None):
-			log.logWarning("Adding empty result!")
-			return self
-
-		if (not self.scaled == result.scaled):
-			log.logError("Cannot add scaled and unscaled results")
-			return None
-
-		if (self.dataType != result.dataType):
-			log.logError("Cannot add results of different data types (%d, %d)" % (self.dataType, results.dataType))
-			return None
-
-		# lumi info
-		if (self.luminosity > 0 and result.luminosity > 0):
-			if (self.dataType == InfoHolder.DataTypes.Data):
-				self.luminosity += result.luminosity # for data
-			else:
-				pass # for MC and Unknown
-		else:
-			log.logWarning("Adding results without complete luminosity information (%f, %f)" % (self.luminosity, result.luminosity))
-			self.luminosity = -1
-
-		# xSection info
-		if (self.xSection > 0 and result.xSection > 0):
-			self.xSection += result.xSection
-		else:
-			if (self.dataType != InfoHolder.DataTypes.Data):
-				log.logWarning("Adding results without complete xSection information (%f, %f)" % (self.xSection, result.xSection))
-			self.xSection = -1
-
-		# xSection info
-
-		if (not self.scaled):
-			self.histogram.Add(result.histogram)
-			return self
-		if (self.scalingFactor == result.scalingFactor):
-			self.unscaledIntegral += result.unscaledIntegral
-			self.histogram.Add(result.histogram)
-			return self
-
-		log.logDebug("Combining results: %s, %s" % (str(self), str(result)))
-		# first calculate new error
-		self.currentIntegralError = sqrt(self.integralError() * self.integralError() + result.integralError() * result.integralError())
-		# then change histogram
-		self.histogram.Add(result.histogram)
-		self.unscaledIntegral += result.unscaledIntegral
-		self.scalingFactor = -1
-		# finally mark result as scaled and added
-		self.__scaledAndAdded = True
-		log.logDebug("... to: %s" % (str(self)))
-		return self
-
-	def divideByResult(self, result):
-		#if (self.dataType != InfoHolder.DataTypes.Data or result.dataType != InfoHolder.DataTypes.Data):
-		#	log.logError("Result division only implemented for data results!")
-		#	return None
-		if (self.luminosity != result.luminosity):
-			log.logWarning("Dividing results with unlike luminosity!")
-
-		#self.histogram.Divide(result.histogram)
-		self.histogram.Divide(self.histogram, result.histogram, 1, 1, "B")
-
-		return self
-
 
 	def __str__(self):
 		return Result.formatString % (self.integral(), self.integralError())

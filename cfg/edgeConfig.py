@@ -18,7 +18,7 @@ class edgeConfig:
 		residualMode = "pull"
 		plotErrorBands = False	
 		
-		edgePosition = 80
+		edgePosition = 70
 		fixEdge = False
 		
 		title = "None"
@@ -37,7 +37,7 @@ class edgeConfig:
 		ownWork = False
 		year = 2015
 		showText = True
-		plotYMax = 80
+		plotYMax = 120
 		
 		dataVersion = "sw74X"
 		
