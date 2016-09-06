@@ -94,10 +94,10 @@ def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,r
 		
 		
 		
-		getattr(wToys, 'import')(dataEE)
-		getattr(wToys, 'import')(dataMM)
-		getattr(wToys, 'import')(dataSFOS)
-		getattr(wToys, 'import')(dataOFOS)	
+		getattr(wToys, 'import')(dataEE, ROOT.RooCmdArg())
+		getattr(wToys, 'import')(dataMM, ROOT.RooCmdArg())
+		getattr(wToys, 'import')(dataSFOS, ROOT.RooCmdArg())
+		getattr(wToys, 'import')(dataOFOS, ROOT.RooCmdArg())	
 		
 
 					
@@ -318,19 +318,19 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 	ws.factory("BreitWigner::bwShape(inv,zmean,zwidth)")
 	
 	convEECentral = ROOT.RooFFTConvPdf("peakModelEECentral","zShapeEE Central (x) cbShapeEE Central",ws.var("inv"),ws.pdf("bwShape"),ws.pdf("cbShapeEECentral"))
-	getattr(ws, 'import')(convEECentral)
+	getattr(ws, 'import')(convEECentral, ROOT.RooCmdArg())
 	ws.pdf("peakModelEECentral").setBufferFraction(5.0)
 	
 	convEEForward = ROOT.RooFFTConvPdf("peakModelEEForward","zShapeEE Forward (x) cbShapeEE Forward",ws.var("inv"),ws.pdf("bwShape"),ws.pdf("cbShapeEEForward"))
-	getattr(ws, 'import')(convEEForward)
+	getattr(ws, 'import')(convEEForward, ROOT.RooCmdArg())
 	ws.pdf("peakModelEEForward").setBufferFraction(5.0)
 	
 	convMMCentral = ROOT.RooFFTConvPdf("peakModelMMCentral","zShapeMM Central (x) cbShapeMM Central",ws.var("inv"),ws.pdf("bwShape"),ws.pdf("cbShapeMMCentral"))
-	getattr(ws, 'import')(convMMCentral)
+	getattr(ws, 'import')(convMMCentral, ROOT.RooCmdArg())
 	ws.pdf("peakModelMMCentral").setBufferFraction(5.0)
 	
 	convMMForward = ROOT.RooFFTConvPdf("peakModelMMForward","zShapeMM Forward (x) cbShapeMM Forward",ws.var("inv"),ws.pdf("bwShape"),ws.pdf("cbShapeMMForward"))
-	getattr(ws, 'import')(convMMForward)
+	getattr(ws, 'import')(convMMForward, ROOT.RooCmdArg())
 	ws.pdf("peakModelMMForward").setBufferFraction(5.0)
 	
 
@@ -412,9 +412,9 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 		log.logHighlighted("HistSubtraction activated!")
 		ws.var('inv').setBins(nBinsMinv)
 		tempDataHistCentral = ROOT.RooDataHist("dataHistOFOSCentral", "dataHistOFOSCentral", ROOT.RooArgSet(ws.var('inv')), ws.data("dataOFOSCentral"))
-		getattr(ws, 'import')(tempDataHistCentral)
+		getattr(ws, 'import')(tempDataHistCentral, ROOT.RooCmdArg())
 		tempDataHistForward = ROOT.RooDataHist("dataHistOFOSForward", "dataHistOFOSForward", ROOT.RooArgSet(ws.var('inv')), ws.data("dataOFOSForward"))
-		getattr(ws, 'import')(tempDataHistForward)
+		getattr(ws, 'import')(tempDataHistForward, ROOT.RooCmdArg())
 		ws.factory("RooHistPdf::ofosShape1Central(inv, dataHistOFOSCentral)")
 		ws.factory("RooHistPdf::ofosShape1Forward(inv, dataHistOFOSForward)")
 	else:
@@ -1330,15 +1330,15 @@ def main():
 			dataOFOSForward = dataSetsForward[index]["OFOS"].Clone("dataOFOSForward")
 			dataSFOSForward = dataSetsForward[index]["SFOS"].Clone("dataSFOSForward")
 
-			getattr(w, 'import')(dataEECentral)
-			getattr(w, 'import')(dataMMCentral)
-			getattr(w, 'import')(dataOFOSCentral)
-			getattr(w, 'import')(dataSFOSCentral)		
+			getattr(w, 'import')(dataEECentral, ROOT.RooCmdArg())
+			getattr(w, 'import')(dataMMCentral, ROOT.RooCmdArg())
+			getattr(w, 'import')(dataOFOSCentral, ROOT.RooCmdArg())
+			getattr(w, 'import')(dataSFOSCentral, ROOT.RooCmdArg())		
 			
-			getattr(w, 'import')(dataEEForward)
-			getattr(w, 'import')(dataMMForward)
-			getattr(w, 'import')(dataOFOSForward)
-			getattr(w, 'import')(dataSFOSForward)
+			getattr(w, 'import')(dataEEForward, ROOT.RooCmdArg())
+			getattr(w, 'import')(dataMMForward, ROOT.RooCmdArg())
+			getattr(w, 'import')(dataOFOSForward, ROOT.RooCmdArg())
+			getattr(w, 'import')(dataSFOSForward, ROOT.RooCmdArg())
 		
 			if x == None:
 				if theConfig.useMC:
@@ -1494,29 +1494,29 @@ def main():
 		w.factory("Gaussian::constraintRSFOFCentral(rSFOFCentral,rSFOFMeasuredCentral,rSFOFMeasuredCentralErr)")
 
 		nSigEECentral = ROOT.RooFormulaVar('nSigEECentral', '@0*@1', ROOT.RooArgList(w.var('feeCentral'), w.var('nSigCentral')))
-		getattr(w, 'import')(nSigEECentral)
+		getattr(w, 'import')(nSigEECentral, ROOT.RooCmdArg())
 		nSigMMCentral = ROOT.RooFormulaVar('nSigMMCentral', '(1-@0)*@1', ROOT.RooArgList(w.var('feeCentral'), w.var('nSigCentral')))
-		getattr(w, 'import')(nSigMMCentral)			
+		getattr(w, 'import')(nSigMMCentral, ROOT.RooCmdArg())			
 		nZEECentral = ROOT.RooFormulaVar('nZEECentral', '@0*@1', ROOT.RooArgList(w.var('feeCentral'), w.var('nZCentral')))
-		getattr(w, 'import')(nZEECentral)
+		getattr(w, 'import')(nZEECentral, ROOT.RooCmdArg())
 		nZMMCentral = ROOT.RooFormulaVar('nZMMCentral', '(1-@0)*@1', ROOT.RooArgList(w.var('feeCentral'), w.var('nZCentral')))
-		getattr(w, 'import')(nZMMCentral)
+		getattr(w, 'import')(nZMMCentral, ROOT.RooCmdArg())
 		nBEECentral = ROOT.RooFormulaVar('nBEECentral', '@0*@1*@2', ROOT.RooArgList(w.var('feeCentral'),w.var('rSFOFCentral'), w.var('nBCentral')))
-		getattr(w, 'import')(nBEECentral)
+		getattr(w, 'import')(nBEECentral, ROOT.RooCmdArg())
 		nBMMCentral = ROOT.RooFormulaVar('nBMMCentral', '(1-@0)*@1*@2', ROOT.RooArgList(w.var('feeCentral'),w.var('rSFOFCentral'), w.var('nBCentral')))
-		getattr(w, 'import')(nBMMCentral)								
+		getattr(w, 'import')(nBMMCentral, ROOT.RooCmdArg())								
 		nSigEEForward = ROOT.RooFormulaVar('nSigEEForward', '@0*@1', ROOT.RooArgList(w.var('feeForward'), w.var('nSigForward')))
-		getattr(w, 'import')(nSigEEForward)
+		getattr(w, 'import')(nSigEEForward, ROOT.RooCmdArg())
 		nSigMMForward = ROOT.RooFormulaVar('nSigMMForward', '(1-@0)*@1', ROOT.RooArgList(w.var('feeForward'), w.var('nSigForward')))
-		getattr(w, 'import')(nSigMMForward)			
+		getattr(w, 'import')(nSigMMForward, ROOT.RooCmdArg())			
 		nZEEForward = ROOT.RooFormulaVar('nZEEForward', '@0*@1', ROOT.RooArgList(w.var('feeForward'), w.var('nZForward')))
-		getattr(w, 'import')(nZEEForward)
+		getattr(w, 'import')(nZEEForward, ROOT.RooCmdArg())
 		nZMMForward = ROOT.RooFormulaVar('nZMMForward', '(1-@0)*@1', ROOT.RooArgList(w.var('feeForward'), w.var('nZForward')))
-		getattr(w, 'import')(nZMMForward)
+		getattr(w, 'import')(nZMMForward, ROOT.RooCmdArg())
 		nBEEForward = ROOT.RooFormulaVar('nBEEForward', '@0*@1*@2', ROOT.RooArgList(w.var('feeForward'),w.var('rSFOFForward'), w.var('nBForward')))
-		getattr(w, 'import')(nBEEForward)
+		getattr(w, 'import')(nBEEForward, ROOT.RooCmdArg())
 		nBMMForward = ROOT.RooFormulaVar('nBMMForward', '(1-@0)*@1*@2', ROOT.RooArgList(w.var('feeForward'),w.var('rSFOFForward'), w.var('nBForward')))
-		getattr(w, 'import')(nBMMForward)							
+		getattr(w, 'import')(nBMMForward, ROOT.RooCmdArg())							
 		constraints = ROOT.RooArgSet(w.pdf("constraintRSFOFCentral"),w.pdf("constraintRSFOFForward"))			
 		
 		w.factory("SUM::zShapeCentral(nZEECentral*zEEShapeCentral,nZMMCentral*zMMShapeCentral)")	
@@ -1578,7 +1578,7 @@ def main():
 									   ROOT.RooFit.Import('OFOSForward', w.data("dataOFOSForward")),
 									   ROOT.RooFit.Import('EEForward', w.data("dataEEForward")),
 									   ROOT.RooFit.Import('MMForward', w.data("dataMMForward")))
-			getattr(w, 'import')(data_obs)
+			getattr(w, 'import')(data_obs, ROOT.RooCmdArg())
 		elif dataSetConfiguration == "Central":			
 			w.factory("SIMUL::combModelBgOnly(cat[EECentral=0,MMCentral=1,OFOSCentral=2], EECentral=mEEBgOnlyCentral, MMCentral=mMMBgOnlyCentral, OFOSCentral=ofosShapeCentral)")
 			# real model
@@ -1596,7 +1596,7 @@ def main():
 									   ROOT.RooFit.Import('OFOSCentral', w.data("dataOFOSCentral")),
 									   ROOT.RooFit.Import('EECentral', w.data("dataEECentral")),
 									   ROOT.RooFit.Import('MMCentral', w.data("dataMMCentral")))
-			getattr(w, 'import')(data_obs)
+			getattr(w, 'import')(data_obs, ROOT.RooCmdArg())
 			w.var("rSFOFForward").setConstant()
 
 		elif dataSetConfiguration == "Forward":
@@ -1616,7 +1616,7 @@ def main():
 									   ROOT.RooFit.Import('OFOSForward', w.data("dataOFOSForward")),
 									   ROOT.RooFit.Import('EEForward', w.data("dataEEForward")),
 									   ROOT.RooFit.Import('MMForward', w.data("dataMMForward")))
-			getattr(w, 'import')(data_obs)
+			getattr(w, 'import')(data_obs, ROOT.RooCmdArg())
 
 			w.var("rSFOFCentral").setConstant()
 

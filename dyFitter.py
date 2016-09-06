@@ -193,7 +193,11 @@ def main():
 	if not useExistingDataset:
 		w = ROOT.RooWorkspace("w", ROOT.kTRUE)
 		inv = ROOT.RooRealVar("inv","inv",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
-		getattr(w,'import')(inv)
+		
+		## this is kind of stupid, but since ROOT 6 getattr(w,'import')(inv) does not work any more
+		## and RooFit needs another dummy entry to perform correctly e.g. getattr(w,'import')(inv, ROOT.RooCmdArg())
+		
+		getattr(w,'import')(inv, ROOT.RooCmdArg())
 		w.factory("weight[1.,0.,10.]")	
 		vars = ROOT.RooArgSet(inv, w.var('weight'))		
 		if (theConfig.useMC):
@@ -269,10 +273,10 @@ def main():
 
 			
 		
-		getattr(w, 'import')(dataSFOS)
-		getattr(w, 'import')(dataOFOS)
-		getattr(w, 'import')(dataEE)
-		getattr(w, 'import')(dataMM)
+		getattr(w, 'import')(dataSFOS, ROOT.RooCmdArg())
+		getattr(w, 'import')(dataOFOS, ROOT.RooCmdArg())
+		getattr(w, 'import')(dataEE, ROOT.RooCmdArg())
+		getattr(w, 'import')(dataMM, ROOT.RooCmdArg())
 		
 		
 
@@ -290,13 +294,15 @@ def main():
 		
 		histEE.Add(histOFOS,-1*eeFac)
 		histMM.Add(histOFOS,-1*mmFac)
+		
+		w.Print()
 
 		
-		dataHistEE = ROOT.RooDataHist("dataHistEE", "dataHistEE", ROOT.RooArgList(w.var('inv')), ROOT.RooFit.Import(histEE))
-		dataHistMM = ROOT.RooDataHist("dataHistMM", "dataHistMM", ROOT.RooArgList(w.var('inv')), ROOT.RooFit.Import(histMM))
+		dataHistEE = ROOT.RooDataHist("dataHistEE", "dataHistEE", ROOT.RooArgList(w.var('inv')), histEE)
+		dataHistMM = ROOT.RooDataHist("dataHistMM", "dataHistMM", ROOT.RooArgList(w.var('inv')), histMM)
 
-		getattr(w, 'import')(dataHistEE)
-		getattr(w, 'import')(dataHistMM)
+		getattr(w, 'import')(dataHistEE, ROOT.RooCmdArg())
+		getattr(w, 'import')(dataHistMM, ROOT.RooCmdArg())
 		if theConfig.useMC:
 			w.writeToFile("workspaces/dyControl_%s_MC.root"%args.config)
 		else:
@@ -355,7 +361,7 @@ def main():
 	w.factory("DoubleCB::cbShapeEE(inv,cbmeanEE,sEE,alphaEEL,nEEL,alphaEER,nEER)")
 
 	Abkg=ROOT.RooRealVar("Abkg","Abkg",1,0.01,10)
-	getattr(w, 'import')(Abkg)
+	getattr(w, 'import')(Abkg, ROOT.RooCmdArg())
 	
 	w.factory("cContinuumEE[%f,%f,%f]" % (-0.02,-0.1,0))
 	
@@ -365,11 +371,11 @@ def main():
 	w.factory("Exponential::offShellEE(inv,cContinuumEE)")
 
 	convEE = ROOT.RooFFTConvPdf("peakModelEE","zShapeEE (x) cbShapeEE",w.var("inv"),w.pdf("zShapeEE"),w.pdf("cbShapeEE"))
-	getattr(w, 'import')(convEE)
+	getattr(w, 'import')(convEE, ROOT.RooCmdArg())
 	w.pdf("peakModelEE").setBufferFraction(5.0)
 	w.factory("zFractionEE[0.9,0,1]")
 	expFractionEE = ROOT.RooFormulaVar('expFractionEE', '1-@0', ROOT.RooArgList(w.var('zFractionEE')))
-	getattr(w, 'import')(expFractionEE)	
+	getattr(w, 'import')(expFractionEE, ROOT.RooCmdArg())
 	w.factory("SUM::modelEE1(zFractionEE*peakModelEE,expFractionEE*offShellEE)")
 	w.factory("SUM::modelEE(nZEE*modelEE1)")
 
@@ -383,11 +389,11 @@ def main():
 
 	
 	convMM = ROOT.RooFFTConvPdf("peakModelMM","zShapeMM (x) cbShapeMM",w.var("inv"),w.pdf("zShapeMM"),w.pdf("cbShapeMM"))
-	getattr(w, 'import')(convMM)
+	getattr(w, 'import')(convMM, ROOT.RooCmdArg())
 	w.pdf("peakModelMM").setBufferFraction(5.0)
 	w.factory("zFractionMM[0.9,0,1]")
 	expFractionMM = ROOT.RooFormulaVar('expFractionMM', '1-@0', ROOT.RooArgList(w.var('zFractionMM')))
-	getattr(w, 'import')(expFractionMM)		
+	getattr(w, 'import')(expFractionMM, ROOT.RooCmdArg())		
 	w.factory("SUM::modelMM1(zFractionMM*peakModelMM,expFractionMM*offShellMM)")
 	w.factory("SUM::modelMM(nZMM*modelMM1)")
 

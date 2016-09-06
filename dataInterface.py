@@ -20,6 +20,19 @@ import os, ConfigParser
 from math import sqrt
 import datetime
 
+ROOT.gROOT.ProcessLine(\
+							   "struct MyDileptonTreeFormat{\
+								 Double_t inv;\
+								 Int_t chargeProduct;\
+								 Int_t nJets;\
+								 Double_t ht;\
+								 Double_t met;\
+								 Double_t pt1;\
+								 Double_t pt2;\
+								 Double_t weight;\
+								};")
+from ROOT import MyDileptonTreeFormat
+
 
 class InfoHolder(object):
 	theDataSamples = {			
@@ -90,18 +103,6 @@ class DataInterface(object):
 	def convertDileptonTree(tree, nMax= -1, weight=1.0, selection="", weightString=""):
 		# TODO: make selection more efficient
 		log.logDebug("Converting DileptonTree")
-		ROOT.gROOT.ProcessLine(\
-							   "struct MyDileptonTreeFormat{\
-								 Double_t inv;\
-								 Int_t chargeProduct;\
-								 Int_t nJets;\
-								 Double_t ht;\
-								 Double_t met;\
-								 Double_t pt1;\
-								 Double_t pt2;\
-								 Double_t weight;\
-								};")
-		from ROOT import MyDileptonTreeFormat
 		data = MyDileptonTreeFormat()
 		newTree = ROOT.TTree("treeInvM", "Dilepton Tree")
 		newTree.SetDirectory(0)
