@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys
 sys.path.append('cfg/')
 from frameworkStructure import pathes
@@ -1115,8 +1117,6 @@ def main():
 						  help="plot is private work.")		
 	parser.add_argument("-p", "--paper", action="store_true", dest="paper", default=False,
 						  help="plot for paper without preliminary label.")		
-	parser.add_argument("-w", "--write", action="store_true", dest="write", default=False,
-						  help="write results to central repository")	
 					
 	args = parser.parse_args()	
 
