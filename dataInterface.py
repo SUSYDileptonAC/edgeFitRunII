@@ -50,7 +50,7 @@ class InfoHolder(object):
 				'AStar': ["AStar_aMCatNLO_Spring15_25ns"],
 				"Rare" : ["TTZToLLNuNu_aMCatNLO_FXFX_Spring15_25ns","TTZToQQ_aMCatNLO_FXFX_Spring15_25ns","TTWToLNu_aMCatNLO_FXFX_Spring15_25ns","TTG_aMCatNLO_FXFX_Spring15_25ns","WZZ_aMCatNLO_FXFX_Spring15_25ns","WWZ_aMCatNLO_FXFX_Spring15_25ns","ZZZ_aMCatNLO_FXFX_Spring15_25ns"],
 				'Diboson' : ["WWTo2L2Nu_Powheg_Spring15_25ns","WWToLNuQQ_Powheg_Spring15_25ns","WZTo1L1Nu2Q_aMCatNLO_Spring15_25ns","WZTo1L3Nu_aMCatNLO_Spring15_25ns","WZTo3LNu_Powheg_Spring15_25ns","WZTo2L2Q_aMCatNLO_Spring15_25ns","ZZTo4Q_aMCatNLO_Spring15_25ns","ZZTo4L_Powheg_Spring15_25ns","ZZTo2Q2Nu_aMCatNLO_Spring15_25ns","ZZTo2L2Q_aMCatNLO_Spring15_25ns"],
-				'slepton_500_250': ["T6bbllslepton_msbottom_550_mneutralino_250"],
+				'slepton_500_250': ["T6bbllslepton_msbottom_500_mneutralino_250"],
 				'slepton_550_175': ["T6bbllslepton_msbottom_550_mneutralino_175"],
 				'slepton_550_200': ["T6bbllslepton_msbottom_550_mneutralino_200"],
 				'slepton_550_225': ["T6bbllslepton_msbottom_550_mneutralino_225"],

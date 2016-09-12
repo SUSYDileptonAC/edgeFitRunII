@@ -25,6 +25,7 @@ class edgeConfig:
 		histoytitle = "None"
 		
 		useMC = True
+		useToys = False
 		mcdatasets = ["TT_Powheg","ZJets"]
 		signalDataSets = []
 		addDataset = None
@@ -48,7 +49,7 @@ class edgeConfig:
 		nBinsMinv = 96
 		
 		### toy-related configuration
-		toyConfig = {"nToys":1000,"nSig":125,"m0":70,"scale":1,"systShift":"None","rand":False}
+		toyConfig = {"nToys":1000,"nSig":125,"m0":70,"scale":1,"systShift":"None","rand":False,"sShape":"Triangular","plotToys":False}
 
 		
 		def __init__(self,region="SignalInclusive",backgroundShape="CB",signalShape="T",runName = "Run2015_25ns",dataSet="Combined",useMC=False,toys=0,addSignal=""):
@@ -90,6 +91,7 @@ class edgeConfig:
 			
 			if toys > 0:
 				self.useMC = True
+				self.useToys = True
 				
 			if addSignal is not "":
 				self.signalDataSets.append(addSignal)
