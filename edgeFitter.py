@@ -498,11 +498,7 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 		ws.factory("SUSYTPdf::eeShapeForward(inv,constant,sEEForward,m0)")
 		ws.factory("SUSYTPdf::mmShapeForward(inv,constant,sMMForward,m0)")
 		ws.var('constant').setConstant(ROOT.kTRUE)
-	elif signalShape == 'V' :
-		ws.factory("Voigtian::sfosShape(inv,m0,zwidth,s)")
-		ws.factory("Voigtian::eeShape(inv,m0,zwidth,sE)")
-		ws.factory("Voigtian::mmShape(inv,m0,zwidth,sM)")
-	elif signalShape == 'X4':
+	elif signalShape == 'Concave':
 		ws.factory("SUSYX4Pdf::sfosShapeCentral(inv,constant,s,m0)")
 		ws.factory("SUSYX4Pdf::sfosShapeCentralShow(inv,constant,s,m0Show)")
 		ws.factory("SUSYX4Pdf::eeShapeCentral(inv,constant,sEECentral,m0)")
@@ -512,7 +508,7 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 		ws.factory("SUSYX4Pdf::eeShapeForward(inv,constant,sEEForward,m0)")
 		ws.factory("SUSYX4Pdf::mmShapeForward(inv,constant,sMMForward,m0)")
 		ws.var('constant').setConstant(ROOT.kTRUE)
-	elif signalShape == 'XM4' in Holder.shape:
+	elif signalShape == 'Convex':
 		ws.factory("SUSYXM4Pdf::sfosShapeCentral(inv,constant,s,m0)")
 		ws.factory("SUSYXM4Pdf::sfosShapeCentralShow(inv,constant,s,m0Show)")
 		ws.factory("SUSYXM4Pdf::eeShapeCentral(inv,constant,sEECentral,m0)")
@@ -804,7 +800,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 					]
 	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
 	if (showText):
-		tools.makeAnnotations(annotationsTitle, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
+		tools.makeAnnotations(annotationsTitle, color=ROOT.kBlue, textSize=0.04, align=31)
 	bl.Draw()
 	if theConfig.useToys == False or (theConfig.useToys == True and theConfig.toyConfig["plotToys"] == True):
 		cOFOS.Print(ofosName)	
@@ -842,7 +838,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 
 	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
 	if (showText):
-		tools.makeAnnotations(annotationsTitle, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
+		tools.makeAnnotations(annotationsTitle, color=ROOT.kBlue, textSize=0.04, align=31)
 
 	frameEE.GetXaxis().SetTitle('m_{ee} [GeV]')
 	frameEE.GetYaxis().SetTitle(histoytitle)
@@ -882,7 +878,7 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 
 	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
 	if (showText):
-		tools.makeAnnotations(annotationsTitle, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
+		tools.makeAnnotations(annotationsTitle, color=ROOT.kBlue, textSize=0.04, align=31)
 
 	frameMM.GetXaxis().SetTitle('m_{#mu#mu} [GeV]')
 	frameMM.GetYaxis().SetTitle(histoytitle)
@@ -916,13 +912,13 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 
 	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
 	if (showText):
-		tools.makeAnnotations(annotationsTitle, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
+		tools.makeAnnotations(annotationsTitle, color=ROOT.kBlue, textSize=0.04, align=31)
 	annotationsFit = [
 					   (0.92, 0.41, annotEdge),
 					   ]
 	if (showText):
 		if not H0:
-			tools.makeAnnotations(annotationsFit, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
+			tools.makeAnnotations(annotationsFit, color=ROOT.kBlue, textSize=0.04, align=31)
 	sl.Draw()
 	if theConfig.useToys == False or (theConfig.useToys == True and theConfig.toyConfig["plotToys"] == True):
 		cSFOS.Print(sfosName)
@@ -1119,11 +1115,12 @@ def main():
 
 			log.logHighlighted("Scaling added dataset (%s) with %f (dynamic)" % (theConfig.addDataset, scale))
 			
+			### get the trees
 			treeAddOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
 			treeAddEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
 			treeAddMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
 
-			# convert trees
+			### convert them to smaller format
 			treeAddOFOSCentral = dataInterface.DataInterface.convertDileptonTree(treeAddOFOSraw, weight=scale)
 			treeAddEECentral = dataInterface.DataInterface.convertDileptonTree(treeAddEEraw, weight=scale)
 			treeAddMMCentral = dataInterface.DataInterface.convertDileptonTree(treeAddMMraw, weight=scale)
@@ -1235,6 +1232,9 @@ def main():
 			dataMMForward = dataSetsForward[index]["MM"].Clone("dataMMForward")
 			dataOFOSForward = dataSetsForward[index]["OFOS"].Clone("dataOFOSForward")
 			dataSFOSForward = dataSetsForward[index]["SFOS"].Clone("dataSFOSForward")
+			
+			## this is kind of stupid, but since ROOT 6 getattr(w,'import')(inv) does not work any more
+			## and RooFit needs another dummy entry to perform correctly e.g. getattr(w,'import')(dataset, ROOT.RooCmdArg())
 
 			getattr(w[index], 'import')(dataEECentral, ROOT.RooCmdArg())
 			getattr(w[index], 'import')(dataMMCentral, ROOT.RooCmdArg())

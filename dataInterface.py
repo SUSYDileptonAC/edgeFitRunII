@@ -1,15 +1,6 @@
 #!/usr/bin/env python
 
-#=======================================================
-# Project: LocalAnalysis
-#			  SUSY Same Sign Dilepton Analysis
-#
-# File: dataInterface.py
-#
-# Author: Daniel Sprenger
-#		 daniel.sprenger@cern.ch
-#=======================================================
-
+### file that holds information and helper routines
 
 from messageLogger import messageLogger as log
 
@@ -20,6 +11,7 @@ import os, ConfigParser
 from math import sqrt
 import datetime
 
+### simpler/smaller tree format to increase the speed
 ROOT.gROOT.ProcessLine(\
 							   "struct MyDileptonTreeFormat{\
 								 Double_t inv;\
@@ -33,7 +25,7 @@ ROOT.gROOT.ProcessLine(\
 								};")
 from ROOT import MyDileptonTreeFormat
 
-
+### Info holder for sample information
 class InfoHolder(object):
 	theDataSamples = {			
 			'sw74X': {
@@ -72,7 +64,7 @@ class InfoHolder(object):
 		'sw74X':"../frameWorkBase/MasterList.ini",
 	}
 
-
+### main interface to access data
 class DataInterface(object):
 	def __init__(self,dataSetPath,dataVersion):
 		
@@ -88,18 +80,8 @@ class DataInterface(object):
 
 	# static methods
 	#==========
-	def getTasksFromRootfile(filePath):
-		file = TFile(filePath, 'READ')
-		keys = file.GetListOfKeys()
-		keyNames = [key.GetName() for key in keys]
-		#log.logDebug("%s" % keyNames)
-		file.Close()
-
-		return keyNames
-
-	getTasksFromRootfile = staticmethod(getTasksFromRootfile)
-
-
+	
+	### convert the trees to the new format to improve the speed
 	def convertDileptonTree(tree, nMax= -1, weight=1.0, selection="", weightString=""):
 		# TODO: make selection more efficient
 		log.logDebug("Converting DileptonTree")
@@ -142,38 +124,8 @@ class DataInterface(object):
 
 	convertDileptonTree = staticmethod(convertDileptonTree)
 
-	def convertTree(tree, nMax= -1):
-		ROOT.gROOT.ProcessLine(\
-							   "struct MyDataFormat{\
-								 Double_t invM;\
-								 Int_t chargeProduct;\
-								};")
-		from ROOT import MyDataFormat
-		data = MyDataFormat()
-		newTree = ROOT.TTree("treeInvM", "Invariant Mass Tree")
-		newTree.Branch("invM", ROOT.AddressOf(data, "invM"), "invM/D")
-		newTree.Branch("chargeProduct", ROOT.AddressOf(data, "chargeProduct"), "chargeProduct/I")
 
-		# only part of tree?
-		iMax = tree.GetEntries()
-		if (nMax != -1):
-			iMax = min(nMax, iMax)
-
-		# Fill tree
-		for i in xrange(iMax):
-			if (tree.GetEntry(i) > 0):
-				data.invM = tree.p4.M()
-				data.chargeProduct = tree.chargeProduct
-				#log.logDebug("cp: %d" % tree.chargeProduct)
-				#log.logDebug("invM = %f" % tree.p4.M())
-				newTree.Fill()
-
-		newTree.SetDirectory(0)
-		return newTree
-
-	convertTree = staticmethod(convertTree)
-
-
+	### Check if a histogram exists
 	def isHistogramInFile(self, fileName, path):
 		log.logDebug("Checking path '%s'\n  in file %s" % (path, fileName))
 
@@ -183,6 +135,7 @@ class DataInterface(object):
 		return (path != None)
 
 
+	### get the histogram from the file
 	def getHistogramFromFile(self, fileName, histoPath):
 		log.logDebug("Getting histogram '%s'\n  from file %s" % (histoPath, fileName))
 
@@ -200,6 +153,7 @@ class DataInterface(object):
 			return histogram
 
 
+	### fetch the MC cross section
 	def getCrossSection(self, job):
 		cfg = self.cfg
 
@@ -211,18 +165,8 @@ class DataInterface(object):
 
 		return value
 
-	def getNegWeightFraction(self, job):
-		cfg = self.cfg
 
-		value = None
-		if cfg.has_section(job):
-			value = cfg.getfloat(job, 'negWeightFraction')
-		else:
-			log.logError("Cannot get negWeightFraction: job %s not found in MasterList." % job)
-
-		return value
-
-
+	### get the event counts for MC normalization
 	def getEventCount(self, job, flag, task, dataSamples=None):
 		filePath = "%s/%s.%s.%s.root" % (self.dataSetPath, flag, "processed", job)
 		
@@ -230,8 +174,6 @@ class DataInterface(object):
 		histoPath = "%sCounters/analysis paths;1" % (task.split("FinalTrees")[0])
 		value = -1.0
 		
-
-		# normal weighting
 		histogram = None
 		if (os.path.exists(filePath)):
 			histogram = self.getHistogramFromFile(filePath, histoPath)
@@ -244,79 +186,18 @@ class DataInterface(object):
 					log.logDebug("Event Count: %f" % count)
 					value = count
 
-		# Fall11 3D weighting
-		# 1. from same file
-		histoPath = "%sWeightSummer/Weights;1" % (task)
-		weightValue = -1.0
-
-		histogram = None
-		if (os.path.exists(filePath)):
-			if (self.isHistogramInFile(filePath, histoPath)):
-				histogram = self.getHistogramFromFile(filePath, histoPath)
-
-				if (histogram != None):
-					count = histogram.GetBinContent(1)
-					if (count <= 0.0):
-						log.logWarning("3D Weight histogram contained invalid event count: %f" % count)
-					else:
-						weightValue = count
-						log.logDebug("3D Weight: %f" % count)
-						tempFactor = weightValue / value
-						log.logInfo("3D weight found. Results in weight factor of %.3f for %s" % (tempFactor, job))
-						if (abs(1.0 - tempFactor) > 0.1):
-							log.logWarning("Unusual 3D weight factor: %f" % (tempFactor))
-
-
-		# 2. from external file
-		taskExternal = "%sNoCuts" % task
-		filePathExternal = "%s/%s/%s/%s.%s.%s.root" % (self.dataSetPath, flag, taskExternal, flag, taskExternal, job)
-		histoPathExternal = "%sWeightSummer/Weights;1" % (taskExternal)
-		weightValueExternal = -1.0
-
-		histogram = None
-		if (os.path.exists(filePathExternal) and weightValue >= 0.0):
-			if (self.isHistogramInFile(filePathExternal, histoPathExternal)):
-				histogram = self.getHistogramFromFile(filePathExternal, histoPathExternal)
-
-				if (histogram != None):
-					count = histogram.GetBinContent(1)
-					if (count <= 0.0):
-						log.logWarning("External 3D Weight histogram contained invalid event count: %f" % count)
-					else:
-						weightValueExternal = count
-						log.logHighlighted("External 3D weight found. Results in weight factor of %.3f for %s. Overwriting previous factor." % (weightValueExternal / value, job))
-
-		if (weightValue >= 0.0 and weightValueExternal > 0.0):
-			if (abs(weightValue / weightValueExternal - 1.0) > 0.001):
-				log.logError("3D weight and external 3D weight disagree: %f vs %f (ext)!" % (weightValue, weightValueExternal))
-
-
-		# 3. override from masterlist
-		#factor = 1.0
-
-		#if cfg.has_section(job):
-		#	if (cfg.has_option(job, 'total3dweightfactor')):
-		#		factor = cfg.getfloat(job, 'total3dweightfactor')
-		#		log.logError("3D weight override factor found for %s: %f. This is a deprecated feature!" % (job, factor))
-
-		#value *= factor
-
-		if (weightValue >= 0.0):
-			value = weightValue
-
-		if (weightValueExternal >= 0.0):
-			value = weightValueExternal
-
 		return value
 
+	### fetch the tree from the dataset
 	def getTreeFromDataset(self, flag, task, dataset, treePath, dataVersion=None, cut="", reduce=1.0,etaRegion="Inclusive"):
 		if (dataVersion == None):
 			dataVersion = self.theConfigDict['DataSamples']
+		### cut on eta region
 		if etaRegion=="Central": 
 			cut = cut + " && abs(eta1) < 1.4 && abs(eta2) < 1.4"
 		elif etaRegion=="Forward":
-			#~ cut = cut + " && 1.6 <= TMath::Max(abs(eta1),abs(eta2)) && !(abs(eta1) > 1.4 && abs(eta1) < 1.6) && !(abs(eta2) > 1.4 && abs(eta2) < 1.6)"
 			cut = cut + " && 1.6 <= TMath::Max(abs(eta1),abs(eta2))"
+		### Check if the sample is known for this version(in the Info holder)
 		if (not InfoHolder.theDataSamples.has_key(dataVersion)):
 			log.logError("Datasample not registered: %s" % dataVersion)
 			return None
@@ -324,6 +205,7 @@ class DataInterface(object):
 			log.logError("Dataset not found in datasample '%s': %s" % (dataVersion, dataset))
 			return None
 
+		### Some background categories (like diboson) contain several samples so a job list is created
 		jobList = (InfoHolder.theDataSamples[dataVersion])[dataset]
 		log.logDebug("Getting '%s' from joblist %s (dataVersion: %s)" % (treePath, str(jobList), dataVersion))
 		
@@ -339,6 +221,7 @@ class DataInterface(object):
 			else:
 				log.logWarning("File not found: %s" % fileName)
 
+		### Possibility to refuce the trees to a fraction if they get too large
 		if (reduce < 1.0):
 			log.logDebug("Reducing tree down to %f of its size" % reduce)
 			nEntries = tree.GetEntries()
@@ -358,6 +241,7 @@ class DataInterface(object):
 		return tree
 
 
+	### Get the tree for a certain job (MC sample)
 	def getTreeFromJob(self, flag, task, job, treePath, dataVersion=None, cut=""):
 		tree = ROOT.TChain("%s%s" % (task, treePath))
 		fileName = "%s/%s.%s.%s.root" % (self.dataSetPath, flag, "processed", job)
@@ -377,165 +261,6 @@ class DataInterface(object):
 			log.logError("Tree invalid: %s -%s - %s - %s" % (flag, task, dataset, treePath))
 		return tree
 
-
-	def getTreeFromFile(self, fileName, treePath):
-		log.logDebug("Getting tree '%s'\n  from file %s" % (treePath, fileName))
-
-		#file = TFile(fileName, 'READ')
-		#tree = file.Get(treePath)
-		tree = ROOT.TChain(treePath)
-		tree.Add(fileName)
-
-		if (tree == None):
-			log.logError("Could not get tree '%s'\n  from file %s" % (treePath, fileName))
-			#file.Close()
-			return None
-		else:
-			tree.SetDirectory(0)
-			#file.Close()
-			return tree
-
-	def logMemoryContent(self):
-		directory = ROOT.gDirectory
-		list = directory.GetList()
-		keyNames = [key.GetName() for key in list]
-		log.logDebug("Memory content:%s" % keyNames)
-
-
-
-class Result:
-	# for integral calculation
-	xMax = 10000
-	# formatting string for result to string conversion
-	formatString = "%.3f \pm %.3f"
-
-	def __init__(self, histogram):
-		if (histogram == None):
-			log.logWarning("Creating a result from an empty histogram.")
-
-
-		# default configuration
-		self.dataName = "None"
-		self.dataVersion = "None"
-		self.taskName = "None"
-		self.flagName = "None"
-		self.dataType = InfoHolder.DataTypes.Unknown
-		self.is2DHistogram = False
-		self.scaled = False
-
-		self.histogram = histogram
-		#self.histogram.Sumw2()
-		self.unscaledIntegral = -1
-		self.scalingFactor = -1
-		self.luminosity = -1
-		self.xSection = -1
-		self.nEvents = -1
-		self.__scaledAndAdded = False
-		self.currentIntegralError = -1
-
-		self.title = None
-
-		#log.logDebug("%s" % type(histogram))
-		self.is2DHistogram = False
-		if (type(histogram) == ROOT.TH2F):
-			log.logDebug("2D histogram found: %s" % type(histogram))
-			self.is2DHistogram = True
-
-	def clone(self):
-		if (self.is2DHistogram):
-			log.logError("Cloning of 2d histograms not supported!")
-			return None
-
-		cloneHistogram = ROOT.TH1F(self.histogram)
-		clone = Result(cloneHistogram)
-		clone.dataName = self.dataName
-		clone.dataVersion = self.dataVersion
-		clone.taskName = self.taskName
-		clone.flagName = self.flagName
-		clone.dataType = self.dataType
-		clone.scaled = self.scaled
-
-		clone.unscaledIntegral = self.unscaledIntegral
-		clone.scalingFactor = self.scalingFactor
-		clone.luminosity = self.luminosity
-		clone.xSection = self.xSection
-		clone.nEvents = self.nEvents
-		clone.__scaledAndAdded = self.__scaledAndAdded
-		clone.currentIntegralError = self.currentIntegralError
-
-		clone.title = self.title
-
-		# not supported
-		self.is2DHistogram = False
-		return clone
-
-	def setXSection(self, xSection):
-		if (xSection <= 0.0):
-			log.logError("Cannot set result cross section to zero or less (%f)" % xSection)
-		else:
-			self.xSection = xSection
-
-	def integral(self):
-		#log.logDebug("bin1: %f" % self.histogram.GetBinContent(1))
-
-		#a = self.histogram.GetBinContent(1)
-		#if (a == ):
-		#	log.logError("NAN!")
-
-		try:
-			min = 0
-			binMin = self.histogram.FindBin(min)
-			binMax = self.histogram.FindBin(Result.xMax)
-			return self.histogram.Integral(binMin, binMax)
-		except:
-			log.logError("Cannot get histogram integral")
-			return - 1
-
-	def integralError(self):
-		if (self.currentIntegralError >= 0.0):
-			return self.currentIntegralError
-		if (self.is2DHistogram):
-			log.logError("Integral error not implemented for 2D histograms.")
-			return - 1
-
-		if (self.scaled):
-			# have differently scaled histograms been added? (cannot calculate error the usual way)
-			if (self.__scaledAndAdded):
-				log.logError("Result scaled and added, but integral error value not set.")
-				return - 1
-			# usual way
-			if (self.unscaledIntegral < 0 or self.scalingFactor < 0):
-				log.logWarning("Could not determine integral error: unscaled integral or scaling factor not set!")
-				return - 1
-
-			#log.logDebug("Scaled Error: sqrt(%f) * %f = %f" % (self.unscaledIntegral, self.scalingFactor, sqrt(self.unscaledIntegral) * self.scalingFactor))
-			return sqrt(self.unscaledIntegral) * self.scalingFactor
-		else:
-			return sqrt(self.integral())
-
-	def scale(self, factor):
-		if (self.histogram == None):
-			log.logError("Trying to scale empty result")
-			return
-		if (self.is2DHistogram):
-			log.logError("Scaling not implemented for 2D histograms.")
-			return
-
-		self.histogram.Scale(factor)
-		#log.logDebug("Result: Scaling factor = %f" % (self.scalingFactor))
-		if (self.scalingFactor < 0):
-			self.scalingFactor = factor
-		else:
-			self.scalingFactor *= factor
-
-		if (self.currentIntegralError > 0.0):
-			self.currentIntegralError *= factor
-
-		#log.logDebug("Result: Scaling factor afterwards = %f" % (self.scalingFactor))
-		self.scaled = True
-
-	def __str__(self):
-		return Result.formatString % (self.integral(), self.integralError())
 
 
 # entry point

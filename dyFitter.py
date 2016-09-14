@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+### routine to make the DY fit
+### has to be run first since the main fit relies on the shape
+
 import sys
 sys.path.append('cfg/')
 from frameworkStructure import pathes
@@ -23,6 +26,8 @@ from corrections import rSFOF, rEEOF, rMMOF
 parametersToSave  = {}
 rootContainer = []
 
+
+### get a histogram from the tree
 def createHistoFromTree(tree, variable, weight, nBins, firstBin, lastBin, nEvents = -1):
 	"""
 	tree: tree to create histo from)
@@ -92,9 +97,7 @@ def formatAndDrawFrame(ws,theConfig,frame, title, pdf, yMax=0.0):
 	hAxis = resPad.DrawFrame(theConfig.plotMinInv, -residualMaxY, theConfig.plotMaxInv, residualMaxY, ";;%s"%residualTitle)
 	resPad.SetGridx()
 	resPad.SetGridy()
-#~ 
-#~ 
-#~ 
+
 	zeroLine = ROOT.TLine(theConfig.plotMinInv, 0.0, theConfig.plotMaxInv, 0.0)
 	zeroLine.SetLineColor(ROOT.kBlue)
 	zeroLine.SetLineWidth(2)
@@ -135,15 +138,10 @@ def main():
 						  help="selection which to apply.")
 	parser.add_argument("-r", "--runRange", dest="runRange", action="store", default="Run2015_25ns",
 						  help="name of run range.")
-	parser.add_argument("-c", "--configuration", dest="config", action="store", default="Central",
-						  help="dataset configuration, default Central")
 	parser.add_argument("-x", "--private", action="store_true", dest="private", default=False,
 						  help="plot is private work.")		
 					
 	args = parser.parse_args()	
-
-
-
 
 
 	useExistingDataset = args.useExisting
@@ -151,9 +149,7 @@ def main():
 	from edgeConfig import edgeConfig
 	theConfig = edgeConfig(region=args.selection,runName=args.runRange,useMC=args.mc)
 	
-	
-
-
+	### CMS labels
 	cmsExtra = ""
 	if args.private:
 		cmsExtra = "Private Work"
@@ -163,6 +159,8 @@ def main():
 		cmsExtra = "Simulation"	
 	else:
 		cmsExtra = "Preliminary"
+		
+	regions = ["Central","Forward"]
 
 
 
@@ -184,540 +182,336 @@ def main():
 	treeOFOS = None
 	treeEE = None
 	treeMM = None
-
-
+		
+	trees = {}
+	histos = {}
+	dataHistos = {}
+	w = {}
 	
-		
+	### loop over central+forward
+	for region in regions:
 	
-
-	if not useExistingDataset:
-		w = ROOT.RooWorkspace("w", ROOT.kTRUE)
-		inv = ROOT.RooRealVar("inv","inv",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
-		
-		## this is kind of stupid, but since ROOT 6 getattr(w,'import')(inv) does not work any more
-		## and RooFit needs another dummy entry to perform correctly e.g. getattr(w,'import')(inv, ROOT.RooCmdArg())
-		
-		getattr(w,'import')(inv, ROOT.RooCmdArg())
-		w.factory("weight[1.,0.,10.]")	
-		vars = ROOT.RooArgSet(inv, w.var('weight'))		
-		if (theConfig.useMC):
+		### get the datasets if not existing ones are used
+		if not useExistingDataset:
 			
-			log.logHighlighted("Using MC instead of data.")
-			datasets = theConfig.mcdatasets # ["TTJets", "ZJets", "DibosonMadgraph", "SingleTop"]
-			if args.config == "Central":
-				(treeOFOS, treeEE, treeMM) = tools.getTrees(theConfig, datasets,etaRegion="Central")
-			elif args.config == "Forward":
-				(treeOFOS, treeEE, treeMM) = tools.getTrees(theConfig, datasets,etaRegion="Forward")
-			elif args.config == "Inclusive":
-				(treeOFOS, treeEE, treeMM) = tools.getTrees(theConfig, datasets,etaRegion="Inclusive")
+			### set the workspace
+			w[region] = ROOT.RooWorkspace("w_%s"%region, ROOT.kTRUE)
+			
+			### set variables to be used, inv=mll, weight for PU weight
+			weight = ROOT.RooRealVar("weight","weight",1.,0.,10.)
+			inv = ROOT.RooRealVar("inv","inv",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
+			
+			## this is kind of stupid, but since ROOT 6 getattr(w[region],'import')(inv) does not work any more
+			## and RooFit needs another dummy entry to perform correctly e.g. getattr(w[region],'import')(inv, ROOT.RooCmdArg())
+			
+			getattr(w[region],'import')(inv, ROOT.RooCmdArg())
+			w[region].factory("weight[1.,0.,10.]")	
+			vars = ROOT.RooArgSet(inv, w[region].var('weight'))
+		
+			###get trees and convert them		
+			if (theConfig.useMC):
+				
+				log.logHighlighted("Using MC instead of data.")
+				datasets = theConfig.mcdatasets
+				### for MC the conversion is done in the getTrees routine
+				(trees["OFOS_%s"%region],trees["EE_%s"%region],trees["MM_%s"%region]) = tools.getTrees(theConfig, datasets,etaRegion=region)
+				
 			else:
-				log.logError("Region must be Central or Forward")
-				sys.exit()
+				trees["OFOSraw_%s"%region] = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion=region)
+				trees["EEraw_%s"%region] = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion=region)
+				trees["MMraw_%s"%region] = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion=region)
+	
+				# convert trees
+				trees["OFOS_%s"%region] = dataInterface.DataInterface.convertDileptonTree(trees["OFOSraw_%s"%region])
+				trees["EE_%s"%region] = dataInterface.DataInterface.convertDileptonTree(trees["EEraw_%s"%region])
+				trees["MM_%s"%region] = dataInterface.DataInterface.convertDileptonTree(trees["MMraw_%s"%region])
+				
+	
 			
-		else:
-			if args.config == "Central":
-				treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
-				treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
-				treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Central")
-
-				# convert trees
-				treeOFOS = dataInterface.DataInterface.convertDileptonTree(treeOFOSraw)
-				treeEE = dataInterface.DataInterface.convertDileptonTree(treeEEraw)
-				treeMM = dataInterface.DataInterface.convertDileptonTree(treeMMraw)
-			elif args.config == "Forward":	
-				treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Forward")
-				treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Forward")
-				treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Forward")
-
-				# convert trees
-				treeOFOS = dataInterface.DataInterface.convertDileptonTree(treeOFOSraw)
-				treeEE = dataInterface.DataInterface.convertDileptonTree(treeEEraw)
-				treeMM = dataInterface.DataInterface.convertDileptonTree(treeMMraw)
-		
-			elif args.config == "Inclusive":	
-				treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Inclusive")
-				treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Inclusive")
-				treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,etaRegion="Inclusive")
-
-				# convert trees
-				treeOFOS = dataInterface.DataInterface.convertDileptonTree(treeOFOSraw)
-				treeEE = dataInterface.DataInterface.convertDileptonTree(treeEEraw)
-				treeMM = dataInterface.DataInterface.convertDileptonTree(treeMMraw)
-		
+			histos["OFOS_%s"%region] = createHistoFromTree(trees["OFOS_%s"%region],"inv","weight",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
+			histos["EE_%s"%region] = createHistoFromTree(trees["EE_%s"%region],"inv","weight",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
+			histos["MM_%s"%region] = createHistoFromTree(trees["MM_%s"%region],"inv","weight",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
+			
+			
+			if theConfig.useMC:
+				eeFac = getattr(rEEOF,region.lower()).valMC
+				mmFac = getattr(rMMOF,region.lower()).valMC
 			else:
-				log.logError("Region must be Central,Forward or Inclusive")
-				sys.exit()
-
-
-
-		tmpEE = ROOT.RooDataSet("tmpEE", "tmpEE", vars, ROOT.RooFit.Import(treeEE), ROOT.RooFit.WeightVar("weight"))
-		tmpMM = ROOT.RooDataSet("tmpMM", "tmpMM", vars, ROOT.RooFit.Import(treeMM), ROOT.RooFit.WeightVar("weight"))
-		tmpOFOS = ROOT.RooDataSet("tmpOFOS", "tmpOFOS", vars, ROOT.RooFit.Import(treeOFOS), ROOT.RooFit.WeightVar("weight"))
-		tmpSFOS = ROOT.RooDataSet("tmpSFOS", "tmpSFOS", vars, ROOT.RooFit.Import(treeMM), ROOT.RooFit.WeightVar("weight"))
-		tmpSFOS.append(tmpEE)
-
-
-
-
-
-		dataEE = ROOT.RooDataSet("%sEE" % ("Data"), "Dataset with invariant mass of ee lepton pairs",
-								   vars, ROOT.RooFit.WeightVar("weight"), ROOT.RooFit.Import(tmpEE))
-		dataMM = ROOT.RooDataSet("%sMM" % ("Data"), "Dataset with invariant mass of mm lepton pairs",
-								   vars, ROOT.RooFit.WeightVar("weight"),ROOT.RooFit.Import(tmpMM))
-
-		dataSFOS = ROOT.RooDataSet("%sSFOS" % ("Data"), "Dataset with invariant mass of SFOS lepton pairs",
-								   vars, ROOT.RooFit.WeightVar("weight"), ROOT.RooFit.Import(tmpSFOS))
-		dataOFOS = ROOT.RooDataSet("%sOFOS" % ("Data"), "Dataset with invariant mass of OFOS lepton pairs",
-								   vars, ROOT.RooFit.WeightVar("weight"), ROOT.RooFit.Import(tmpOFOS))
-								   
-
+				eeFac = getattr(rEEOF,region.lower()).val
+				mmFac = getattr(rMMOF,region.lower()).val
 			
-		
-		getattr(w, 'import')(dataSFOS, ROOT.RooCmdArg())
-		getattr(w, 'import')(dataOFOS, ROOT.RooCmdArg())
-		getattr(w, 'import')(dataEE, ROOT.RooCmdArg())
-		getattr(w, 'import')(dataMM, ROOT.RooCmdArg())
-		
-		
+			histos["EE_%s"%region].Add(histos["OFOS_%s"%region],-1*eeFac)
+			histos["MM_%s"%region].Add(histos["OFOS_%s"%region],-1*mmFac)
 
-		histOFOS = createHistoFromTree(treeOFOS,"inv","weight",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
-		histEE = createHistoFromTree(treeEE,"inv","weight",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
-		histMM = createHistoFromTree(treeMM,"inv","weight",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
 		
+			dataHistos["EE_%s"%region] = ROOT.RooDataHist("dataHistEE%s"%region, "dataHistEE%s"%region, ROOT.RooArgList(w[region].var('inv')), histos["EE_%s"%region])
+			dataHistos["MM_%s"%region] = ROOT.RooDataHist("dataHistMM%s"%region, "dataHistMM%s"%region, ROOT.RooArgList(w[region].var('inv')), histos["MM_%s"%region])
+	
+			getattr(w[region], 'import')(dataHistos["EE_%s"%region], ROOT.RooCmdArg())
+			getattr(w[region], 'import')(dataHistos["MM_%s"%region], ROOT.RooCmdArg())
 		
-		if theConfig.useMC:
-			eeFac = getattr(rEEOF,args.config.lower()).valMC
-			mmFac = getattr(rMMOF,args.config.lower()).valMC
+			w[region].Print()
+			if theConfig.useMC:
+				w[region].writeToFile("workspaces/dyControl_%s_MC.root"%region)
+			else:
+				w[region].writeToFile("workspaces/dyControl_%s_Data.root"%region)
+
 		else:
-			eeFac = getattr(rEEOF,args.config.lower()).val
-			mmFac = getattr(rMMOF,args.config.lower()).val
-		
-		histEE.Add(histOFOS,-1*eeFac)
-		histMM.Add(histOFOS,-1*mmFac)
-		
-		w.Print()
+			if theConfig.useMC:
+				f = ROOT.TFile("workspaces/dyControl_%s_MC.root"%region)
+			else:
+				f = ROOT.TFile("workspaces/dyControl_%s_Data.root"%region)
+			w =  f.Get("w")		
+			vars = ROOT.RooArgSet(w[region].var("inv"), w[region].var('weight'))
 
-		
-		dataHistEE = ROOT.RooDataHist("dataHistEE", "dataHistEE", ROOT.RooArgList(w.var('inv')), histEE)
-		dataHistMM = ROOT.RooDataHist("dataHistMM", "dataHistMM", ROOT.RooArgList(w.var('inv')), histMM)
 
-		getattr(w, 'import')(dataHistEE, ROOT.RooCmdArg())
-		getattr(w, 'import')(dataHistMM, ROOT.RooCmdArg())
-		if theConfig.useMC:
-			w.writeToFile("workspaces/dyControl_%s_MC.root"%args.config)
+	
+		histoytitle = 'Events / %.2f GeV' % ((theConfig.maxInv - theConfig.minInv) / float(w[region].var('inv').getBins()))
+		
+		ROOT.gSystem.Load("shapes/RooDoubleCB_cxx.so")
+		ROOT.gSystem.Load("libFFTW.so")
+		
+		w[region].var('inv').setBins(140)
+		
+		### Load the parameters required for the fit into the workspace
+		
+		# We know the z mass
+		# z mass and width
+		# mass resolution in electron and muon channels
+		w[region].factory("zmean[91.1876]")
+		w[region].factory("zwidthMM[2.4952]")
+		w[region].factory("zwidthEE[2.4952]")
+		
+		### Put them into the Breit-Wigner
+		w[region].factory("BreitWigner::zShapeMM(inv,zmean,zwidthMM)")
+		w[region].factory("BreitWigner::zShapeEE(inv,zmean,zwidthEE)")
+		
+		### Parameter ranges for the double-sided crystal-ball
+		
+		### for dimuon
+		w[region].factory("cbmeanMM[3.,-10,10]")	
+		w[region].factory("sMM[1.6.,0.,20.]")	
+		w[region].factory("nMML[3.,0.,20]")
+		w[region].factory("alphaMML[1.15,0,10]")
+		w[region].factory("nMMR[1.,0,20]")
+		w[region].factory("alphaMMR[2.5,0,10]")
+		
+		w[region].factory("DoubleCB::cbShapeMM(inv,cbmeanMM,sMM,alphaMML,nMML,alphaMMR,nMMR)")
+		
+	
+		### dielectron
+		w[region].factory("cbmeanEE[3.,-10,10]")
+		w[region].factory("sEE[1.6,0,20.]")
+		w[region].factory("nEEL[2.9,0.,20]")
+		w[region].factory("alphaEEL[1.16,0,10]")
+		w[region].factory("nEER[1.0,0,100]")
+		w[region].factory("alphaEER[2.5,0,10]")
+		
+		w[region].factory("DoubleCB::cbShapeEE(inv,cbmeanEE,sEE,alphaEEL,nEEL,alphaEER,nEER)")
+		
+		### convolution of Breit-Wigner and Crystal Ball
+		convMM = ROOT.RooFFTConvPdf("peakModelMM","zShapeMM (x) cbShapeMM",w[region].var("inv"),w[region].pdf("zShapeMM"),w[region].pdf("cbShapeMM"))
+		getattr(w[region], 'import')(convMM, ROOT.RooCmdArg())
+		convEE = ROOT.RooFFTConvPdf("peakModelEE","zShapeEE (x) cbShapeEE",w[region].var("inv"),w[region].pdf("zShapeEE"),w[region].pdf("cbShapeEE"))
+		getattr(w[region], 'import')(convEE, ROOT.RooCmdArg())	
+	
+		#~ Abkg=ROOT.RooRealVar("Abkg","Abkg",1,0.01,10)
+		#~ getattr(w[region], 'import')(Abkg, ROOT.RooCmdArg())
+		
+		### Exponential for the continuum	
+		w[region].factory("cContinuumMM[%f,%f,%f]" % (-0.02,-0.1,0))
+		w[region].factory("nZMM[100000.,500.,%s]" % (2000000))
+		w[region].factory("Exponential::offShellMM(inv,cContinuumMM)")
+		
+		w[region].factory("cContinuumEE[%f,%f,%f]" % (-0.02,-0.1,0))
+		w[region].factory("nZEE[100000.,500.,%s]" % (2000000))	
+		w[region].factory("Exponential::offShellEE(inv,cContinuumEE)")
+	
+		
+		w[region].pdf("peakModelMM").setBufferFraction(5.0)
+		w[region].pdf("peakModelEE").setBufferFraction(5.0)
+		
+		### Fraction of onZ and continuum events
+		w[region].factory("zFractionMM[0.9,0,1]")
+		w[region].factory("zFractionEE[0.9,0,1]")
+		expFractionMM = ROOT.RooFormulaVar('expFractionMM', '1-@0', ROOT.RooArgList(w[region].var('zFractionMM')))	
+		expFractionEE = ROOT.RooFormulaVar('expFractionEE', '1-@0', ROOT.RooArgList(w[region].var('zFractionEE')))
+		getattr(w[region], 'import')(expFractionMM, ROOT.RooCmdArg())
+		getattr(w[region], 'import')(expFractionEE, ROOT.RooCmdArg())
+		
+		### Take the sum of peak and exponential and an overall normalization
+		### Only the normalization is varied in the full edge fit afterwards
+		w[region].factory("SUM::modelMM1(zFractionMM*peakModelMM,expFractionMM*offShellMM)")
+		w[region].factory("SUM::modelMM(nZMM*modelMM1)")	
+		w[region].factory("SUM::modelEE1(zFractionEE*peakModelEE,expFractionEE*offShellEE)")
+		w[region].factory("SUM::modelEE(nZEE*modelEE1)")
+		
+		### ranges to compare different regions
+		w[region].var("inv").setRange("zPeak",81,101)
+		w[region].var("inv").setRange("fullRange",20,300)
+		w[region].var("inv").setRange("lowMass",20,70)
+		argSet = ROOT.RooArgSet(w[region].var("inv"))	
+		
+		### maximum and size for the frame
+		yMaximum = 1000000
+		sizeCanvas = 800
+		
+		### legend
+		legend = ROOT.TLegend(0.5, 0.6, 0.95, 0.93)
+		legend.SetFillStyle(0)
+		legend.SetBorderSize(0)
+		entryHist = ROOT.TH1F()
+		entryHist.SetFillColor(ROOT.kWhite)
+		legend.AddEntry(entryHist,"Drell-Yan enriched region","h")	
+		dataHist = ROOT.TH1F()
+		entryHist.SetFillColor(ROOT.kWhite)
+		legend.AddEntry(dataHist,"data","p")	
+		fitHist = ROOT.TH1F()
+		fitHist.SetLineColor(ROOT.kBlue)
+		legend.AddEntry(fitHist, "Full Z model","l")	
+		expoHist = ROOT.TH1F()
+		expoHist.SetLineColor(ROOT.kGreen)
+		legend.AddEntry(expoHist,"Exponential component","l")	
+		bwHist = ROOT.TH1F()
+		bwHist.SetLineColor(ROOT.kRed)
+		legend.AddEntry(bwHist,"DSCB #otimes BW component","l")
+		
+		### labels
+		latex = ROOT.TLatex()
+		latex.SetTextFont(42)
+		latex.SetNDC(True)
+		latex.SetTextAlign(31)
+		latex.SetTextSize(0.04)
+		latexCMS = ROOT.TLatex()
+		latexCMS.SetTextFont(61)
+		latexCMS.SetTextSize(0.06)
+		latexCMS.SetNDC(True)
+		latexCMSExtra = ROOT.TLatex()
+		latexCMSExtra.SetTextFont(52)
+		latexCMSExtra.SetTextSize(0.045)
+		latexCMSExtra.SetNDC(True)
+		
+		if "Simulation" in cmsExtra:
+			yLabelPos = 0.81	
 		else:
-			w.writeToFile("workspaces/dyControl_%s_Data.root"%args.config)
-
-	else:
-		if theConfig.useMC:
-			f = ROOT.TFile("workspaces/dyControl_%s_MC.root"%args.config)
-		else:
-			f = ROOT.TFile("workspaces/dyControl_%s_Data.root"%args.config)
-		w =  f.Get("w")		
-		vars = ROOT.RooArgSet(w.var("inv"), w.var('weight'))
-
-
-	histoytitle = 'Events / %.1f GeV' % ((theConfig.maxInv - theConfig.minInv) / float(w.var('inv').getBins()))
+			yLabelPos = 0.84
 	
-	ROOT.gSystem.Load("shapes/RooDoubleCB_cxx.so")
-	ROOT.gSystem.Load("libFFTW.so") 	
-	
-
-	
-	w.var('inv').setBins(140)
-	
-
-	
-	
-	# We know the z mass
-	# z mass and width
-	# mass resolution in electron and muon channels
-	w.factory("zmean[91.1876]")
-
-	w.factory("cbmeanMM[3.,-10,10]")
-	w.factory("cbmeanEE[3.00727145780911975e+00,-10,10]")
-	w.factory("zwidthMM[2.4952]")
-	w.factory("zwidthEE[2.4952]")
-	
-	w.factory("sMM[1.6.,0.,20.]")
-	w.factory("BreitWigner::zShapeMM(inv,zmean,zwidthMM)")
-
-	w.factory("sEE[1.61321382563436089e+00,0,20.]")
-	w.factory("BreitWigner::zShapeEE(inv,zmean,zwidthEE)")
-
-	w.factory("nMML[3.,0.,20]")
-	w.factory("alphaMML[1.15,0,10]")
-	w.factory("nMMR[1.,0,20]")
-	w.factory("alphaMMR[2.5,0,10]")
-	
-	w.factory("DoubleCB::cbShapeMM(inv,cbmeanMM,sMM,alphaMML,nMML,alphaMMR,nMMR)")
-	
-
-	w.factory("nEEL[2.90366994026457270e+00,0.,20]")
-	w.factory("alphaEEL[1.15985663333662714e+00,0,10]")
-	w.factory("nEER[1.0,0,100]")
-	w.factory("alphaEER[2.50878194343888694e+00,0,10]")
-	
-	w.factory("DoubleCB::cbShapeEE(inv,cbmeanEE,sEE,alphaEEL,nEEL,alphaEER,nEER)")
-
-	Abkg=ROOT.RooRealVar("Abkg","Abkg",1,0.01,10)
-	getattr(w, 'import')(Abkg, ROOT.RooCmdArg())
-	
-	w.factory("cContinuumEE[%f,%f,%f]" % (-0.02,-0.1,0))
-	
-	w.factory("nZEE[100000.,500.,%s]" % (2000000))
-
-
-	w.factory("Exponential::offShellEE(inv,cContinuumEE)")
-
-	convEE = ROOT.RooFFTConvPdf("peakModelEE","zShapeEE (x) cbShapeEE",w.var("inv"),w.pdf("zShapeEE"),w.pdf("cbShapeEE"))
-	getattr(w, 'import')(convEE, ROOT.RooCmdArg())
-	w.pdf("peakModelEE").setBufferFraction(5.0)
-	w.factory("zFractionEE[0.9,0,1]")
-	expFractionEE = ROOT.RooFormulaVar('expFractionEE', '1-@0', ROOT.RooArgList(w.var('zFractionEE')))
-	getattr(w, 'import')(expFractionEE, ROOT.RooCmdArg())
-	w.factory("SUM::modelEE1(zFractionEE*peakModelEE,expFractionEE*offShellEE)")
-	w.factory("SUM::modelEE(nZEE*modelEE1)")
-
-
-	w.factory("cContinuumMM[%f,%f,%f]" % (-0.02,-0.1,0))
-	w.factory("Exponential::offShellMM(inv,cContinuumMM)")
-	
-	w.factory("nZMM[100000.,500.,%s]" % (2000000))
-	w.factory("nOffShellMM[100000.,500.,%s]" % (2000000))
-
-
-	
-	convMM = ROOT.RooFFTConvPdf("peakModelMM","zShapeMM (x) cbShapeMM",w.var("inv"),w.pdf("zShapeMM"),w.pdf("cbShapeMM"))
-	getattr(w, 'import')(convMM, ROOT.RooCmdArg())
-	w.pdf("peakModelMM").setBufferFraction(5.0)
-	w.factory("zFractionMM[0.9,0,1]")
-	expFractionMM = ROOT.RooFormulaVar('expFractionMM', '1-@0', ROOT.RooArgList(w.var('zFractionMM')))
-	getattr(w, 'import')(expFractionMM, ROOT.RooCmdArg())		
-	w.factory("SUM::modelMM1(zFractionMM*peakModelMM,expFractionMM*offShellMM)")
-	w.factory("SUM::modelMM(nZMM*modelMM1)")
-
-	
-	
-	fitEE = w.pdf('modelEE').fitTo(w.data('dataHistEE'),
+		fitEE = w[region].pdf('modelEE').fitTo(w[region].data("dataHistEE%s"%region),
 										ROOT.RooFit.Save(), ROOT.RooFit.SumW2Error(ROOT.kFALSE), ROOT.RooFit.Minos(ROOT.kFALSE), ROOT.RooFit.Extended(ROOT.kTRUE))
 										
-										
 
-		
-	fitMM = w.pdf('modelMM').fitTo(w.data('dataHistMM'),
+		fitMM = w[region].pdf('modelMM').fitTo(w[region].data("dataHistMM%s"%region),
 										ROOT.RooFit.Save(), ROOT.RooFit.SumW2Error(ROOT.kFALSE), ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.Extended(ROOT.kTRUE))
 										
-										
 
-	w.var("inv").setRange("zPeak",81,101)
-	w.var("inv").setRange("fullRange",20,300)
-	w.var("inv").setRange("lowMass",20,70)
-	argSet = ROOT.RooArgSet(w.var("inv"))
-
-	peakIntEE = w.pdf("modelEE").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("zPeak")) 
-	peakEE = peakIntEE.getVal()
-	
-	lowMassIntEE = w.pdf("modelEE").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("lowMass")) 
-	lowMassEE = lowMassIntEE.getVal()
-	
-	peakIntMM = w.pdf("modelMM").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("zPeak"))
-	peakMM = peakIntMM.getVal()
-	
-	lowMassIntMM = w.pdf("modelMM").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("lowMass"))
-	lowMassMM = lowMassIntMM.getVal()
-
-
-	
-	log.logHighlighted( "Peak: %.3f LowMass: %.3f (ee)"%(peakEE,lowMassEE))
-	log.logHighlighted( "Peak: %.3f LowMass: %.3f (mm)"%(peakMM,lowMassMM))
-	log.logHighlighted( "R(out,in): %.3f (ee) %.3f (mm)"%(lowMassEE/peakEE,lowMassMM/peakMM))
-
-	
-	
-	yMaximum = 1000000
-
-	frameEE = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of ee lepton pairs'))
-	frameEE.GetXaxis().SetTitle('m_{ee} [GeV]')
-	frameEE.GetYaxis().SetTitle("Events / 2.5 GeV")
-	ROOT.RooAbsData.plotOn(w.data('dataHistEE'), frameEE)
-	w.pdf('modelEE').plotOn(frameEE)		
-	sizeCanvas = 800
-	
-
-	cEE = ROOT.TCanvas("ee distribtution", "ee distribution", sizeCanvas, int(1.25 * sizeCanvas))
-	cEE.cd()
-	pads = formatAndDrawFrame(w,theConfig,frameEE, title="EE", pdf=w.pdf("modelEE"), yMax=0.05*yMaximum)
-
-	
-	legend = ROOT.TLegend(0.5, 0.6, 0.95, 0.94)
-	legend.SetFillStyle(0)
-	legend.SetBorderSize(0)
-	entryHist = ROOT.TH1F()
-	entryHist.SetFillColor(ROOT.kWhite)
-	legend.AddEntry(entryHist,"Drell-Yan enriched region","h")	
-	dataHist = ROOT.TH1F()
-	entryHist.SetFillColor(ROOT.kWhite)
-	legend.AddEntry(dataHist,"data","p")	
-	fitHist = ROOT.TH1F()
-	fitHist.SetLineColor(ROOT.kBlue)
-	legend.AddEntry(fitHist, "Full Z model","l")	
-	expoHist = ROOT.TH1F()
-	expoHist.SetLineColor(ROOT.kGreen)
-	legend.AddEntry(expoHist,"Exponential component","l")	
-	bwHist = ROOT.TH1F()
-	bwHist.SetLineColor(ROOT.kRed)
-	legend.AddEntry(bwHist,"DSCB #otimes BW component","l")	
-
-
-
-	legend.Draw("same")
-	
-	latex = ROOT.TLatex()
-	latex.SetTextFont(42)
-	latex.SetNDC(True)
-	latex.SetTextAlign(31)
-	latex.SetTextSize(0.04)
-
-	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (13 TeV)"%theConfig.runRange.printval)
-
-	latexCMS = ROOT.TLatex()
-	latexCMS.SetTextFont(61)
-	latexCMS.SetTextSize(0.06)
-	latexCMS.SetNDC(True)
-	latexCMSExtra = ROOT.TLatex()
-	latexCMSExtra.SetTextFont(52)
-	latexCMSExtra.SetTextSize(0.045)
-	latexCMSExtra.SetNDC(True)				
-
-	latexCMS.DrawLatex(0.19,0.88,"CMS")
-	if "Simulation" in cmsExtra:
-		yLabelPos = 0.83	
-	else:
-		yLabelPos = 0.84	
-
-	latexCMSExtra.DrawLatex(0.19,yLabelPos,"%s"%(cmsExtra))		
-	
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "expo", w.var('cContinuumEE').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "cbMean", w.var('cbmeanEE').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "nL", w.var('nEEL').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "nR", w.var('nEER').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "alphaL", w.var('alphaEEL').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "alphaR", w.var('alphaEER').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "nZ", w.var('nZEE').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "zFraction", w.var('zFractionEE').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_EE" % args.config, "s", w.var('sEE').getVal(),basePath="dyShelves/")
-	eeName = "fig/expoFitEE_%s_%s"%(args.config,args.runRange)
-	if theConfig.useMC:
-		eeName = "fig/expoFitEE_%s_%s_MC"%(args.config,args.runRange)	
-	cEE.Print(eeName+".pdf")
-	cEE.Print(eeName+".root")	
-	for pad in pads:
-		pad.Close()	
-	pads = formatAndDrawFrame(w,theConfig,frameEE, title="EE", pdf=w.pdf("modelEE"), yMax=yMaximum)
-	legend = ROOT.TLegend(0.5, 0.6, 0.95, 0.94)
-	legend.SetFillStyle(0)
-	legend.SetBorderSize(0)
-	entryHist = ROOT.TH1F()
-	entryHist.SetFillColor(ROOT.kWhite)
-	legend.AddEntry(entryHist,"Drell-Yan enriched region","h")	
-	dataHist = ROOT.TH1F()
-	entryHist.SetFillColor(ROOT.kWhite)
-	legend.AddEntry(dataHist,"data","p")	
-	fitHist = ROOT.TH1F()
-	fitHist.SetLineColor(ROOT.kBlue)
-	legend.AddEntry(fitHist, "Full Z model","l")	
-	expoHist = ROOT.TH1F()
-	expoHist.SetLineColor(ROOT.kGreen)
-	legend.AddEntry(expoHist,"Exponential component","l")	
-	bwHist = ROOT.TH1F()
-	bwHist.SetLineColor(ROOT.kRed)
-	legend.AddEntry(bwHist,"DSCB #otimes BW component","l")	
-
-
-
-	legend.Draw("same")
-	
-	latex = ROOT.TLatex()
-	latex.SetTextFont(42)
-	latex.SetNDC(True)
-	latex.SetTextAlign(31)
-	latex.SetTextSize(0.04)
-
-	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (13 TeV)"%theConfig.runRange.printval)
-
-	latexCMS = ROOT.TLatex()
-	latexCMS.SetTextFont(61)
-	latexCMS.SetTextSize(0.06)
-	latexCMS.SetNDC(True)
-	latexCMSExtra = ROOT.TLatex()
-	latexCMSExtra.SetTextFont(52)
-	latexCMSExtra.SetTextSize(0.045)
-	latexCMSExtra.SetNDC(True)				
-
-	latexCMS.DrawLatex(0.19,0.88,"CMS")
-	if "Simulation" in cmsExtra:
-		yLabelPos = 0.81	
-	else:
-		yLabelPos = 0.84	
-
-	latexCMSExtra.DrawLatex(0.19,yLabelPos,"%s"%(cmsExtra))		
+		peakIntEE = w[region].pdf("modelEE").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("zPeak")) 
+		peakEE = peakIntEE.getVal()
 		
-	pads[0].SetLogy(1)
-	eeName = "fig/expoFitEE_Log_%s_%s"%(args.config,args.runRange)
-	if theConfig.useMC:
-		eeName = "fig/expoFitEE_Log_%s_%s_MC"%(args.config,args.runRange)	
-	cEE.Print(eeName+".pdf")
-	cEE.Print(eeName+".root")	
-	for pad in pads:
-		pad.Close()
-
-
-	frameMM = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of #mu#mu lepton pairs'))
-	frameMM.GetXaxis().SetTitle('m_{#mu#mu} [GeV]')
-	frameMM.GetYaxis().SetTitle("Events / 2.5 GeV")
-	ROOT.RooAbsData.plotOn(w.data("dataHistMM"), frameMM)
-	w.pdf('modelMM').plotOn(frameMM)		
-	sizeCanvas = 800
-	
-	residualMode = "pull"
-	cMM = ROOT.TCanvas("#mu#mu distribtution", "#mu#mu distribution", sizeCanvas, int(1.25 * sizeCanvas))
-	cMM.cd()
-	pads = formatAndDrawFrame(w,theConfig,frameMM, title="MM", pdf=w.pdf("modelMM"), yMax=0.05*yMaximum)
-
-	
-	
-	legend = ROOT.TLegend(0.5, 0.6, 0.95, 0.94)
-	legend.SetFillStyle(0)
-	legend.SetBorderSize(0)
-	entryHist = ROOT.TH1F()
-	entryHist.SetFillColor(ROOT.kWhite)
-	legend.AddEntry(entryHist,"Drell-Yan enriched region","h")	
-	dataHist = ROOT.TH1F()
-	entryHist.SetFillColor(ROOT.kWhite)
-	legend.AddEntry(dataHist,"data","p")	
-	fitHist = ROOT.TH1F()
-	fitHist.SetLineColor(ROOT.kBlue)
-	legend.AddEntry(fitHist, "Full Z model","l")	
-	expoHist = ROOT.TH1F()
-	expoHist.SetLineColor(ROOT.kGreen)
-	legend.AddEntry(expoHist,"Exponential component","l")	
-	bwHist = ROOT.TH1F()
-	bwHist.SetLineColor(ROOT.kRed)
-	legend.AddEntry(bwHist,"DSCB #otimes BW component","l")	
-
-
-
-	legend.Draw("same")
-	
-	latex = ROOT.TLatex()
-	latex.SetTextFont(42)
-	latex.SetNDC(True)
-	latex.SetTextAlign(31)
-	latex.SetTextSize(0.04)
-
-	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (13 TeV)"%theConfig.runRange.printval)
-
-	latexCMS = ROOT.TLatex()
-	latexCMS.SetTextFont(61)
-	latexCMS.SetTextSize(0.06)
-	latexCMS.SetNDC(True)
-	latexCMSExtra = ROOT.TLatex()
-	latexCMSExtra.SetTextFont(52)
-	latexCMSExtra.SetTextSize(0.045)
-	latexCMSExtra.SetNDC(True)				
-
-	latexCMS.DrawLatex(0.19,0.88,"CMS")
-	if "Simulation" in cmsExtra:
-		yLabelPos = 0.81	
-	else:
-		yLabelPos = 0.84	
-
-	latexCMSExtra.DrawLatex(0.19,yLabelPos,"%s"%(cmsExtra))		
-
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "expo", w.var('cContinuumMM').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "cbMean", w.var('cbmeanMM').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "nL", w.var('nMML').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "nR", w.var('nMMR').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "alphaL", w.var('alphaMML').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "alphaR", w.var('alphaMMR').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "nZ", w.var('nZMM').getVal(),basePath="dyShelves/")
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "zFraction", w.var('zFractionMM').getVal(),basePath="dyShelves/")		
-	tools.storeParameter("expofit", "dyExponent_%s_MM" % args.config, "s", w.var('sMM').getVal(),basePath="dyShelves/")		
-	mmName = "fig/expoFitMM_%s_%s"%(args.config,args.runRange)
-	if theConfig.useMC:
-		mmName = "fig/expoFitMM_%s_%s_MC"%(args.config,args.runRange)
-	cMM.Print(mmName+".pdf")
-	cMM.Print(mmName+".root")
-	
-	for pad in pads:
-		pad.Close()	
+		lowMassIntEE = w[region].pdf("modelEE").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("lowMass")) 
+		lowMassEE = lowMassIntEE.getVal()
 		
-	pads = formatAndDrawFrame(w,theConfig,frameMM, title="MM", pdf=w.pdf("modelMM"), yMax=yMaximum)
-	legend = ROOT.TLegend(0.5, 0.6, 0.95, 0.94)
-	legend.SetFillStyle(0)
-	legend.SetBorderSize(0)
-	entryHist = ROOT.TH1F()
-	entryHist.SetFillColor(ROOT.kWhite)
-	legend.AddEntry(entryHist,"Drell-Yan enriched region","h")	
-	dataHist = ROOT.TH1F()
-	entryHist.SetFillColor(ROOT.kWhite)
-	legend.AddEntry(dataHist,"data","p")	
-	fitHist = ROOT.TH1F()
-	fitHist.SetLineColor(ROOT.kBlue)
-	legend.AddEntry(fitHist, "Full Z model","l")	
-	expoHist = ROOT.TH1F()
-	expoHist.SetLineColor(ROOT.kGreen)
-	legend.AddEntry(expoHist,"Exponential component","l")	
-	bwHist = ROOT.TH1F()
-	bwHist.SetLineColor(ROOT.kRed)
-	legend.AddEntry(bwHist,"DSCB #otimes BW component","l")	
-
-
-
-	legend.Draw("same")
+		peakIntMM = w[region].pdf("modelMM").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("zPeak"))
+		peakMM = peakIntMM.getVal()
+		
+		lowMassIntMM = w[region].pdf("modelMM").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("lowMass"))
+		lowMassMM = lowMassIntMM.getVal()
 	
-	latex = ROOT.TLatex()
-	latex.SetTextFont(42)
-	latex.SetNDC(True)
-	latex.SetTextAlign(31)
-	latex.SetTextSize(0.04)
+		log.logHighlighted( "Peak: %.3f LowMass: %.3f (ee)"%(peakEE,lowMassEE))
+		log.logHighlighted( "Peak: %.3f LowMass: %.3f (mm)"%(peakMM,lowMassMM))
+		log.logHighlighted( "R(out,in): %.3f (ee) %.3f (mm)"%(lowMassEE/peakEE,lowMassMM/peakMM))
+		
+		### dielectron
 
-	latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (13 TeV)"%theConfig.runRange.printval)
+		frameEE = w[region].var('inv').frame(ROOT.RooFit.Title('Invariant mass of ee lepton pairs'))
+		frameEE.GetXaxis().SetTitle('m_{ee} [GeV]')
+		frameEE.GetYaxis().SetTitle("Events / 2.5 GeV")
+		ROOT.RooAbsData.plotOn(w[region].data("dataHistEE%s"%region), frameEE)
+		w[region].pdf('modelEE').plotOn(frameEE)		
 
-	latexCMS = ROOT.TLatex()
-	latexCMS.SetTextFont(61)
-	latexCMS.SetTextSize(0.06)
-	latexCMS.SetNDC(True)
-	latexCMSExtra = ROOT.TLatex()
-	latexCMSExtra.SetTextFont(52)
-	latexCMSExtra.SetTextSize(0.045)
-	latexCMSExtra.SetNDC(True)				
-
-	latexCMS.DrawLatex(0.19,0.88,"CMS")
-	if "Simulation" in cmsExtra:
-		yLabelPos = 0.81	
-	else:
-		yLabelPos = 0.84	
-
-	latexCMSExtra.DrawLatex(0.19,yLabelPos,"%s"%(cmsExtra))		
+		### make plots
+		
+		cEE = ROOT.TCanvas("ee distribtution", "ee distribution", sizeCanvas, int(1.25 * sizeCanvas))
+		cEE.cd()
+			
+		pads = formatAndDrawFrame(w[region],theConfig,frameEE, title="EE", pdf=w[region].pdf("modelEE"), yMax=yMaximum)
 	
-	pads[0].SetLogy(1)
-	mmName = "fig/expoFitMM_Log_%s_%s"%(args.config,args.runRange)
-	if theConfig.useMC:
-		mmName = "fig/expoFitMM_Log_%s_%s_MC"%(args.config,args.runRange)
+		legend.Draw("same")
+
+		latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (13 TeV)"%theConfig.runRange.printval)			
+
+		latexCMS.DrawLatex(0.19,0.88,"CMS")
 	
-	cMM.Print(mmName+".pdf")
-	cMM.Print(mmName+".root")	
-	for pad in pads:
-		pad.Close()
+		latexCMSExtra.DrawLatex(0.19,yLabelPos,"%s"%(cmsExtra))		
+		
+		pads[0].SetLogy(1)
+		eeName = "fig/expoFitEE_%s_%s"%(region,args.runRange)
+		if theConfig.useMC:
+			eeName = "fig/expoFitEE_%s_%s_MC"%(region,args.runRange)	
+		cEE.Print(eeName+".pdf")
+		for pad in pads:
+			pad.Close()
 
 
-	if theConfig.useMC:
-		w.writeToFile("workspaces/dyWorkspace_%s_MC.root" % args.config)
-	else:
-		w.writeToFile("workspaces/dyWorkspace_%s.root" % args.config)
-	return w
+		### dimuon
+	
+		frameMM = w[region].var('inv').frame(ROOT.RooFit.Title('Invariant mass of #mu#mu lepton pairs'))
+		frameMM.GetXaxis().SetTitle('m_{#mu#mu} [GeV]')
+		frameMM.GetYaxis().SetTitle("Events / 2.5 GeV")
+		ROOT.RooAbsData.plotOn(w[region].data("dataHistMM%s"%region), frameMM)
+		w[region].pdf('modelMM').plotOn(frameMM)
+	
+
+		cMM = ROOT.TCanvas("#mu#mu distribtution", "#mu#mu distribution", sizeCanvas, int(1.25 * sizeCanvas))
+		cMM.cd()
+				
+		pads = formatAndDrawFrame(w[region],theConfig,frameMM, title="MM", pdf=w[region].pdf("modelMM"), yMax=yMaximum)
+
+		legend.Draw("same")
+
+		latex.DrawLatex(0.95, 0.96, "%s fb^{-1} (13 TeV)"%theConfig.runRange.printval)				
+
+		latexCMS.DrawLatex(0.19,0.88,"CMS")	
+	
+		latexCMSExtra.DrawLatex(0.19,yLabelPos,"%s"%(cmsExtra))		
+	
+		pads[0].SetLogy(1)
+		mmName = "fig/expoFitMM_%s_%s"%(region,args.runRange)
+		if theConfig.useMC:
+			mmName = "fig/expoFitMM_%s_%s_MC"%(region,args.runRange)
+		
+		cMM.Print(mmName+".pdf")
+		for pad in pads:
+			pad.Close()
+		
+		### store parameters to use them in the edge fit later on
+		tools.storeParameter("expofit", "dyExponent_%s_EE" % region, "expo", w[region].var('cContinuumEE').getVal(),basePath="dyShelves/")
+		tools.storeParameter("expofit", "dyExponent_%s_EE" % region, "cbMean", w[region].var('cbmeanEE').getVal(),basePath="dyShelves/")
+		tools.storeParameter("expofit", "dyExponent_%s_EE" % region, "nL", w[region].var('nEEL').getVal(),basePath="dyShelves/")
+		tools.storeParameter("expofit", "dyExponent_%s_EE" % region, "nR", w[region].var('nEER').getVal(),basePath="dyShelves/")
+		tools.storeParameter("expofit", "dyExponent_%s_EE" % region, "alphaL", w[region].var('alphaEEL').getVal(),basePath="dyShelves/")
+		tools.storeParameter("expofit", "dyExponent_%s_EE" % region, "alphaR", w[region].var('alphaEER').getVal(),basePath="dyShelves/")
+		tools.storeParameter("expofit", "dyExponent_%s_EE" % region, "nZ", w[region].var('nZEE').getVal(),basePath="dyShelves/")
+		tools.storeParameter("expofit", "dyExponent_%s_EE" % region, "zFraction", w[region].var('zFractionEE').getVal(),basePath="dyShelves/")
+		tools.storeParameter("expofit", "dyExponent_%s_EE" % region, "s", w[region].var('sEE').getVal(),basePath="dyShelves/")	
+		tools.storeParameter("expofit", "dyExponent_%s_MM" % region, "expo", w[region].var('cContinuumMM').getVal(),basePath="dyShelves/")
+		tools.storeParameter("expofit", "dyExponent_%s_MM" % region, "cbMean", w[region].var('cbmeanMM').getVal(),basePath="dyShelves/")
+		tools.storeParameter("expofit", "dyExponent_%s_MM" % region, "nL", w[region].var('nMML').getVal(),basePath="dyShelves/")
+		tools.storeParameter("expofit", "dyExponent_%s_MM" % region, "nR", w[region].var('nMMR').getVal(),basePath="dyShelves/")
+		tools.storeParameter("expofit", "dyExponent_%s_MM" % region, "alphaL", w[region].var('alphaMML').getVal(),basePath="dyShelves/")
+		tools.storeParameter("expofit", "dyExponent_%s_MM" % region, "alphaR", w[region].var('alphaMMR').getVal(),basePath="dyShelves/")
+		tools.storeParameter("expofit", "dyExponent_%s_MM" % region, "nZ", w[region].var('nZMM').getVal(),basePath="dyShelves/")
+		tools.storeParameter("expofit", "dyExponent_%s_MM" % region, "zFraction", w[region].var('zFractionMM').getVal(),basePath="dyShelves/")		
+		tools.storeParameter("expofit", "dyExponent_%s_MM" % region, "s", w[region].var('sMM').getVal(),basePath="dyShelves/")	
+	
+	
+		if theConfig.useMC:
+			w[region].writeToFile("workspaces/dyWorkspace_%s_MC.root" % region)
+		else:
+			w[region].writeToFile("workspaces/dyWorkspace_%s.root" % region)
+			
+		
+	
+	return w["Central"],w["Forward"]
 
 
 main()
