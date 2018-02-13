@@ -19,10 +19,30 @@ import random
 parametersToSave  = {}
 rootContainer = []
 
+def createHistoFromTree(tree, variable, weight, nBins, firstBin, lastBin, nEvents = -1):
+	"""
+	tree: tree to create histo from)
+	variable: variable to plot (must be a branch of the tree)
+	weight: weights to apply (e.g. "var1*(var2 > 15)" will use weights from var1 and cut on var2 > 15
+	nBins, firstBin, lastBin: number of bins, first bin and last bin (same as in TH1F constructor)
+	nEvents: number of events to process (-1 = all)
+	"""
+	from ROOT import TH1F
+	from random import randint
+	from sys import maxint
+	if nEvents < 0:
+		nEvents = maxint
+	#make a random name you could give something meaningfull here,
+	#but that would make this less readable
+	name = "%x"%(randint(0, maxint))
+	result = TH1F(name, "", nBins, firstBin, lastBin)
+	result.Sumw2()
+	tree.Draw("%s>>%s"%(variable, name), weight, "goff", nEvents)
+	return result
 
 
 
-def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,rSFOF,rSFOFErr,addDataset,theConfig,region="Central"):
+def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,rSFOF,rSFOFErr,addDataset,theConfig):
 
 
 	vars = ROOT.RooArgSet(inv, weight)
@@ -67,6 +87,18 @@ def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,r
 							   vars, ROOT.RooFit.WeightVar('weight'), ROOT.RooFit.Import(tmpOFOS))
 
 	
+	#~ histOFOS = createHistoFromTree(trees["OFOS"],"inv","weight*genWeight",(theConfig.maxInv - theConfig.minInv) / 5,theConfig.minInv,theConfig.maxInv)
+	#~ histEE = createHistoFromTree(trees["EE"],"inv","weight*genWeight",(theConfig.maxInv - theConfig.minInv) / 5,theConfig.minInv,theConfig.maxInv)
+	#~ histMM = createHistoFromTree(trees["MM"],"inv","weight*genWeight",(theConfig.maxInv - theConfig.minInv) / 5,theConfig.minInv,theConfig.maxInv)
+	#~ 
+	histOFOS = createHistoFromTree(trees["OFOS"],"inv","weight",(theConfig.maxInv - theConfig.minInv) / 5,theConfig.minInv,theConfig.maxInv)
+	histEE = createHistoFromTree(trees["EE"],"inv","weight",(theConfig.maxInv - theConfig.minInv) / 5,theConfig.minInv,theConfig.maxInv)
+	histMM = createHistoFromTree(trees["MM"],"inv","weight",(theConfig.maxInv - theConfig.minInv) / 5,theConfig.minInv,theConfig.maxInv)
+	
+	histSFOS = histEE.Clone()
+	histSFOS.Add(histMM)
+
+	
 
 
 	
@@ -83,26 +115,26 @@ def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,r
 		selectShapes(wToys,theConfig.backgroundShape,theConfig.signalShape,theConfig.nBinsMinv)
 		
 		
-		dataEE = ROOT.RooDataSet("%sEE%s" % (typeName,region), "Dataset with invariant mass of di-electron pairs",
+		dataEE = ROOT.RooDataSet("%sEE" % (typeName), "Dataset with invariant mass of di-electron pairs",
 								 vars, ROOT.RooFit.WeightVar('weight'), ROOT.RooFit.Import(tmpEE))
-		dataMM = ROOT.RooDataSet("%sMM%s" % (typeName,region), "Dataset with invariant mass of di-muon pairs",
+		dataMM = ROOT.RooDataSet("%sMM" % (typeName), "Dataset with invariant mass of di-muon pairs",
 								 vars, ROOT.RooFit.WeightVar('weight'), ROOT.RooFit.Import(tmpMM))
-		dataSFOS = ROOT.RooDataSet("%sSFOS%s" % (typeName,region), "Dataset with invariant mass of SFOS lepton pairs",
+		dataSFOS = ROOT.RooDataSet("%sSFOS" % (typeName), "Dataset with invariant mass of SFOS lepton pairs",
 								   vars, ROOT.RooFit.WeightVar('weight'), ROOT.RooFit.Import(tmpSFOS))
-		dataOFOS = ROOT.RooDataSet("%sOFOS%s" % (typeName,region), "Dataset with invariant mass of OFOS lepton pairs",
+		dataOFOS = ROOT.RooDataSet("%sOFOS" % (typeName), "Dataset with invariant mass of OFOS lepton pairs",
 								   vars, ROOT.RooFit.WeightVar('weight'), ROOT.RooFit.Import(tmpOFOS))		
 		
 		
 		
-		getattr(wToys, 'import')(dataEE)
-		getattr(wToys, 'import')(dataMM)
-		getattr(wToys, 'import')(dataSFOS)
-		getattr(wToys, 'import')(dataOFOS)	
+		getattr(wToys, 'import')(dataEE, ROOT.RooCmdArg())
+		getattr(wToys, 'import')(dataMM, ROOT.RooCmdArg())
+		getattr(wToys, 'import')(dataSFOS, ROOT.RooCmdArg())
+		getattr(wToys, 'import')(dataOFOS, ROOT.RooCmdArg())	
 		
 
 					
-		wToys.factory("SUM::ofosShape%s(nB[100,0,100000]*ofosShape1%s)"%(region,region))
-		fitOFOS = wToys.pdf('ofosShape%s'%region).fitTo(wToys.data('%sOFOS%s'%(typeName,region)), ROOT.RooFit.Save(), ROOT.RooFit.SumW2Error(ROOT.kFALSE))
+		wToys.factory("SUM::ofosShape(nB[100,0,100000]*ofosShape1)")
+		fitOFOS = wToys.pdf('ofosShape').fitTo(wToys.data('%sOFOS'%(typeName)), ROOT.RooFit.Save(), ROOT.RooFit.SumW2Error(ROOT.kFALSE))
 		numOFOS = tmpOFOS.sumEntries()
 		
 		
@@ -117,7 +149,7 @@ def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,r
 			
 			
 		
-		zPrediction = getattr(theConfig.zPredictions.SF,region.lower()).val
+		zPrediction = theConfig.zPredictions.SF.MT2.inclusive.val
 		print zPrediction, theConfig.toyConfig["nSig"], tmpNumOFOS
 		fsFrac = tmpNumOFOS/(tmpNumOFOS+zPrediction*scale+theConfig.toyConfig["nSig"]*scale)
 		zFrac = zPrediction*scale/(tmpNumOFOS+zPrediction*scale+theConfig.toyConfig["nSig"]*scale)
@@ -139,39 +171,39 @@ def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,r
 			wToys.var('m0').setVal(theConfig.toyConfig["m0"])
 			if theConfig.toyConfig["sShape"] == "Concave":
 				log.logHighlighted("Dicing concave signal shape")
-				wToys.factory("SUSYX4Pdf::eeShape%sForToys(inv,const,sEECentral,m0)"%region)
-				wToys.factory("SUSYX4Pdf::mmShape%sForToys(inv,const,sMMCentral,m0)"%region)		
-				wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s, sigFrac*eeShape%sForToys)"%(region,region,region))
-				wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s, sigFrac*mmShape%sForToys)"%(region,region,region))
+				wToys.factory("SUSYX4Pdf::eeShapeForToys(inv,const,sEEl,m0)")
+				wToys.factory("SUSYX4Pdf::mmShapeForToys(inv,const,sMM,m0)")		
+				wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape, zFrac*zEEShape, sigFrac*eeShapeForToys)")
+				wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape, zFrac*zMMShape, sigFrac*mmShapeForToys)")
 								
 			elif theConfig.toyConfig["sShape"] == "Convex":
 				log.logHighlighted("Dicing convex signal shape")
-				wToys.factory("SUSYXM4Pdf::eeShape%sForToys(inv,const,sEECentral,m0)"%region)
-				wToys.factory("SUSYXM4Pdf::mmShape%sForToys(inv,const,sMMCentral,m0)"%region)		
-				wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s, sigFrac*eeShape%sForToys)"%(region,region,region))
-				wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s, sigFrac*mmShape%sForToys)"%(region,region,region))
+				wToys.factory("SUSYXM4Pdf::eeShapeForToys(inv,const,sEE,m0)")
+				wToys.factory("SUSYXM4Pdf::mmShapeForToys(inv,const,sMM,m0)")		
+				wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape, zFrac*zEEShape, sigFrac*eeShapeForToys)")
+				wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape, zFrac*zMMShape, sigFrac*mmShapeForToys)")
 							
 			else:
 				log.logHighlighted("Dicing triangular signal shape")	
-				wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s, sigFrac*eeShape%s)"%(region,region,region))
-				wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s, sigFrac*mmShape%s)"%(region,region,region))
+				wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape, zFrac*zEEShape, sigFrac*eeShape)")
+				wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape, zFrac*zMMShape, sigFrac*mmShape)")
 		else:
-			wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape%s, zFrac*zEEShape%s)"%(region,region))
-			wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape%s, zFrac*zMMShape%s)"%(region,region))						
+			wToys.factory("SUM::backtoymodelEE(fsFrac*ofosShape, zFrac*zEEShape)")
+			wToys.factory("SUM::backtoymodelMM(fsFrac*ofosShape, zFrac*zMMShape)")						
 			
 
 		if theConfig.toyConfig["systShift"] == "Up":
-			tmpREEOF = getattr(theConfig.rEEOF,region.lower()).val + getattr(theConfig.rEEOF,region.lower()).err
-			tmpRMMOF = getattr(theConfig.rMMOF,region.lower()).val + getattr(theConfig.rMMOF,region.lower()).err
-			tmpRSFOF = getattr(theConfig.rSFOF,region.lower()).val + getattr(theConfig.rSFOF,region.lower()).err
+			tmpREEOF = theConfig.rEEOF.inclusive.val + theConfig.rEEOF.inclusive.val.err
+			tmpRMMOF = theConfig.rMMOF.inclusive.val + theConfig.rMMOF.inclusive.err
+			tmpRSFOF = theConfig.rSFOF.inclusive.val + theConfig.rSFOF.inclusive.err
 		elif theConfig.toyConfig["systShift"] == "Down":
-			tmpREEOF = getattr(theConfig.rEEOF,region.lower()).val - getattr(theConfig.rEEOF,region.lower()).err
-			tmpRMMOF = getattr(theConfig.rMMOF,region.lower()).val - getattr(theConfig.rMMOF,region.lower()).err
-			tmpRSFOF = getattr(theConfig.rSFOF,region.lower()).val - getattr(theConfig.rSFOF,region.lower()).err
+			tmpREEOF = theConfig.rEEOF.inclusive.val - theConfig.rEEOF.inclusive.err
+			tmpRMMOF = theConfig.rMMOF.inclusive.val - theConfig.rMMOF.inclusive.err
+			tmpRSFOF = theConfig.rSFOF.inclusive.val - theConfig.rSFOF.inclusive.err
 		else:
-			tmpREEOF = getattr(theConfig.rEEOF,region.lower()).val
-			tmpRMMOF = getattr(theConfig.rMMOF,region.lower()).val
-			tmpRSFOF = getattr(theConfig.rSFOF,region.lower()).val
+			tmpREEOF = theConfig.rEEOF.inclusive.val
+			tmpRMMOF = theConfig.rMMOF.inclusive.val
+			tmpRSFOF = theConfig.rSFOF.inclusive.val
 			
 				
 		eeFraction = tmpREEOF/tmpRSFOF		
@@ -179,14 +211,11 @@ def prepareDatasets(inv,weight,trees,addTrees,maxInv,minInv,typeName,nBinsMinv,r
 				
 		genNumEE =  int((tmpNumOFOS*scale*tmpRSFOF + theConfig.toyConfig["nSig"]*scale + zPrediction*scale)*eeFraction)
 		genNumMM =  int((tmpNumOFOS*scale*tmpRSFOF + theConfig.toyConfig["nSig"]*scale + zPrediction*scale)*mmFraction)
-		if region == "Forward":		
-			genNumEE =  int((tmpNumOFOS*scale*tmpRSFOF + theConfig.toyConfig["nSig"]*scale*0.33 + zPrediction*scale)*eeFraction)
-			genNumMM =  int((tmpNumOFOS*scale*tmpRSFOF + theConfig.toyConfig["nSig"]*scale*0.33 + zPrediction*scale)*mmFraction)
 		
-		result = genToys2013(wToys,theConfig.toyConfig["nToys"],genNumEE,genNumMM,int(tmpNumOFOS),region)
+		result = genToys2013(wToys,theConfig.toyConfig["nToys"],genNumEE,genNumMM,int(tmpNumOFOS))
 		
 	else:
-		result = [{"EE":dataEE,"MM":dataMM,"SFOS":dataSFOS,"OFOS":dataOFOS}]		
+		result = [{"EE":dataEE,"MM":dataMM,"SFOS":dataSFOS,"OFOS":dataOFOS,"EEHist":histEE,"MMHist":histMM,"SFOSHist":histSFOS,"OFOSHist":histOFOS}]		
 		
 	return result	
 
@@ -214,302 +243,200 @@ def selectShapes(ws,backgroundShape,signalShape,nBinsMinv):
 	ws.var('sE').setConstant(ROOT.kTRUE)
 	ws.factory("sM[%f,%f,%f]" % (resMuon, resMuonMin, resMuonMax))
 	ws.var('sM').setConstant(ROOT.kTRUE)
+	
+	### IMPORTANT! If the bin size for the cache is not set to the same used in the the drell-yan fit, things get really fucked up! 
+	ws.var("inv").setBins(240,"cache")	
 
 
-	cContinuumEECentral = tools.loadParameter("expofit", "dyExponent_Central_EE", "expo",basePath="dyShelves/")
-	cContinuumMMCentral = tools.loadParameter("expofit", "dyExponent_Central_MM", "expo",basePath="dyShelves/")
-	cbMeanEECentral = tools.loadParameter("expofit", "dyExponent_Central_EE", "cbMean",basePath="dyShelves/")
-	cbMeanMMCentral = tools.loadParameter("expofit", "dyExponent_Central_MM", "cbMean",basePath="dyShelves/")
-	nZEECentral = tools.loadParameter("expofit", "dyExponent_Central_EE", "nZ",basePath="dyShelves/")
-	nZMMCentral = tools.loadParameter("expofit", "dyExponent_Central_MM", "nZ",basePath="dyShelves/")
-	zFractionEECentral = tools.loadParameter("expofit", "dyExponent_Central_EE", "zFraction",basePath="dyShelves/")
-	zFractionMMCentral = tools.loadParameter("expofit", "dyExponent_Central_MM", "zFraction",basePath="dyShelves/")
-	nLEECentral = tools.loadParameter("expofit", "dyExponent_Central_EE", "nL",basePath="dyShelves/")
-	nLMMCentral = tools.loadParameter("expofit", "dyExponent_Central_MM", "nL",basePath="dyShelves/")
-	nREECentral = tools.loadParameter("expofit", "dyExponent_Central_EE", "nR",basePath="dyShelves/")
-	nRMMCentral = tools.loadParameter("expofit", "dyExponent_Central_MM", "nR",basePath="dyShelves/")
-	alphaLEECentral = tools.loadParameter("expofit", "dyExponent_Central_EE", "alphaL",basePath="dyShelves/")
-	alphaLMMCentral = tools.loadParameter("expofit", "dyExponent_Central_MM", "alphaL",basePath="dyShelves/")
-	alphaREECentral = tools.loadParameter("expofit", "dyExponent_Central_EE", "alphaR",basePath="dyShelves/")
-	alphaRMMCentral = tools.loadParameter("expofit", "dyExponent_Central_MM", "alphaR",basePath="dyShelves/")
-	sEECentral = tools.loadParameter("expofit", "dyExponent_Central_EE", "s",basePath="dyShelves/")
-	sMMCentral = tools.loadParameter("expofit", "dyExponent_Central_MM", "s",basePath="dyShelves/")
-
-	cContinuumEEForward = tools.loadParameter("expofit", "dyExponent_Forward_EE", "expo",basePath="dyShelves/")
-	cContinuumMMForward = tools.loadParameter("expofit", "dyExponent_Forward_MM", "expo",basePath="dyShelves/")
-	cbMeanEEForward = tools.loadParameter("expofit", "dyExponent_Forward_EE", "cbMean",basePath="dyShelves/")
-	cbMeanMMForward = tools.loadParameter("expofit", "dyExponent_Forward_MM", "cbMean",basePath="dyShelves/")
-	nZEEForward = tools.loadParameter("expofit", "dyExponent_Forward_EE", "nZ",basePath="dyShelves/")
-	nZMMForward = tools.loadParameter("expofit", "dyExponent_Forward_MM", "nZ",basePath="dyShelves/")
-	zFractionEEForward = tools.loadParameter("expofit", "dyExponent_Forward_EE", "zFraction",basePath="dyShelves/")
-	zFractionMMForward = tools.loadParameter("expofit", "dyExponent_Forward_MM", "zFraction",basePath="dyShelves/")		
-	nLEEForward = tools.loadParameter("expofit", "dyExponent_Forward_EE", "nL",basePath="dyShelves/")
-	nLMMForward = tools.loadParameter("expofit", "dyExponent_Forward_MM", "nL",basePath="dyShelves/")
-	nREEForward = tools.loadParameter("expofit", "dyExponent_Forward_EE", "nR",basePath="dyShelves/")
-	nRMMForward = tools.loadParameter("expofit", "dyExponent_Forward_MM", "nR",basePath="dyShelves/")
-	alphaLEEForward = tools.loadParameter("expofit", "dyExponent_Forward_EE", "alphaL",basePath="dyShelves/")
-	alphaLMMForward = tools.loadParameter("expofit", "dyExponent_Forward_MM", "alphaL",basePath="dyShelves/")
-	alphaREEForward = tools.loadParameter("expofit", "dyExponent_Forward_EE", "alphaR",basePath="dyShelves/")
-	alphaRMMForward = tools.loadParameter("expofit", "dyExponent_Forward_MM", "alphaR",basePath="dyShelves/")
-	sEEForward = tools.loadParameter("expofit", "dyExponent_Forward_EE", "s",basePath="dyShelves/")
-	sMMForward = tools.loadParameter("expofit", "dyExponent_Forward_MM", "s",basePath="dyShelves/")
+	ws.factory("m0[55., 30., 500.]")
+	ws.var('m0').setAttribute("StoreAsymError")
+	ws.factory("m0Show[45., 0., 500.]")
+	#ws.factory("m0[75., 75., 75.]")
+	ws.factory("constant[45,20,100]")	
+	
+	cContinuumEE = tools.loadParameter("expofit", "dyExponent_EE", "expo",basePath="dyShelves/")
+	cContinuumMM = tools.loadParameter("expofit", "dyExponent_MM", "expo",basePath="dyShelves/")
+	cbMeanEE = tools.loadParameter("expofit", "dyExponent_EE", "cbMean",basePath="dyShelves/")
+	cbMeanMM = tools.loadParameter("expofit", "dyExponent_MM", "cbMean",basePath="dyShelves/")
+	nZEE = tools.loadParameter("expofit", "dyExponent_EE", "nZ",basePath="dyShelves/")
+	nZMM = tools.loadParameter("expofit", "dyExponent_MM", "nZ",basePath="dyShelves/")
+	zFractionEE = tools.loadParameter("expofit", "dyExponent_EE", "zFraction",basePath="dyShelves/")
+	zFractionMM = tools.loadParameter("expofit", "dyExponent_MM", "zFraction",basePath="dyShelves/")
+	nLEE = tools.loadParameter("expofit", "dyExponent_EE", "nL",basePath="dyShelves/")
+	nLMM = tools.loadParameter("expofit", "dyExponent_MM", "nL",basePath="dyShelves/")
+	nREE = tools.loadParameter("expofit", "dyExponent_EE", "nR",basePath="dyShelves/")
+	nRMM = tools.loadParameter("expofit", "dyExponent_MM", "nR",basePath="dyShelves/")
+	alphaLEE = tools.loadParameter("expofit", "dyExponent_EE", "alphaL",basePath="dyShelves/")
+	alphaLMM = tools.loadParameter("expofit", "dyExponent_MM", "alphaL",basePath="dyShelves/")
+	alphaREE = tools.loadParameter("expofit", "dyExponent_EE", "alphaR",basePath="dyShelves/")
+	alphaRMM = tools.loadParameter("expofit", "dyExponent_MM", "alphaR",basePath="dyShelves/")
+	sEE = tools.loadParameter("expofit", "dyExponent_EE", "s",basePath="dyShelves/")
+	sMM = tools.loadParameter("expofit", "dyExponent_MM", "s",basePath="dyShelves/")
 			
 	cContinuum = -0.017
-	ws.factory("cContinuumCentral[%f]" % (cContinuum))
-	ws.factory("cContinuumEECentral[%f]" % (cContinuumEECentral))
-	ws.factory("cContinuumMMCentral[%f]" % (cContinuumMMCentral))
-	ws.factory("cContinuumForward[%f]" % (cContinuum))
-	ws.factory("cContinuumEEForward[%f]" % (cContinuumEEForward))
-	ws.factory("cContinuumMMForward[%f]" % (cContinuumMMForward))
+	ws.factory("cContinuum[%f]" % (cContinuum))
+	ws.factory("cContinuumEE[%f]" % (cContinuumEE))
+	ws.factory("cContinuumMM[%f]" % (cContinuumMM))
 
-
-
-
-	ws.factory("Exponential::offShellEECentral(inv,cContinuumEECentral)")				
-	ws.factory("Exponential::offShellMMCentral(inv,cContinuumMMCentral)")				
-	ws.factory("Exponential::offShellCentral(inv,cContinuumCentral)")	
-
-	ws.factory("Exponential::offShellEEForward(inv,cContinuumEEForward)")				
-	ws.factory("Exponential::offShellMMForward(inv,cContinuumMMForward)")				
-	ws.factory("Exponential::offShellForward(inv,cContinuumForward)")	
+	ws.factory("Exponential::offShellEE(inv,cContinuumEE)")				
+	ws.factory("Exponential::offShellMM(inv,cContinuumMM)")				
+	ws.factory("Exponential::offShell(inv,cContinuum)")	
 				
 
 
 					
-	ws.factory("zFractionMMCentral[%f]"%zFractionMMCentral)
-	ws.factory("cbmeanMMCentral[%f]"%cbMeanMMCentral)				
-	ws.factory("sMMCentral[%f]"%sMMCentral)													
-	ws.factory("nMMLCentral[%f]"%nLMMCentral)
-	ws.factory("alphaMMLCentral[%f]"%alphaLMMCentral)
-	ws.factory("nMMRCentral[%f]"%nRMMCentral)
-	ws.factory("alphaMMRCentral[%f]"%alphaRMMCentral)		
+	ws.factory("zFractionMM[%f]"%zFractionMM)
+	ws.factory("cbmeanMM[%f]"%cbMeanMM)				
+	ws.factory("sMM[%f]"%sMM)													
+	ws.factory("nMML[%f]"%nLMM)
+	ws.factory("alphaMML[%f]"%alphaLMM)
+	ws.factory("nMMR[%f]"%nRMM)
+	ws.factory("alphaMMR[%f]"%alphaRMM)		
 	
-	ws.factory("DoubleCB::cbShapeMMCentral(inv,cbmeanMMCentral,sMMCentral,alphaMMLCentral,nMMLCentral,alphaMMRCentral,nMMRCentral)")	
-					
-	ws.factory("zFractionMMForward[%f]"%zFractionMMForward)
-	ws.factory("cbmeanMMForward[%f]"%cbMeanMMForward)				
-	ws.factory("sMMForward[%f]"%sMMForward)													
-	ws.factory("nMMLForward[%f]"%nLMMForward)
-	ws.factory("alphaMMLForward[%f]"%alphaLMMForward)
-	ws.factory("nMMRForward[%f]"%nRMMForward)
-	ws.factory("alphaMMRForward[%f]"%alphaRMMForward)		
-	
-	ws.factory("DoubleCB::cbShapeMMForward(inv,cbmeanMMForward,sMMForward,alphaMMLForward,nMMLForward,alphaMMRForward,nMMRForward)")	
+	ws.factory("DoubleCB::cbShapeMM(inv,cbmeanMM,sMM,alphaMML,nMML,alphaMMR,nMMR)")
 
 
-	ws.factory("cbmeanEECentral[%f]"%cbMeanEECentral)
-	ws.factory("zFractionEECentral[%f]"%zFractionEECentral)
-	ws.factory("sEECentral[%f]"%sEECentral)				
-	ws.factory("nEELCentral[%f]"%nLEECentral)
-	ws.factory("alphaEELCentral[%f]"%alphaLEECentral)
-	ws.factory("nEERCentral[%f]"%nREECentral)
-	ws.factory("alphaEERCentral[%f]"%alphaREECentral)
+	ws.factory("cbmeanEE[%f]"%cbMeanEE)
+	ws.factory("zFractionEE[%f]"%zFractionEE)
+	ws.factory("sEE[%f]"%sEE)				
+	ws.factory("nEEL[%f]"%nLEE)
+	ws.factory("alphaEEL[%f]"%alphaLEE)
+	ws.factory("nEER[%f]"%nREE)
+	ws.factory("alphaEER[%f]"%alphaREE)
 	
-	ws.factory("DoubleCB::cbShapeEECentral(inv,cbmeanEECentral,sEECentral,alphaEELCentral,nEELCentral,alphaEERCentral,nEERCentral)")	
-
-	ws.factory("cbmeanEEForward[%f]"%cbMeanEEForward)
-	ws.factory("zFractionEEForward[%f]"%zFractionEEForward)
-	ws.factory("sEEForward[%f]"%sEEForward)				
-	ws.factory("nEELForward[%f]"%nLEEForward)
-	ws.factory("alphaEELForward[%f]"%alphaLEEForward)
-	ws.factory("nEERForward[%f]"%nREEForward)
-	ws.factory("alphaEERForward[%f]"%alphaREEForward)
-	
-	ws.factory("DoubleCB::cbShapeEEForward(inv,cbmeanEEForward,sEEForward,alphaEELForward,nEELForward,alphaEERForward,nEERForward)")	
+	ws.factory("DoubleCB::cbShapeEE(inv,cbmeanEE,sEE,alphaEEL,nEEL,alphaEER,nEER)")	
 
 	ws.factory("BreitWigner::bwShape(inv,zmean,zwidth)")
 	
-	convEECentral = ROOT.RooFFTConvPdf("peakModelEECentral","zShapeEE Central (x) cbShapeEE Central",ws.var("inv"),ws.pdf("bwShape"),ws.pdf("cbShapeEECentral"))
-	getattr(ws, 'import')(convEECentral)
-	ws.pdf("peakModelEECentral").setBufferFraction(5.0)
+	convEE = ROOT.RooFFTConvPdf("peakModelEE","zShapeEE  (x) cbShapeEE ",ws.var("inv"),ws.pdf("bwShape"),ws.pdf("cbShapeEE"))
+	getattr(ws, 'import')(convEE, ROOT.RooCmdArg())
+	ws.pdf("peakModelEE").setBufferFraction(5.0)
 	
-	convEEForward = ROOT.RooFFTConvPdf("peakModelEEForward","zShapeEE Forward (x) cbShapeEE Forward",ws.var("inv"),ws.pdf("bwShape"),ws.pdf("cbShapeEEForward"))
-	getattr(ws, 'import')(convEEForward)
-	ws.pdf("peakModelEEForward").setBufferFraction(5.0)
-	
-	convMMCentral = ROOT.RooFFTConvPdf("peakModelMMCentral","zShapeMM Central (x) cbShapeMM Central",ws.var("inv"),ws.pdf("bwShape"),ws.pdf("cbShapeMMCentral"))
-	getattr(ws, 'import')(convMMCentral)
-	ws.pdf("peakModelMMCentral").setBufferFraction(5.0)
-	
-	convMMForward = ROOT.RooFFTConvPdf("peakModelMMForward","zShapeMM Forward (x) cbShapeMM Forward",ws.var("inv"),ws.pdf("bwShape"),ws.pdf("cbShapeMMForward"))
-	getattr(ws, 'import')(convMMForward)
-	ws.pdf("peakModelMMForward").setBufferFraction(5.0)
+	convMM = ROOT.RooFFTConvPdf("peakModelMM","zShapeMM  (x) cbShapeMM ",ws.var("inv"),ws.pdf("bwShape"),ws.pdf("cbShapeMM"))
+	getattr(ws, 'import')(convMM, ROOT.RooCmdArg())
+	ws.pdf("peakModelMM").setBufferFraction(5.0)
 	
 
-	ws.factory("expFractionMMCentral[%f]"%(1-zFractionMMCentral))		
-	ws.factory("SUM::zMMShapeCentral(zFractionMMCentral*peakModelMMCentral,expFractionMMCentral*offShellMMCentral)")
-
-	ws.factory("expFractionMMForward[%f]"%(1-zFractionMMForward))		
-	ws.factory("SUM::zMMShapeForward(zFractionMMForward*peakModelMMForward,expFractionMMForward*offShellMMForward)")
+	ws.factory("expFractionMM[%f]"%(1-zFractionMM))		
+	ws.factory("SUM::zMMShape(zFractionMM*peakModelMM,expFractionMM*offShellMM)")
 	
 
-	ws.factory("expFractionEECentral[%f]"%(1-zFractionEECentral))
-	ws.factory("SUM::zEEShapeCentral(zFractionEECentral*peakModelEECentral,expFractionEECentral*offShellEECentral)")
+	ws.factory("expFractionEE[%f]"%(1-zFractionEE))
+	ws.factory("SUM::zEEShape(zFractionEE*peakModelEE,expFractionEE*offShellEE)")
 
-	ws.factory("expFractionEEForward[%f]"%(1-zFractionEEForward))
-	ws.factory("SUM::zEEShapeForward(zFractionEEForward*peakModelEEForward,expFractionEEForward*offShellEEForward)")
-
-
-	
-	### IMPORTANT! If the bin size for the cache is not set to the same used in the the drell-yan fit, things get really fucked up! 
-	ws.var("inv").setBins(140,"cache")	
-
-
-
-
-	ws.factory("m0[55., 30., 300.]")
-	ws.var('m0').setAttribute("StoreAsymError")
-	ws.factory("m0Show[45., 0., 300.]")
-	#ws.factory("m0[75., 75., 75.]")
-	ws.factory("const[45,20,100]")	
 
 	if backgroundShape == 'L':
 		log.logHighlighted("Using Landau")
-		ws.factory("Landau::ofosShape1Central(inv,a1Central[30,0,100],b1Central[20,0,100])")
-		ws.factory("Landau::ofosShape1Forward(inv,a1Forward[30,0,100],b1Forward[20,0,100])")
+		ws.factory("Landau::ofosShape1(inv,a1[30,0,100],b1[20,0,100])")
 	elif backgroundShape == 'CH':
 		log.logHighlighted("Using Chebychev")
-		#~ ws.factory("Chebychev::ofosShape1Central(inv,{a1Central[0,-2,2],b1Central[0,-100,100],c1Central[0,-100,100],d1Central[0,-100,100],e1Central[0,-100,100],f1Central[0,-100,100],g1Central[0,-100,100]})")
-		#~ ws.factory("Chebychev::ofosShape1Forward(inv,{a1Forward[0,-2,2],b1Forward[0,-100,100],c1Forward[0,-100,100],d1Forward[0,-100,100],e1Forward[0,-100,100],f1Forward[0,-100,100],g1Forward[0,-100,100]})")
-		#~ 
-		#works!
-		#~ ws.factory("Chebychev::ofosShape1Central(inv,{a1Central[0,-2,2],b1Central[0,-2,2],c1Central[0,-1,1],d1Central[0,-1,1],e1Central[0,-1,1],f1Central[0,-1,1]})")
-		#~ ws.factory("Chebychev::ofosShape1Forward(inv,{a1Forward[0,-2,2],b1Forward[0,-2,2],c1Forward[0,-1,1],d1Forward[0,-1,1],e1Forward[0,-1,1],f1Forward[0,-1,1]})")
-		ws.factory("Chebychev::ofosShape1Central(inv,{a1Central[0,-2,2],b1Central[0,-2,2],c1Central[0,-1,1],d1Central[0,-1,1]})")
-		ws.factory("Chebychev::ofosShape1Forward(inv,{a1Forward[0,-2,2],b1Forward[0,-2,2],c1Forward[0,-1,1],d1Forward[0,-1,1]})")
-		#~ ws.factory("Exponential::expCentral(inv,cContinuum[-0.2,-10,0])")
-		#~ ws.factory("Exponential::expForward(inv,fContinuum[-0.2,-10,0])")
-#~ 
-		#~ ws.factory("PROD::ofosShape1Central(chebyCentral, expCentral)")
-		#~ ws.factory("PROD::ofosShape1Forward(chebyForward, expForward)")
+		ws.factory("Chebychev::ofosShape1(inv,{a1[0,-2,2],b1[0,-2,2],c1[0,-1,1],d1[0,-1,1]})")
+		
 		ws.Print()
+		
+	elif backgroundShape == 'CB':
+		log.logHighlighted("Using crystall ball shape")
+		ws.factory("CBShape::ofosShape1(inv,cbMean[50.,0.,200.],cbSigma[20.,0.,100.],alpha[-1,-10.,0.],n[100.])")
+					
+	elif backgroundShape == 'DSCB':
+		log.logHighlighted("Using double sided crystall ball shape")
+		ws.factory("DoubleCB::ofosShape1(inv,cbMean[50.,0.,200.],cbSigma[20.,0.,100.],alphaL[5.],nL[1.],alphaR[1.,0.,10.],nR[1.,0.,100.])")
+					
 		
 	elif backgroundShape == 'B':
 		log.logHighlighted("Using BH shape")
-		ws.factory("SUSYBkgBHPdf::ofosShape1Central(inv,a1Central[1.],a2Central[1,0,400],a3Central[1,0,100],a4Central[0.1,-2,2])")
-		ws.factory("SUSYBkgBHPdf::ofosShape1Forward(inv,a1Forward[1.],a2Forward[1,0,200],a3Forward[1,0,100],a4Forward[0.1,-2,2])")
-		#~ ws.factory("Exponential::expCentral(inv,cContinuum[-0.2,-10,0])")
-		#~ ws.factory("Exponential::expForward(inv,fContinuum[-0.2,-10,0])")		
-		#~ ws.factory("PROD::ofosShape1Central(chebyCentral, expCentral)")
-		#~ ws.factory("PROD::ofosShape1Forward(chebyForward, expForward)")				
+		ws.factory("SUSYBkgBHPdf::ofosShape1(inv,a1[1.],a2[1,0,400],a3[1,0,100],a4[0.1,-2,2])")
+				
 	elif backgroundShape == 'B2':
 		log.logHighlighted("Using BH2 shape")
-		ws.factory("SUSYBkgBH2Pdf::ofosShape1Central(inv,a1Central[1.],a2Central[1,0,400],a3Central[1,0,100],a4Central[-0.1,0,2])")
-		ws.factory("SUSYBkgBH2Pdf::ofosShape1Forward(inv,a1Forward[1.],a2Forward[1,0,200],a3Forward[1,0,100],a4Forward[-0.1,0,2])")
-		#~ ws.factory("Exponential::expCentral(inv,cContinuum[-0.2,-10,0])")
-		#~ ws.factory("Exponential::expForward(inv,fContinuum[-0.2,-10,0])")		
-		#~ ws.factory("PROD::ofosShape1Central(chebyCentral, expCentral)")
-		#~ ws.factory("PROD::ofosShape1Forward(chebyForward, expForward)")				
+		ws.factory("SUSYBkgBH2Pdf::ofosShape1(inv,a1[1.],a2[1,0,400],a3[1,0,100],a4[0.1,0,2])")
+		
+	elif backgroundShape == 'MD':
+		log.logHighlighted("Using old shape")
+		ws.factory("EXPR::ofosShape1('TMath::Power(inv,a1)*TMath::Exp(-b1*inv-b2*TMath::Power(inv,2))',inv,a1[1.0,0.,100.],b1[0.001,0.00001,100.],b2[0.001,0.000001,100.])") 
 		
 	elif backgroundShape == 'G':
 		log.logHighlighted("Using old shape")
-		ws.factory("SUSYBkgPdf::ofosShape1Central(inv,a1Central[1.6.,0.,8.],a2Central[0.1,-1.,1.],b1Central[0.028,0.001,1.],b2Central[1.],c1Central[0.],c2Central[1.])") #trying to get rid of paramteres
-		ws.factory("SUSYBkgPdf::ofosShape1Forward(inv,a1Forward[1.6.,0.,8.],a2Forward[0.1,-1.,1.],b1Forward[0.028,0.001,1.],b2Forward[1.],c1Forward[0.],c2Forward[1.])") #trying to get rid of paramteres
-
+		ws.factory("SUSYBkgPdf::ofosShape1(inv,a1[1.6.,0.,8.],a2[0.1,-1.,1.],b1[0.028,0.001,1.],b2[1.],c1[0.],c2[1.])") #trying to get rid of paramteres
+		
 	elif backgroundShape == 'O':
 		log.logHighlighted("Using old old shape")
-		ws.factory("SUSYBkgPdf::ofosShape1Central(inv,a1Central[1.0,0.,400.],a2Central[1.],b1Central[0.01,0.00001,100.],b2Central[1.])")
-		ws.factory("SUSYBkgPdf::ofosShape1Forward(inv,a1Forward[1.0,0.0,400.],a2Forward[1.],b1Forward[0.01,0.00001,100.],b2Forward[1.])")	
-		#~ ws.factory("Exponential::expCentral(inv,cContinuum[-0.2,-10,0])")
-		#~ ws.factory("Exponential::expForward(inv,fContinuum[-0.2,-10,0])")		
-		#~ ws.factory("PROD::ofosShape1Central(chebyCentral, expCentral)")
-		#~ ws.factory("PROD::ofosShape1Forward(chebyForward, expForward)")		
+		ws.factory("SUSYBkgPdf::ofosShape1(inv,a1[1.0,0.,400.],a2[1.],b1[0.01,0.00001,100.],b2[1.])")
+			
 	elif backgroundShape == 'F':
 		log.logHighlighted("Using new old shape")
-		ws.factory("SUSYBkgMoreParamsPdf::ofosShape1Central(inv,a1Central[1.0,0.,400.],b1Central[1,0.00001,100.],c1Central[0.,-20.,30.])")
-		ws.factory("SUSYBkgMoreParamsPdf::ofosShape1Forward(inv,a1Forward[1.0,0.0,400.],b1Forward[1,0.00001,100.],c1Forward[0.,-20.,30.])")	
-
+		ws.factory("SUSYBkgMoreParamsPdf::ofosShape1(inv,a1[1.0,0.,400.],b1[1,0.00001,100.],c1[0.,-20.,30.])")
+		
 	elif backgroundShape == 'MA':
 		log.logHighlighted("Using Marco-Andreas shape")				
-		#~ ws.factory("SUSYBkgMAPdf::ofosShape1Central(inv,b1Central[-2000,-8000,8000],b2Central[120.,-800,800],b3Central[-1.,-5,5.],b4Central[0.01,0.0001,0.1], m1Central[50,30,80],m2Central[120,100,160])") #
-		#~ ws.factory("SUSYBkgMAPdf::ofosShape1Forward(inv,b1Forward[-3300,-5000,5000],b2Forward[120.,-800,800],b3Forward[-1.,-5,5.],b4Forward[0.01,0.0001,0.1], m1Forward[50,30,80],m2Forward[120,100,160])") #
-		ws.factory("SUSYBkgMAPdf::ofosShape1Central(inv,b1Central[-2000,-8000,8000],b2Central[120.,-800,800],b3Central[-1.,-5,5.],b4Central[0.01,-0.1,0.1], m1Central[50,20,100],m2Central[120,100,160])") #
-		ws.factory("SUSYBkgMAPdf::ofosShape1Forward(inv,b1Forward[-3300,-5000,5000],b2Forward[120.,-800,800],b3Forward[-1.,-5,5.],b4Forward[0.01,-0.1,0.1], m1Forward[50,20,100],m2Forward[120,100,160])") #
+		ws.factory("SUSYBkgMAPdf::ofosShape1(inv,b1[-2000,-8000,8000],b2[120.,-800,800],b3[-1.,-5,5.],b4[0.01,-0.1,0.1], m1[50,20,100],m2[120,100,160])") #
 		
 	elif backgroundShape == 'ETH':
 		log.logHighlighted("Using Marco-Andreas shape for real")
 		####### final -  never touch again!
-		ws.factory("TopPairProductionSpline::ofosShape1Central(inv,b1Central[-1800,-5000,5000],b2Central[120.,-400,400],b4Central[0.0025,0.0001,0.01], m1Central[50,20,80],m2Central[120,100,160])") #
-		ws.factory("TopPairProductionSpline::ofosShape1Forward(inv,b1Forward[-1800,-5000,5000],b2Forward[120.,-400,400],b4Forward[0.0025,0.0001,0.01], m1Forward[50,20,80],m2Forward[120,100,160])") #
-		############
-		#~ ws.factory("TopPairProductionSpline::ofosShape1Central(inv,b1Central[-1800,-5000,5000],b2Central[120.,-800,800],b4Central[0.01,0.0001,0.1], m1Central[60,35,90],m2Central[120,100,160])") #
-		#~ ws.factory("TopPairProductionSpline::ofosShape1Forward(inv,b1Forward[-1800,-5000,5000],b2Forward[120.,-400,400],b4Forward[0.01,0.0001,0.1], m1Forward[60,35,90],m2Forward[120,100,160])") #
-		#~ ws.var("m1Central").setConstant()	
+		ws.factory("TopPairProductionSpline::ofosShape1(inv,b1[-1800,-5000,5000],b2[120.,-400,400],b4[0.0025,0.0001,0.01], m1[60.],m2[110.])") #
+		############	
+		
 	elif backgroundShape == 'P':
 		log.logHighlighted("Gaussians activated!")
-		ws.factory("SUSYBkgGaussiansPdf::ofosShape1Central(inv,a1Central[30.,0.,70.],a2Central[60.,20.,105.],a3Central[100.,-1000.,1000.],b1Central[15,10.,80.],b2Central[20.,10.,80.],b3Central[200.,10.,3000.])") #High MET
-		ws.factory("SUSYBkgGaussiansPdf::ofosShape1Forward(inv,a1Forward[30.,0.,70.],a2Forward[60.,20.,105.],a3Forward[100.,-1000.,1000.],b1Forward[15,10.,80.],b2Forward[20.,10.,80.],b3Forward[200.,10.,3000.])") #High MET
+		ws.factory("SUSYBkgGaussiansPdf::ofosShape1(inv,a1[30.,0.,70.],a2[60.,20.,105.],a3[100.,-1000.,1000.],b1[15,10.,80.],b2[20.,10.,80.],b3[200.,10.,3000.])") #High MET
+	
 	elif backgroundShape == 'PT':
 		log.logHighlighted("Gaussians plus exp activated!")
-		ws.factory("RooSUSYBkgGaussiansPlusExpPdf::ofosShape1Central(inv,a1Central[30.,0.,700.],a2Central[60.,20.,1050.],a3Central[10,0,1000],b1Central[15,0.,80.],b2Central[20.,10.,80.],b3Central[-0.001,-1.,0.])") #High MET
-		ws.factory("RooSUSYBkgGaussiansPlusExpPdf::ofosShape1Forward(inv,a1Forward[30.,0.,70.],a2Forward[60.,20.,105.],a3Forward[1],b1Forward[15,10.,80.],b2Forward[20.,10.,80.],b3Forward[-0.01,-1.,0.])") #High MET
-
+		ws.factory("RooSUSYBkgGaussiansPlusExpPdf::ofosShape1(inv,a1[30.,0.,700.],a2[60.,20.,1050.],a3[10,0,1000],b1[15,0.,80.],b2[20.,10.,80.],b3[-0.001,-1.,0.])") #High MET
+		
 	elif backgroundShape == "K":
 		log.logHighlighted("Kernel Density Estimation activated")
-		nameDataOFOSCentral = "dataOFOSCentral" 
-		nameDataOFOSForward = "dataOFOSForward" 
-		ws.factory("RooKeysPdf::ofosShape1Central(inv, %s, MirrorBoth)" % (nameDataOFOSCentral))
-		ws.factory("RooKeysPdf::ofosShape1Forward(inv, %s, MirrorBoth)" % (nameDataOFOSForward))
+		nameDataOFOS = "dataOFOS" 
+		ws.factory("RooKeysPdf::ofosShape1(inv, %s, MirrorBoth)" % (nameDataOFOS))
+		
 	elif backgroundShape == "Hist":
 		log.logHighlighted("HistSubtraction activated!")
 		ws.var('inv').setBins(nBinsMinv)
-		tempDataHistCentral = ROOT.RooDataHist("dataHistOFOSCentral", "dataHistOFOSCentral", ROOT.RooArgSet(ws.var('inv')), ws.data("dataOFOSCentral"))
-		getattr(ws, 'import')(tempDataHistCentral)
-		tempDataHistForward = ROOT.RooDataHist("dataHistOFOSForward", "dataHistOFOSForward", ROOT.RooArgSet(ws.var('inv')), ws.data("dataOFOSForward"))
-		getattr(ws, 'import')(tempDataHistForward)
-		ws.factory("RooHistPdf::ofosShape1Central(inv, dataHistOFOSCentral)")
-		ws.factory("RooHistPdf::ofosShape1Forward(inv, dataHistOFOSForward)")
+		tempDataHist = ROOT.RooDataHist("dataHistOFOS", "dataHistOFOS", ROOT.RooArgSet(ws.var('inv')), ws.data("dataOFOS"))
+		getattr(ws, 'import')(tempDataHist, ROOT.RooCmdArg())
+		ws.factory("RooHistPdf::ofosShape1(inv, dataHistOFOS)")
+		
 	else:
 		log.logHighlighted("No valid background shape selected, exiting")
 		sys.exit()
 		
 
 	if signalShape == "Triangle":
-		ws.factory("SUSYTPdf::sfosShapeCentral(inv,const,s,m0)")
-		ws.factory("SUSYTPdf::sfosShapeCentralShow(inv,const,s,m0Show)")
-		ws.factory("SUSYTPdf::eeShapeCentral(inv,const,sEECentral,m0)")
-		ws.factory("SUSYTPdf::mmShapeCentral(inv,const,sMMCentral,m0)")
-		ws.factory("SUSYTPdf::sfosShapeForward(inv,const,s,m0)")
-		ws.factory("SUSYTPdf::sfosShapeShowForward(inv,const,s,m0Show)")
-		ws.factory("SUSYTPdf::eeShapeForward(inv,const,sEEForward,m0)")
-		ws.factory("SUSYTPdf::mmShapeForward(inv,const,sMMForward,m0)")
-		ws.var('const').setConstant(ROOT.kTRUE)
+		ws.factory("SUSYTPdf::sfosShape(inv,constant,s,m0)")
+		ws.factory("SUSYTPdf::sfosShapeShow(inv,constant,s,m0Show)")
+		ws.factory("SUSYTPdf::eeShape(inv,constant,sEE,m0)")
+		ws.factory("SUSYTPdf::mmShape(inv,constant,sMM,m0)")
+		ws.var('constant').setConstant(ROOT.kTRUE)
 	elif signalShape == 'V' :
 		ws.factory("Voigtian::sfosShape(inv,m0,zwidth,s)")
 		ws.factory("Voigtian::eeShape(inv,m0,zwidth,sE)")
 		ws.factory("Voigtian::mmShape(inv,m0,zwidth,sM)")
 	elif signalShape == 'X4':
-		ws.factory("SUSYX4Pdf::sfosShapeCentral(inv,const,s,m0)")
-		ws.factory("SUSYX4Pdf::sfosShapeCentralShow(inv,const,s,m0Show)")
-		ws.factory("SUSYX4Pdf::eeShapeCentral(inv,const,sEECentral,m0)")
-		ws.factory("SUSYX4Pdf::mmShapeCentral(inv,const,sMMCentral,m0)")
-		ws.factory("SUSYX4Pdf::sfosShapeForward(inv,const,s,m0)")
-		ws.factory("SUSYX4Pdf::sfosShapeShowForward(inv,const,s,m0Show)")
-		ws.factory("SUSYX4Pdf::eeShapeForward(inv,const,sEEForward,m0)")
-		ws.factory("SUSYX4Pdf::mmShapeForward(inv,const,sMMForward,m0)")
-		ws.var('const').setConstant(ROOT.kTRUE)
+		ws.factory("SUSYX4Pdf::sfosShape(inv,constant,s,m0)")
+		ws.factory("SUSYX4Pdf::sfosShapeShow(inv,constant,s,m0Show)")
+		ws.factory("SUSYX4Pdf::eeShape(inv,constant,sEE,m0)")
+		ws.factory("SUSYX4Pdf::mmShape(inv,constant,sMM,m0)")
+		ws.var('constant').setConstant(ROOT.kTRUE)
 	elif signalShape == 'XM4' in Holder.shape:
-		ws.factory("SUSYXM4Pdf::sfosShapeCentral(inv,const,s,m0)")
-		ws.factory("SUSYXM4Pdf::sfosShapeCentralShow(inv,const,s,m0Show)")
-		ws.factory("SUSYXM4Pdf::eeShapeCentral(inv,const,sEECentral,m0)")
-		ws.factory("SUSYXM4Pdf::mmShapeCentral(inv,const,sMMCentral,m0)")
-		ws.factory("SUSYXM4Pdf::sfosShapeForward(inv,const,s,m0)")
-		ws.factory("SUSYXM4Pdf::sfosShapeShowForward(inv,const,s,m0Show)")
-		ws.factory("SUSYXM4Pdf::eeShapeForward(inv,const,sEEForward,m0)")
-		ws.factory("SUSYXM4Pdf::mmShapeForward(inv,const,sMMForward,m0)")
-		ws.var('const').setConstant(ROOT.kTRUE)
+		ws.factory("SUSYXM4Pdf::sfosShape(inv,constant,s,m0)")
+		ws.factory("SUSYXM4Pdf::sfosShapeShow(inv,constant,s,m0Show)")
+		ws.factory("SUSYXM4Pdf::eeShape(inv,constant,sEE,m0)")
+		ws.factory("SUSYXM4Pdf::mmShape(inv,constant,sMM,m0)")
+		ws.var('constant').setConstant(ROOT.kTRUE)
 	else:
 		log.logHighlighted("No valid background shape selected, exiting")
 		sys.exit()
 
-def genToys2013(ws, nToys=10,genEE=0,genMM=0,genOFOS=0,region="Central"):
+
+def genToys2013(ws, nToys=10,genEE=0,genMM=0,genOFOS=0):
 	theToys = []
 
 	mcEE = ROOT.RooMCStudy(ws.pdf('backtoymodelEE'), ROOT.RooArgSet(ws.var('inv')),ROOT.RooFit.Extended(ROOT.kTRUE))
 	mcEE.generate(nToys, genEE, ROOT.kTRUE)
 	mcMM = ROOT.RooMCStudy(ws.pdf("backtoymodelMM"), ROOT.RooArgSet(ws.var('inv')),ROOT.RooFit.Extended(ROOT.kTRUE))
 	mcMM.generate(nToys, genMM, ROOT.kTRUE)
-	mcOFOS = ROOT.RooMCStudy(ws.pdf("ofosShape%s"%region), ROOT.RooArgSet(ws.var('inv')),ROOT.RooFit.Extended(ROOT.kTRUE))
+	mcOFOS = ROOT.RooMCStudy(ws.pdf("ofosShape"), ROOT.RooArgSet(ws.var('inv')),ROOT.RooFit.Extended(ROOT.kTRUE))
 	mcOFOS.generate(nToys, genOFOS, ROOT.kTRUE)
 	
 	vars = ROOT.RooArgSet(ws.var('inv'), ws.var('weight'))
@@ -543,7 +470,7 @@ def genToys2013(ws, nToys=10,genEE=0,genMM=0,genOFOS=0,region="Central"):
 
 def plotModel(w, data, fitOFOS, theConfig, pdf="model", tag="", frame=None, zPrediction= -1.0,
 			  slice=ROOT.RooCmdArg.none(), projWData=ROOT.RooCmdArg.none(), cut=ROOT.RooCmdArg.none(),
-			  overrideShapeNames={},region="Central"):
+			  overrideShapeNames={}):
 	if (frame == None):
 		frame = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of SFOS lepton pairs'))
 	frame.GetXaxis().SetTitle('m_{ll} [GeV]')
@@ -552,10 +479,10 @@ def plotModel(w, data, fitOFOS, theConfig, pdf="model", tag="", frame=None, zPre
 	w.pdf(pdf).plotOn(frame, slice, projWData)
 
 	shapeNames = {
-				  'Z': "zShape%s"%region,
+				  'Z': "zShape",
 				  #~ 'offShell': "offShell",
-				  'Background': "ofosShape%s"%region,
-				  'Signal': "sfosShape%s"%region,
+				  'Background': "ofosShape",
+				  'Signal': "sfosShape",
 				  }
 	shapeNames.update(overrideShapeNames)
 	nameBGShape = "displayedBackgroundShape"
@@ -570,7 +497,7 @@ def plotModel(w, data, fitOFOS, theConfig, pdf="model", tag="", frame=None, zPre
 	# different draw modes with and without z prediction
 	zPrediction = 0.
 	if (zPrediction > 0.0):
-		fittedZ = w.var('nZ%s'%region).getVal()
+		fittedZ = w.var('nZ').getVal()
 		zSignal = fittedZ - zPrediction
 		log.logHighlighted("Z signal of %f = %f - %f (pred.)" % (zSignal, fittedZ, zPrediction))
 		relScale = zSignal / fittedZ
@@ -620,81 +547,81 @@ def plotModel(w, data, fitOFOS, theConfig, pdf="model", tag="", frame=None, zPre
 	return frame
 
 
-def saveFitResults(ws,theConfig,x = None,region="Central"):
+def saveFitResults(ws,theConfig,x = None):
 	 
 	if x == None:
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nS", ws.var('nSig%s'%region).getVal(),basePath=theConfig.shelvePath)
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nZ", ws.var('nZ%s'%region).getVal(),basePath=theConfig.shelvePath)
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nB", ws.var('nB%s'%region).getVal(),basePath=theConfig.shelvePath)
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "rSFOF", ws.var('rSFOF%s'%region).getVal(),basePath=theConfig.shelvePath)		
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "m0", ws.var('m0').getVal(),basePath=theConfig.shelvePath)
-		tools.storeParameter("edgefit", "%sOFOS%s" %(theConfig.title,region), "chi2", parametersToSave["chi2OFOS%s"%region],basePath=theConfig.shelvePath)
-		tools.storeParameter("edgefit", "%sOFOS%s" %(theConfig.title,region), "nPar", parametersToSave["nParOFOS%s"%region],basePath=theConfig.shelvePath)
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "chi2",parametersToSave["chi2SFOS%s"%region],basePath=theConfig.shelvePath)
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nPar", parametersToSave["nParH1"],basePath=theConfig.shelvePath)		
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "minNllH0", parametersToSave["minNllH0"],basePath=theConfig.shelvePath)
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "minNllH1", parametersToSave["minNllH1"],basePath=theConfig.shelvePath)											
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "minNllOFOS", parametersToSave["minNllOFOS%s"%region],basePath=theConfig.shelvePath)											
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "initialM0", parametersToSave["initialM0"],basePath=theConfig.shelvePath)				
-
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nSerror", ws.var('nSig%s'%region).getError(),basePath=theConfig.shelvePath)
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nSerrorHi", ws.var("nSig%s"%region).getAsymErrorHi(),basePath=theConfig.shelvePath)
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nSerrorLo", ws.var("nSig%s"%region).getAsymErrorLo(),basePath=theConfig.shelvePath)
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nZerror", ws.var('nZ%s'%region).getError(),basePath=theConfig.shelvePath)
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "nBerror", ws.var('nB%s'%region).getError(),basePath=theConfig.shelvePath)
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "rSFOFerror", ws.var('rSFOF%s'%region).getError(),basePath=theConfig.shelvePath)		
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "m0error", ws.var('m0').getError(),basePath=theConfig.shelvePath)
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "m0errorHi", ws.var('m0').getAsymErrorHi(),basePath=theConfig.shelvePath)
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "m0errorLo", ws.var('m0').getAsymErrorLo(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "nS", ws.var('nSig').getVal(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "nZ", ws.var('nZ').getVal(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "nB", ws.var('nB').getVal(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "rSFOF", ws.var('rSFOF').getVal(),basePath=theConfig.shelvePath)		
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "m0", ws.var('m0').getVal(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sOFOS" %(theConfig.title), "chi2", parametersToSave["chi2OFOS"],basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sOFOS" %(theConfig.title), "nPar", parametersToSave["nParOFOS"],basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "chi2",parametersToSave["chi2SFOS"],basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "nPar", parametersToSave["nParH1"],basePath=theConfig.shelvePath)		
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "minNllH0", parametersToSave["minNllH0"],basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "minNllH1", parametersToSave["minNllH1"],basePath=theConfig.shelvePath)											
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "minNllOFOS", parametersToSave["minNllOFOS"],basePath=theConfig.shelvePath)											
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "initialM0", parametersToSave["initialM0"],basePath=theConfig.shelvePath)				
+                                                                  
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "nSerror", ws.var('nSig').getError(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "nSerrorHi", ws.var("nSig").getAsymErrorHi(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "nSerrorLo", ws.var("nSig").getAsymErrorLo(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "nZerror", ws.var('nZ').getError(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "nBerror", ws.var('nB').getError(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "rSFOFerror", ws.var('rSFOF').getError(),basePath=theConfig.shelvePath)		
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "m0error", ws.var('m0').getError(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "m0errorHi", ws.var('m0').getAsymErrorHi(),basePath=theConfig.shelvePath)
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "m0errorLo", ws.var('m0').getAsymErrorLo(),basePath=theConfig.shelvePath)
 		
 		
 		ws.var("inv").setRange("fullRange",20,300)
 		ws.var("inv").setRange("lowMass",20,70)
 		argSet = ROOT.RooArgSet(ws.var("inv"))
 		
-		fittedZInt = ws.pdf("zShape%s"%region).createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("zPeak"))
-		fittedZ = fittedZInt.getVal()*ws.var("nZ%s"%region).getVal()
+		fittedZInt = ws.pdf("zShape").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("zPeak"))
+		fittedZ = fittedZInt.getVal()*ws.var("nZ").getVal()
 		
-		fittedLowMassZInt = ws.pdf("zShape%s"%region).createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("lowMass"))
-		fittedLowMassZ = fittedLowMassZInt.getVal()*ws.var("nZ%s"%region).getVal()
+		fittedLowMassZInt = ws.pdf("zShape").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("lowMass"))
+		fittedLowMassZ = fittedLowMassZInt.getVal()*ws.var("nZ").getVal()
 		
-		fittedLowMassSInt = ws.pdf("sfosShape%s"%region).createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("lowMass"))
-		fittedLowMassS = fittedLowMassSInt.getVal()*ws.var("nSig%s"%region).getVal()
+		fittedLowMassSInt = ws.pdf("sfosShape").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("lowMass"))
+		fittedLowMassS = fittedLowMassSInt.getVal()*ws.var("nSig").getVal()
 		
-		fittedLowMassBInt = ws.pdf("ofosShape%s"%region).createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("lowMass"))
-		fittedLowMassB = fittedLowMassBInt.getVal()*ws.var("nB%s"%region).getVal()*ws.var("rSFOF%s"%region).getVal()
+		fittedLowMassBInt = ws.pdf("ofosShape").createIntegral(argSet,ROOT.RooFit.NormSet(argSet), ROOT.RooFit.Range("lowMass"))
+		fittedLowMassB = fittedLowMassBInt.getVal()*ws.var("nB").getVal()*ws.var("rSFOF").getVal()
 
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "onZZYield",fittedZ,basePath=theConfig.shelvePath)				
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "lowMassZYield",fittedLowMassZ,basePath=theConfig.shelvePath)				
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "lowMassSYield",fittedLowMassS,basePath=theConfig.shelvePath)				
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "lowMassBYield",fittedLowMassB,basePath=theConfig.shelvePath)				
-
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "onZZYielderror",fittedZInt.getVal()*ws.var("nZ%s"%region).getError(),basePath=theConfig.shelvePath)				
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "lowMassZYielderror",fittedLowMassZInt.getVal()*ws.var("nZ%s"%region).getError(),basePath=theConfig.shelvePath)				
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "lowMassSYielderror",fittedLowMassSInt.getVal()*ws.var("nSig%s"%region).getError(),basePath=theConfig.shelvePath)				
-		tools.storeParameter("edgefit", "%sSFOS%s" %(theConfig.title,region), "lowMassBYielderror",fittedLowMassBInt.getVal()*ws.var("nB%s"%region).getError(),basePath=theConfig.shelvePath)				
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "onZZYield",fittedZ,basePath=theConfig.shelvePath)				
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "lowMassZYield",fittedLowMassZ,basePath=theConfig.shelvePath)				
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "lowMassSYield",fittedLowMassS,basePath=theConfig.shelvePath)				
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "lowMassBYield",fittedLowMassB,basePath=theConfig.shelvePath)				
+                                                                  
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "onZZYielderror",fittedZInt.getVal()*ws.var("nZ").getError(),basePath=theConfig.shelvePath)				
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "lowMassZYielderror",fittedLowMassZInt.getVal()*ws.var("nZ").getError(),basePath=theConfig.shelvePath)				
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "lowMassSYielderror",fittedLowMassSInt.getVal()*ws.var("nSig").getError(),basePath=theConfig.shelvePath)				
+		tools.storeParameter("edgefit", "%sSFOS" %(theConfig.title), "lowMassBYielderror",fittedLowMassBInt.getVal()*ws.var("nB").getError(),basePath=theConfig.shelvePath)				
 				
 	else:
 		title = theConfig.title.split("_%s"%x)[0]
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "nS", ws.var('nSig%s'%region).getVal(), index = x)
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "nZ", ws.var('nZ%s'%region).getVal(), index = x)
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "nB", ws.var('nB%s'%region).getVal(), index = x)
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "rSFOF", ws.var('rSFOF%s'%region).getVal(), index = x)
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "m0", ws.var('m0').getVal(), index = x)
-		tools.updateParameter("edgefit", "%sOFOS%s" %(title,region), "chi2",parametersToSave["chi2OFOS%s"%region], index = x)
-		tools.updateParameter("edgefit", "%sOFOS%s" %(title,region), "nPar",parametersToSave["nParOFOS%s"%region], index = x)
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "chi2",parametersToSave["chi2SFOS%s"%region], index = x)
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "nPar",parametersToSave["nParH1"], index = x)		
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "minNllH0", parametersToSave["minNllH0"], index = x)				
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "minNllH1", parametersToSave["minNllH1"], index = x)				
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "minNllOFOS", parametersToSave["minNllOFOS%s"%region], index = x)				
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "initialM0", parametersToSave["initialM0"], index = x)	
-				
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "nSerror", ws.var('nSig%s'%region).getError(), index = x)
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "nZerror", ws.var('nZ%s'%region).getError(), index = x)
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "nBerror", ws.var('nB%s'%region).getError(), index = x)
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "rSFOFerror", ws.var('rSFOF%s'%region).getError(), index = x)
-		tools.updateParameter("edgefit", "%sSFOS%s" %(title,region), "m0error", ws.var('m0').getError(), index = x)
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "nS", ws.var('nSig').getVal(), index = x)
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "nZ", ws.var('nZ').getVal(), index = x)
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "nB", ws.var('nB').getVal(), index = x)
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "rSFOF", ws.var('rSFOF').getVal(), index = x)
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "m0", ws.var('m0').getVal(), index = x)
+		tools.updateParameter("edgefit", "%sOFOS" %(title), "chi2",parametersToSave["chi2OFOS"], index = x)
+		tools.updateParameter("edgefit", "%sOFOS" %(title), "nPar",parametersToSave["nParOFOS"], index = x)
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "chi2",parametersToSave["chi2SFOS"], index = x)
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "nPar",parametersToSave["nParH1"], index = x)		
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "minNllH0", parametersToSave["minNllH0"], index = x)				
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "minNllH1", parametersToSave["minNllH1"], index = x)				
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "minNllOFOS", parametersToSave["minNllOFOS"], index = x)				
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "initialM0", parametersToSave["initialM0"], index = x)	
+				                                         
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "nSerror", ws.var('nSig').getError(), index = x)
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "nZerror", ws.var('nZ').getError(), index = x)
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "nBerror", ws.var('nB').getError(), index = x)
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "rSFOFerror", ws.var('rSFOF').getError(), index = x)
+		tools.updateParameter("edgefit", "%sSFOS" %(title), "m0error", ws.var('m0').getError(), index = x)
 											
 								
 
@@ -765,19 +692,16 @@ def prepareLegend(useMC,zPrediction,):
 			
 	return [sl,bl]
 
-def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Central",H0=False):
+def plotFitResults(ws,theConfig,frameOFOS,data,fitOFOS,H0=False):
 
 	sizeCanvas = 800
-	shape = theConfig.backgroundShape+theConfig.signalShape
+	shape = theConfig.backgroundShape
 	useMC = theConfig.useMC
-	runMinos = theConfig.runMinos
-	edgeHypothesis = theConfig.edgePosition
 	residualMode = theConfig.residualMode
 	luminosity = theConfig.runRange.lumi
 	isPreliminary = theConfig.isPreliminary
 	year = theConfig.year
 	showText = theConfig.showText
-	fixEdge = theConfig.fixEdge
 	title = theConfig.title
 	histoytitle = theConfig.histoytitle
 	print year
@@ -788,56 +712,10 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	dLeg.SetLineWidth(2)
 	fitLeg = dLeg.Clone()
 	fitLeg.SetLineColor(ROOT.kBlue)
-	zLeg = dLeg.Clone()
-	zLeg.SetLineStyle(2)
-	zLeg.SetLineColor(ROOT.kGreen)
-	sLeg = dLeg.Clone()
-	sLeg.SetLineStyle(2)
-	sLeg.SetLineColor(ROOT.kRed)
 	bLeg = dLeg.Clone()
 	bLeg.SetLineStyle(2)
 	bLeg.SetLineColor(ROOT.kBlack)
-	#~ oLeg = dLeg.Clone()
-	#~ oLeg.SetLineStyle(2)
-	#~ oLeg.SetLineColor(ROOT.kOrange + 2)
-	if theConfig.plotErrorBands:
-		uLeg = dLeg.Clone()
-		uLeg.SetLineColor(ROOT.kGreen + 2)
-		uLeg.SetFillColor(ROOT.kGreen + 2)
-		uLeg.SetFillStyle(3009)
-	lmLeg = dLeg.Clone()
-	lmLeg.SetLineColor(ROOT.kViolet)
-	lmLeg.SetLineStyle(ROOT.kDotted)
-	if theConfig.plotErrorBands:
-		
-		nLegendEntries = 6
-	else:	
-		nLegendEntries = 5
 
-	sl = tools.myLegend(0.59, 0.92 - 0.06 * nLegendEntries, 0.92, 0.93, borderSize=0)
-	sl.SetTextAlign(22)
-	if (useMC):
-		sl.AddEntry(dLeg, 'Simulation', "pe")
-	else:
-		sl.AddEntry(dLeg, 'Data', "pe")
-	sl.AddEntry(fitLeg, 'Fit', "l")
-
-	if (getattr(theConfig.zPredictions.SF,region.lower()).val > 0.0):
-		sl.AddEntry(sLeg, 'signal', "l")
-		zLeg.SetLineColor(ROOT.kViolet)
-		sl.AddEntry(zLeg, 'Drell-Yan background', "l")
-		sl.AddEntry(bLeg, 'FS background', "l")
-		#~ sl.AddEntry(oLeg, 'Off-Shell Drell-Yan', "l")
-		if theConfig.plotErrorBands:
-			sl.AddEntry(uLeg, 'OF uncertainty', "f")
-	else:
-		sl.AddEntry(sLeg, 'Signal', "l")
-		sl.AddEntry(zLeg, 'Drell-Yan background', "l")
-		#sl.AddEntry(zLeg, 'Z^{0}/#gamma', "l")
-		sl.AddEntry(bLeg, 'FS background', "l")
-		if theConfig.plotErrorBands:
-			sl.AddEntry(uLeg, 'Uncertainty', "f")
-		#sl.AddEntry(lmLeg, 'LM1 x 0.2', "l")
 		
 		
 	nLegendEntries = 2
@@ -852,101 +730,11 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 		bl.AddEntry(dLeg, 'Data', "pl")
 	bl.AddEntry(fitLeg, 'FS background', "l")
 	if theConfig.plotErrorBands:
-		bl.AddEntry(uLeg, 'Uncertainty', "f")		
-
-
-	nSignal = ws.var('nSig%s'%region).getVal()
-	nSignalError = ws.var('nSig%s'%region).getError()
-	annotEdge = 'fitted N_{S} = %.1f #pm %.1f' % (nSignal, nSignalError)
-
-	if (theConfig.runMinos):
-		# why is asymmetric error always zero?
-		# --> Have to run MINOS during fit to get asym errors
-		# --> MINOS does not take boundaries into account
-		annotEdge = 'N_{S} = %.2f  + %.2f %.2f (%.2f)' % (ws.var('nSig%s'%region).getVal(), ws.var('nSig%s'%region).getAsymErrorHi(), ws.var('nSig%s'%region).getAsymErrorLo(), ws.var('nSig%s'%region).getError())
-
-	#annotZ = 'n_{Z} = %.1f  + %.1f %.1f (%.1f)' % (ws.var('nZ').getVal(), ws.var('nZ').getAsymErrorHi(), ws.var('nZ').getAsymErrorLo(), ws.var('nZ').getError())
-	ws.var("inv").setRange("zPeak",81,101)
-	ws.var("inv").setRange("fullRange",20,300)
-	ws.var("inv").setRange("lowMass",20,70)
-	argSet = ROOT.RooArgSet(ws.var("inv"))
-	
-	fittedZInt = ws.pdf("zShape%s"%region).createIntegral(argSet,ROOT.RooFit.NormSet(ROOT.RooArgSet(ws.var("inv"))), ROOT.RooFit.Range("zPeak"))
-	fittedZ = fittedZInt.getVal()
-	
-	fittedZIntEE = ws.pdf("zEEShape%s"%region).createIntegral(argSet,ROOT.RooFit.NormSet(ROOT.RooArgSet(ws.var("inv"))), ROOT.RooFit.Range("zPeak"))
-	fittedZEE = fittedZIntEE.getVal()
-	
-	fittedZIntMM = ws.pdf("zMMShape%s"%region).createIntegral(argSet,ROOT.RooFit.NormSet(ROOT.RooArgSet(ws.var("inv"))), ROOT.RooFit.Range("zPeak"))
-	fittedZMM = fittedZIntMM.getVal()
+		bl.AddEntry(uLeg, 'Uncertainty', "f")
 	
 
-	fittedFullZInt = ws.pdf("zShape%s"%region).createIntegral(argSet,ROOT.RooFit.NormSet(ROOT.RooArgSet(ws.var("inv"))), ROOT.RooFit.Range("fullRange"))
-	fittedFullZ = fittedFullZInt.getVal()
+	ofosName = '%s/OFFit_%s_%s_%s.pdf' % (theConfig.figPath, shape, title)
 	
-	fittedLowMassZInt = ws.pdf("zShape%s"%region).createIntegral(argSet,ROOT.RooFit.NormSet(ROOT.RooArgSet(ws.var("inv"))), ROOT.RooFit.Range("lowMass"))
-	fittedLowMassZ = fittedLowMassZInt.getVal()
-	
-	
-	print fittedLowMassZ, fittedZ, fittedFullZ
-	
-	correctedZ = fittedZ/fittedFullZ*ws.var("nZ%s"%region).getVal()
-	correctedLowMassZ = fittedLowMassZ/fittedFullZ*ws.var("nZ%s"%region).getVal()
-	
-	fittedZErr = max(ws.var("nZ%s"%region).getError(),max(abs(ws.var("nZ%s"%region).getAsymErrorLo()),abs(ws.var("nZ%s"%region).getAsymErrorHi())))*(fittedZ/fittedFullZ)
-	fittedLowMassZErr = max(ws.var("nZ%s"%region).getError(),max(abs(ws.var("nZ%s"%region).getAsymErrorLo()),abs(ws.var("nZ%s"%region).getAsymErrorHi())))*(fittedLowMassZ/fittedFullZ)
-	
-	fittedBackgroundLowMassInt = ws.pdf("ofosShape%s"%region).createIntegral(argSet,ROOT.RooFit.NormSet(ROOT.RooArgSet(ws.var("inv"))), ROOT.RooFit.Range("lowMass"))
-	bgLowMass = fittedBackgroundLowMassInt.getVal()
-	
-	fittedBackgroundFullRangeInt = ws.pdf("ofosShape%s"%region).createIntegral(argSet,ROOT.RooFit.NormSet(ROOT.RooArgSet(ws.var("inv"))), ROOT.RooFit.Range("FullRange"))
-	bgLowMass = ws.var("nB%s"%region).getVal() * (fittedBackgroundLowMassInt.getVal() / fittedBackgroundFullRangeInt.getVal() ) * ws.var("rSFOF%s"%region).getVal()
-	bgLowMassErr = max(ws.var("nB%s"%region).getError(),max(abs(ws.var("nB%s"%region).getAsymErrorLo()),abs(ws.var("nB%s"%region).getAsymErrorHi()))) * (fittedBackgroundLowMassInt.getVal() / fittedBackgroundFullRangeInt.getVal() ) * ws.var("rSFOF%s"%region).getVal()
-	
-	annotZ = 'N_{Z} = %.1f #pm %.1f' % (correctedZ, fittedZErr)
-	annotLowMassZ = "N_{Z} = %.1f #pm %.1f" % (correctedLowMassZ, fittedLowMassZErr)	
-
-		
-	varBack = ws.var('nB%s'%region).getVal()
-	varBackErr = ws.var('nB%s'%region).getError()
-
-	annotBG = 'N_{B}^{OF} = %.1f #pm %.1f (%.1f #pm %.1f)' % (bgLowMass, bgLowMassErr,varBack, varBackErr)
-	annotNSStar = ""
-	annotZpred = ""
-	if (getattr(theConfig.zPredictions.SF,region.lower()).val > 0.0):
-		annotEdge = 'N_{Signal} = %.1f #pm %.1f' % (nSignal, nSignalError)
-		if theConfig.runMinos:
-			nSignalError = max(ws.var('nSig%s'%region).getError(),max(abs(ws.var('nSig%s'%region).getAsymErrorHi()),abs(ws.var('nSig%s'%region).getAsymErrorLo())))
-			annotEdge = 'fitted N_{S}^{edge} = %.1f #pm %.1f' % (nSignal, nSignalError)
-			
-			#~ annotEdge = 'N_{S} = %.2f  + %.2f %.2f (%.2f)' % (ws.var('nSig').getVal(), ws.var('nSig').getAsymErrorHi(), ws.var('nSig').getAsymErrorLo(), ws.var('nSig').getError())
-
-		nSStar = 0
-		nSStarError = 0
-		annotNSStar = 'corrected N_{S}^{edge} = %.1f #pm %.1f' % (nSStar,nSStarError)
-		nsZ = fittedZ - getattr(theConfig.zPredictions.SF,region.lower()).val 
-		nsZError = math.sqrt(fittedZErr**2 + getattr(theConfig.zPredictions.SF,region.lower()).err ** 2)
-		#~ annotZ = "N_{S}^{Z} = %.1f #pm %.1f" % (nsZ, nsZError)
-		annotZpred = "N_{pred}^{Z} = %.1f #pm %.1f" % (getattr(theConfig.zPredictions.SF,region.lower()).val , getattr(theConfig.zPredictions.SF,region.lower()).err)
-
-	if theConfig.plotAsymErrs:
-		note2 = "m^{edge}_{ll} = %.1f^{+%.1f}_{%.1f} GeV"
-		note2 = note2%(ws.var("m0").getVal(),ws.var("m0").getAsymErrorHi(),ws.var("m0").getAsymErrorLo())
-	else:
-		note2 = "m^{edge}_{ll} = %.1f #pm %.1f GeV"
-		note2 = note2%(ws.var("m0").getVal(),ws.var("m0").getError())
-	
-
-	sfosName = '%s/fit2012_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
-	ofosName = '%s/fit2012OFOS_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
-	eeName = '%s/fit2012EE_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
-	mmName = '%s/fit2012MM_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
-	if H0:
-		sfosName = '%s/fit2012_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
-		ofosName = '%s/fit2012OFOS_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
-		eeName = '%s/fit2012EE_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)
-		mmName = '%s/fit2012MM_H0_%s_%s_%s.pdf' % (theConfig.figPath, shape, title,region)	
-
 	# determine y axis range
 	#~ yMaximum = 1.2 * max(frameOFOS.GetMaximum(), frameSFOS.GetMaximum())
 	yMaximum = 220
@@ -957,167 +745,34 @@ def plotFitResults(ws,theConfig,frameSFOS,frameOFOS,data_obs,fitOFOS,region="Cen
 	# make OFOS plot
 	#---------------
 	print "before OFOS plot"
-	projWData = ROOT.RooFit.ProjWData(ROOT.RooArgSet(ws.cat("cat")), data_obs)
-	#~ cOFOS = ROOT.TCanvas("OFOS distribution", "OFOS distribution", sizeCanvas, int(sizeCanvas * 1.25))
-	#~ cOFOS.cd()
-	#~ pads = formatAndDrawFrame(frameOFOS, title="OFOS", pdf=ws.pdf("ofosShape"), yMax=yMaximum,residualMode = residualMode)
-	#if not Holder.nToys > 0:
-	slice = ROOT.RooFit.Slice(ws.cat("cat"), "OFOS%s"%region)
 	
 	frameOFOS = ws.var('inv').frame(ROOT.RooFit.Title('Invariant mass of e#mu lepton pairs'))
-	frameOFOS = plotModel(ws, data_obs, fitOFOS, theConfig, pdf="combModel", tag="%sOFOS" % title, frame=frameOFOS, zPrediction=0.0,
-						slice=slice, projWData=projWData, cut=ROOT.RooFit.Cut("cat==cat::OFOS%s"%region),region=region)
+	frameOFOS = plotModel(ws, data, fitOFOS, theConfig, pdf="combModel", tag="%sOFOS" % title, frame=frameOFOS, zPrediction=0.0,
+						slice=slice, projWData=projWData, cut=ROOT.RooFit.Cut("cat==cat::OFOS"))
 	frameOFOS.GetYaxis().SetTitle(histoytitle)
 	cOFOS = ROOT.TCanvas("OFOS distribtution", "OFOS distribution", sizeCanvas, int(1.25 * sizeCanvas))
 	cOFOS.cd()
-	pads = formatAndDrawFrame(frameOFOS, theConfig, title="OFOS%s"%region, pdf=ws.pdf("combModel"), yMax=yMaximum,
-							slice=ROOT.RooFit.Slice(ws.cat("cat"), "OFOS%s"%region),
+	pads = formatAndDrawFrame(frameOFOS, theConfig, title="OFOS", pdf=ws.pdf("combModel"), yMax=yMaximum,
+							slice=ROOT.RooFit.Slice(ws.cat("cat"), "OFOS"),
 							projWData=ROOT.RooFit.ProjWData(ROOT.RooArgSet(ws.cat("cat")), data_obs),
 							residualMode =residualMode)
 	annotationsTitle = [
 					(0.92, 0.57, "%s" % (theConfig.selection.latex)),
 					]
 	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
-	if (showText):
-		tools.makeAnnotations(annotationsTitle, color=tools.myColors['Grey'], textSize=0.03, align=31)
-	bl.Draw()
-	cOFOS.Print(ofosName)	
-	for pad in pads:
-		pad.Close()
-
-
-	# make ee plot
-	#------------
-	
-	shapeNames = {}
-
-	shapeNames['Z'] = "zEEShape%s"%region
-	shapeNames['offShell'] = "offShell%s"%region
-	shapeNames['Signal'] = "eeShape"
-
-	slice = ROOT.RooFit.Slice(ws.cat("cat"), "EE%s"%region)
-
-	frameEE = ws.var('inv').frame(ROOT.RooFit.Title('Invariant mass of ee lepton pairs'))
-	frameEE = plotModel(ws, data_obs, fitOFOS, theConfig, pdf="combModel", tag="%sEE" % title, frame=frameEE, zPrediction=0.0,
-						slice=slice, projWData=projWData, cut=ROOT.RooFit.Cut("cat==cat::EE%s"%region),
-						overrideShapeNames=shapeNames,region=region)
-
-	cEE = ROOT.TCanvas("EE distribtution", "EE distribution", sizeCanvas, int(1.25 * sizeCanvas))
-	cEE.cd()
-	pads = formatAndDrawFrame(frameEE, theConfig, title="EE%s"%region, pdf=ws.pdf("combModel"), yMax=yMaximum,
-							  slice=ROOT.RooFit.Slice(ws.cat("cat"), "EE%s"%region),
-							  projWData=ROOT.RooFit.ProjWData(ROOT.RooArgSet(ws.cat("cat")), data_obs),
-							  residualMode =residualMode)
-
-	annotationsTitle = [
-					   (0.92, 0.57, "%s" % (theConfig.selection.latex)),
-					   (0.92, 0.53, "%s" % (note2)),
-					   ]
-
-	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
-	if (showText):
-		tools.makeAnnotations(annotationsTitle, color=tools.myColors['Grey'], textSize=0.03, align=31)
-
-	frameEE.GetXaxis().SetTitle('m_{ee} [GeV]')
-	frameEE.GetYaxis().SetTitle(histoytitle)
-
-	sl.Draw()
-	cEE.Update()
-	cEE.Print(eeName)
-	for pad in pads:
-		pad.Close()
-
-
-	# make mm plot
-	#------------
-	shapeNames['Z'] = "zMMShape%s"%region
-	shapeNames['Signal'] = "mmShape"
-	shapeNames['offShell'] = "offShell%s"%region
-
-	slice = ROOT.RooFit.Slice(ws.cat("cat"), "MM%s"%region)
-
-	frameMM = ws.var('inv').frame(ROOT.RooFit.Title('Invariant mass of mumu lepton pairs'))
-	frameMM = plotModel(ws, data_obs, fitOFOS, theConfig, pdf="combModel", tag="%sMM" % title, frame=frameMM, zPrediction=0.0,
-						slice=slice, projWData=projWData, cut=ROOT.RooFit.Cut("cat==cat::MM%s"%region),
-						overrideShapeNames=shapeNames)
-
-	cMM = ROOT.TCanvas("MM distribtution", "MM distribution", sizeCanvas, int(1.25 * sizeCanvas))
-	cMM.cd()
-	pads = formatAndDrawFrame(frameMM, theConfig, title="MM%s"%region, pdf=ws.pdf("combModel"), yMax=yMaximum,
-							  slice=ROOT.RooFit.Slice(ws.cat("cat"), "MM%s"%region),
-							  projWData=ROOT.RooFit.ProjWData(ROOT.RooArgSet(ws.cat("cat")), data_obs),
-							  residualMode=residualMode)
-
-	annotationsTitle = [
-					   (0.92, 0.51, "%s" % (theConfig.selection.latex)),
-					   (0.92, 0.47, "%s" % (note2)),
-					   ]
-
-	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
-	if (showText):
-		tools.makeAnnotations(annotationsTitle, color=tools.myColors['Grey'], textSize=0.03, align=31)
-
-	frameMM.GetXaxis().SetTitle('m_{#mu#mu} [GeV]')
-	frameMM.GetYaxis().SetTitle(histoytitle)
-
-	sl.Draw()
-	cMM.Update()
-	cMM.Print(mmName)
-	for pad in pads:
-		pad.Close()
-
-
-	# make SFOS plot
-	#---------------
-	cSFOS = ROOT.TCanvas("SFOS distribtution", "SFOS distribution", sizeCanvas, int(1.25 * sizeCanvas))
-	cSFOS.cd()
-	pads = formatAndDrawFrame(frameSFOS, theConfig, title="SFOS%s"%region, pdf=ws.pdf("model%s"%region), yMax=yMaximum, residualMode=residualMode)
-
-	if (not fixEdge):
-		edgeHypothesis = ws.var('m0').getVal()
-
-	annotationsTitle = [
-					   (0.92, 0.53, "%s" % (region)),
-					   (0.92, 0.47, "%s" % (note2)),
-					   ]
-
-	tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
+	#~ if (showText):
+		#~ tools.makeAnnotations(annotationsTitle, color=tools.myColors['Grey'], textSize=0.03, align=31)
+		
 	if (showText):
 		tools.makeAnnotations(annotationsTitle, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
-	annotRangeLow = "Low Mass (20 < m_{ll} < 70):"
-	annotRangeZ = "Z Peak (81 < m_{ll} < 101):"
-	annotationsFitHeader = [
-					   (0.92, 0.55, annotRangeLow),
-					   ]
-	annotationsFit = [
-					   (0.92, 0.41, annotEdge),
-					   #~ (0.92, 0.47, annotLowMassZ),
-					   #~ (0.92, 0.47, annotBG),
-					   ]
-	annotationsFitZHeader = [
-					   (0.92, 0.37, annotRangeZ),
-					   ]
-	annotationsFitZ = [
-					   (0.92, 0.32, annotZ),
-					   ]
-	annotationsFitZPred = [
-					   (0.92, 0.27, annotZpred),
-					   ]
-	#~ annotationsFit = [
-#~ 
-					   #~ ]
-	#~ annotationsFitZPred = [
-#~ 
-					   #~ ]
-	if (showText):
-		#~ tools.makeAnnotations(annotationsFitHeader, color=tools.myColors['Black'], textSize=0.03, align=31)
-		tools.makeAnnotations(annotationsFit, color=tools.myColors['AnnBlue'], textSize=0.04, align=31)
-		#~ tools.makeAnnotations(annotationsFitZHeader, color=tools.myColors['Black'], textSize=0.03, align=31)
-		#~ tools.makeAnnotations(annotationsFitZ, color=tools.myColors['AnnBlue'], textSize=0.03, align=31)
-		#~ tools.makeAnnotations(annotationsFitZPred, color=tools.myColors['Grey'], textSize=0.03, align=31)
-	#~ pads[0].SetLogy()
-	sl.Draw()
-	cSFOS.Print(sfosName)
+	
+	#~ dileptonAnnotation = [
+						#~ (0.92, 0.27, "%s" % ("OCDF")),
+						#~ ]
+	#~ tools.makeAnnotations(dileptonAnnotation, color=ROOT.kBlack, textSize=0.04, align=31)
+		
+	bl.Draw()
+	cOFOS.Print(ofosName)	
 	for pad in pads:
 		pad.Close()
 
@@ -1187,16 +842,14 @@ def main():
 						  help="use MC, default is to use data.")
 	parser.add_argument("-u", "--use", action="store_true", dest="useExisting", default=False,
 						  help="use existing datasets from pickle, default is false.")
-	parser.add_argument("-s", "--selection", dest = "selection" , action="store", default="SignalInclusive",
+	parser.add_argument("-s", "--selection", dest = "selection" , action="store", default="SignalHighMT2DeltaPhiJetMet",
 						  help="selection which to apply.")
-	parser.add_argument("-r", "--runRange", dest="runRange", action="store", default="Full2012",
+	parser.add_argument("-r", "--runRange", dest="runRange", action="store", default="Run2016_36fb",
 						  help="name of run range.")
-	parser.add_argument("-b", "--backgroundShape", dest="backgroundShape", action="store", default="ETH",
-						  help="background shape, default ETH")
+	parser.add_argument("-b", "--backgroundShape", dest="backgroundShape", action="store", default="CB",
+						  help="background shape, default CB")
 	parser.add_argument("-e", "--edgeShape", dest="edgeShape", action="store", default="Triangle",
 						  help="edge shape, default Triangle")
-	parser.add_argument("-c", "--configuration", dest="config", action="store", default="Combined",
-						  help="dataset configuration, default Combined")
 	parser.add_argument("-t", "--toys", dest="toys", action="store", default=0,
 						  help="generate and fit x toys")
 	parser.add_argument("-a", "--addSignal", action="store", dest="addSignal", default="",
@@ -1217,15 +870,11 @@ def main():
 	backgroundShape = args.backgroundShape
 	signalShape = args.edgeShape
 	runName =args.runRange
-	dataSetConfiguration = args.config
 	produceScan = args.likelihoodScan
-	if not args.config == "Inclusive" and not args.config == "Central" and not args.config == "Forward" and not args.config == "Combined":
-		log.logError("Dataset %s not not known, exiting" % dataSet)
-		sys.exit()
 	useExistingDataset = args.useExisting
 		
 	from edgeConfig import edgeConfig
-	theConfig = edgeConfig(region,backgroundShape,signalShape,runName,args.config,args.mc,args.toys,args.addSignal)
+	theConfig = edgeConfig(region,backgroundShape,signalShape,runName,args.mc,args.toys,args.addSignal)
 	
 	if args.paper:
 		theConfig.isPreliminary = False
@@ -1270,35 +919,24 @@ def main():
 		if (theConfig.useMC):
 			log.logHighlighted("Using MC instead of data.")
 			datasets = theConfig.mcdatasets # ["TTJets", "ZJets", "DibosonMadgraph", "SingleTop"]
-			(treeOFOSCentral, treeEECentral, treeMMCentral) = tools.getTrees(theConfig, datasets,central=True)
-			(treeOFOSForward, treeEEForward, treeMMForward) = tools.getTrees(theConfig, datasets,central=False)
+			(treeOFOS, treeEE, treeMM) = tools.getTrees(theConfig, datasets)
 		else:
-			treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
-			treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
-			treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
+			treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut)
+			treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut)
+			treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut)
 
 			# convert trees
-			treeOFOSCentral = dataInterface.DataInterface.convertDileptonTree(treeOFOSraw)
-			treeEECentral = dataInterface.DataInterface.convertDileptonTree(treeEEraw)
-			treeMMCentral = dataInterface.DataInterface.convertDileptonTree(treeMMraw)
-			
-			treeOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
-			treeEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
-			treeMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.dataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
-
-			# convert trees
-			treeOFOSForward = dataInterface.DataInterface.convertDileptonTree(treeOFOSraw)
-			treeEEForward = dataInterface.DataInterface.convertDileptonTree(treeEEraw)
-			treeMMForward = dataInterface.DataInterface.convertDileptonTree(treeMMraw)
-		if (theConfig.addDataset != None):
-			treeAddOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
-			treeAddEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
-			treeAddMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=True)
-		
+			treeOFOS = dataInterface.DataInterface.convertDileptonTree(treeOFOSraw)
+			treeEE = dataInterface.DataInterface.convertDileptonTree(treeEEraw)
+			treeMM = dataInterface.DataInterface.convertDileptonTree(treeMMraw)
+				
+		if (theConfig.addDataset != None):	
 
 			xsection = 0.0
 			nTotal = 1.0
 			scale = xsection * theConfig.runRange.lumi / nTotal
+			
+			denominator = denominatorHisto.GetBinContent(denominatorHisto.GetXaxis().FindBin(int(theConfig.addDataset.split("_")[1])),denominatorHisto.GetYaxis().FindBin(int(theConfig.addDataset.split("_")[2])))
 
 
 			# dynamic scaling
@@ -1308,46 +946,39 @@ def main():
 			for job in jobs:
 				dynNTotal = theDataInterface.getEventCount(job, theConfig.flag, theConfig.task)
 				dynXsection = theDataInterface.getCrossSection(job)
-				dynScale = dynXsection * theConfig.runRange.lumi / dynNTotal
+				#~ dynScale = dynXsection * theConfig.runRange.lumi / dynNTotal
+				dynScale = dynXsection * theConfig.runRange.lumi / denominator
+				print dynXsection
+				print dynNTotal
 				scale = dynScale
 
 
 			log.logHighlighted("Scaling added dataset (%s) with %f (dynamic)" % (theConfig.addDataset, scale))
 
+			treeAddOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut)
+			treeAddEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut)
+			treeAddMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut)
+
 			# convert trees
-			treeAddOFOSCentral = dataInterface.DataInterface.convertDileptonTree(treeAddOFOSraw, weight=scale)
-			treeAddEECentral = dataInterface.DataInterface.convertDileptonTree(treeAddEEraw, weight=scale)
-			treeAddMMCentral = dataInterface.DataInterface.convertDileptonTree(treeAddMMraw, weight=scale)
-			
-			treeAddOFOSraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathOFOS, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
-			treeAddEEraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathEE, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
-			treeAddMMraw = theDataInterface.getTreeFromDataset(theConfig.flag, theConfig.task, theConfig.addDataset, treePathMM, dataVersion=theConfig.dataVersion, cut=theConfig.selection.cut,central=False)
-
-			treeAddOFOSForward = dataInterface.DataInterface.convertDileptonTree(treeAddOFOSraw, weight=scale)
-			treeAddEEForward = dataInterface.DataInterface.convertDileptonTree(treeAddEEraw, weight=scale)
-			treeAddMMForward = dataInterface.DataInterface.convertDileptonTree(treeAddMMraw, weight=scale)
+			treeAddOFOS = dataInterface.DataInterface.convertDileptonTree(treeAddOFOSraw, weight=scale)
+			treeAddEE = dataInterface.DataInterface.convertDileptonTree(treeAddEEraw, weight=scale)
+			treeAddMM = dataInterface.DataInterface.convertDileptonTree(treeAddMMraw, weight=scale)
 
 
-		treesCentral = {"EE":treeEECentral,"MM":treeMMCentral,"OFOS":treeOFOSCentral}
-		addTreesCentral = {}
-		treesForward = {"EE":treeEEForward,"MM":treeMMForward,"OFOS":treeOFOSForward}
-		addTreesForward = {}
+		trees = {"EE":treeEE,"MM":treeMM,"OFOS":treeOFOS}
+		addTrees = {}
+		
 		if theConfig.addDataset != None:
-			addTreesCentral = {"EE":treeAddEECentral,"MM":treeAddMMCentral,"OFOS":treeAddOFOSCentral}
-			addTreesForward = {"EE":treeAddEEForward,"MM":treeAddMMForward,"OFOS":treeAddOFOSForward}
-
+			addTrees = {"EE":treeAddEE,"MM":treeAddMM,"OFOS":treeAddOFOS}
+			
 		weight = ROOT.RooRealVar("weight","weight",1.,-100.,10.)
 		inv = ROOT.RooRealVar("inv","inv",(theConfig.maxInv - theConfig.minInv) / 2,theConfig.minInv,theConfig.maxInv)
 		
+		typeName = "data"
+		dataSets = prepareDatasets(inv,weight,trees,addTrees,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.inclusive.val,theConfig.rSFOF.inclusive.err,theConfig.addDataset,theConfig)
 		
-		typeName = "dataCentral"
-		dataSetsCentral = prepareDatasets(inv,weight,treesCentral,addTreesCentral,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.central.val,theConfig.rSFOF.central.err,theConfig.addDataset,theConfig,region="Central")
-		typeName = "dataForward"
-		dataSetsForward = prepareDatasets(inv,weight,treesForward,addTreesForward,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.forward.val,theConfig.rSFOF.forward.err,theConfig.addDataset,theConfig,region="Forward")
-
 	else:
-		dataSetsCentral = ["dummy"]
-		dataSetsForward = ["dummy"]
+		dataSets = ["dummy"]
 	log.logDebug("Starting edge fit")
 		
 
@@ -1371,12 +1002,9 @@ def main():
  	if theConfig.isSignal:
 		theConfig.title = theConfig.title+"_SignalInjected_"+theConfig.signalDataSets[0]   	
 					
-	titleSave = theConfig.title	
-	
-
-		
-				
-	for index, dataSet in enumerate(dataSetsCentral):
+	titleSave = theConfig.title
+			
+	for index, dataSet in enumerate(dataSets):
 		
 		if theConfig.toyConfig["nToys"] > 0:
 			x = "%x"%(random.random()*1e9)
@@ -1396,7 +1024,7 @@ def main():
 			
 				
 		else:
-			x = None		
+			x = None
 		
 		if not useExistingDataset:
 		
@@ -1406,27 +1034,17 @@ def main():
 			vars = ROOT.RooArgSet(inv, w.var('weight'))
 			
 			
-			dataEECentral = dataSetsCentral[index]["EE"].Clone("dataEECentral")
-			dataMMCentral = dataSetsCentral[index]["MM"].Clone("dataMMCentral")
-			dataOFOSCentral = dataSetsCentral[index]["OFOS"].Clone("dataOFOSCentral")
-			dataSFOSCentral = dataSetsCentral[index]["SFOS"].Clone("dataSFOSCentral")
-			
-			
-			dataEEForward = dataSetsForward[index]["EE"].Clone("dataEEForward")
-			dataMMForward = dataSetsForward[index]["MM"].Clone("dataMMForward")
-			dataOFOSForward = dataSetsForward[index]["OFOS"].Clone("dataOFOSForward")
-			dataSFOSForward = dataSetsForward[index]["SFOS"].Clone("dataSFOSForward")
+			dataEE = dataSets[index]["EE"].Clone("dataEE")
+			dataMM = dataSets[index]["MM"].Clone("dataMM")
+			dataOFOS = dataSets[index]["OFOS"].Clone("dataOFOS")
+			dataSFOS = dataSets[index]["SFOS"].Clone("dataSFOS")				
 
-			getattr(w, 'import')(dataEECentral)
-			getattr(w, 'import')(dataMMCentral)
-			getattr(w, 'import')(dataOFOSCentral)
-			getattr(w, 'import')(dataSFOSCentral)		
+
+			getattr(w, 'import')(dataEE, ROOT.RooCmdArg())
+			getattr(w, 'import')(dataMM, ROOT.RooCmdArg())
+			getattr(w, 'import')(dataOFOS, ROOT.RooCmdArg())
+			getattr(w, 'import')(dataSFOS, ROOT.RooCmdArg())		
 			
-			getattr(w, 'import')(dataEEForward)
-			getattr(w, 'import')(dataMMForward)
-			getattr(w, 'import')(dataOFOSForward)
-			getattr(w, 'import')(dataSFOSForward)
-		
 			if x == None:
 				if theConfig.useMC:
 					w.writeToFile("workspaces/saveDataSet_%s_MC.root"%theConfig.selection.name)		
@@ -1443,35 +1061,18 @@ def main():
 			w.Print()			
 			
 			if len(theConfig.signalDataSets) > 0:
-				(treeOFOSCentralSignal, treeEECentralSignal, treeMMCentralSignal) = tools.getTrees(theConfig, theConfig.signalDataSets,central=True)
-				(treeOFOSForwardSignal, treeEEForwardSignal, treeMMForwardSignal) = tools.getTrees(theConfig, theConfig.signalDataSets,central=False)
+				(treeOFOSSignal, treeEESignal, treeMMSignal) = tools.getTrees(theConfig, theConfig.signalDataSets)
 			
-				signalTreesCentral = {"EE":treeEECentralSignal,"MM":treeMMCentralSignal,"OFOS":treeOFOSCentralSignal}
-				addSignalTreesCentral = {}
-				signalTreesForward = {"EE":treeEEForwardSignal,"MM":treeMMForwardSignal,"OFOS":treeOFOSForwardSignal}
-				addSignalTreesForward = {}				
+				signalTrees = {"EE":treeEESignal,"MM":treeMMSignal,"OFOS":treeOFOSSignal}
+				addSignalTrees = {}			
 										
-				typeName = "signalCentral"
-				dataSetsCentral = prepareDatasets(w.var("inv"),w.var('weight'),signalTreesCentral,addSignalTreesCentral,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.central.val,theConfig.rSFOF.central.err,False,theConfig,region="Central")
-				typeName = "signalForward"
-				dataSetsForward = prepareDatasets(w.var("inv"),w.var('weight'),signalTreesForward,addSignalTreesForward,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.forward.val,theConfig.rSFOF.forward.err,False,theConfig,region="Forward")
-
-				#~ print w.data("dataEECentral")
-				#~ data = w.data("dataCentralEE").Clone("test")
-				#~ data.__class__ = ROOT.RooDataSet
-				#~ print dataSetsCentral
-				#~ print dataSetsCentral[0]["EE"]
-				#~ data.append(dataSetsCentral[0]["EE"])
+				typeName = "signal"
+				dataSets = prepareDatasets(w.var("inv"),w.var('weight'),signalTrees,addSignalTrees,theConfig.maxInv,theConfig.minInv,typeName,theConfig.nBinsMinv,theConfig.rSFOF.inclusive.val,theConfig.rSFOF.inclusive.err,False,theConfig)
 				
-				w.data("dataEECentral").append(dataSetsCentral[index]["EE"].Clone("signalEECentral"))
-				w.data("dataMMCentral").append(dataSetsCentral[index]["MM"].Clone("signalMMCentral"))
-				w.data("dataOFOSCentral").append(dataSetsCentral[index]["OFOS"].Clone("signalOFOSCentral"))
-				w.data("dataSFOSCentral").append(dataSetsCentral[index]["SFOS"].Clone("signalSFOSCentral"))
-				
-				w.data("dataEEForward").append(dataSetsForward[index]["EE"].Clone("signalEEForward"))
-				w.data("dataMMForward").append(dataSetsForward[index]["MM"].Clone("signalMMForward"))
-				w.data("dataOFOSForward").append(dataSetsForward[index]["OFOS"].Clone("signalOFOSForward"))
-				w.data("dataSFOSForward").append(dataSetsForward[index]["SFOS"].Clone("signalSFOSForward"))
+				w.data("dataEE").append(dataSets[index]["EE"].Clone("signalEE"))
+				w.data("dataMM").append(dataSets[index]["MM"].Clone("signalMM"))
+				w.data("dataOFOS").append(dataSets[index]["OFOS"].Clone("signalOFOS"))
+				w.data("dataSFOS").append(dataSets[index]["SFOS"].Clone("signalSFOS"))
 
 		title = "bla"
 			
@@ -1479,118 +1080,128 @@ def main():
 		selectShapes(w,theConfig.backgroundShape,theConfig.signalShape,theConfig.nBinsMinv)
 
 
-		print w.data("dataSFOSCentral").sumEntries(), w.data("dataOFOSCentral").sumEntries()
+		print w.data("dataSFOS").sumEntries(), w.data("dataOFOS").sumEntries()
 
 	
 		# deduce proper values for yield parameters from datasets and create yield parameters
 		
-		predictedSignalYieldCentral = w.data("dataSFOSCentral").sumEntries() - 0.8*w.data("dataSFOSCentral").sumEntries()
-		predictedSignalYieldForward = w.data("dataSFOSForward").sumEntries() - 0.8*w.data("dataSFOSForward").sumEntries()
+		predictedSignalYield = w.data("dataSFOS").sumEntries() - 0.8*w.data("dataSFOS").sumEntries()
 		if theConfig.allowNegSignal:
-			w.factory("nSigCentral[%f,%f,%f]" % (0.,-2*predictedSignalYieldCentral, 2*predictedSignalYieldCentral))
-			w.factory("nSigForward[%f,%f,%f]" % (0.,-4*predictedSignalYieldForward, 4*predictedSignalYieldForward))
+			w.factory("nSig[%f,%f,%f]" % (0.,-2*predictedSignalYield, 2*predictedSignalYield))
 		else:
-			w.factory("nSigCentral[%f,%f,%f]" % (0.,0, 2*predictedSignalYieldCentral))
-			w.factory("nSigForward[%f,%f,%f]" % (0.,0, 2*predictedSignalYieldForward))		
-		w.var('nSigCentral').setAttribute("StoreAsymError")
-		w.var('nSigForward').setAttribute("StoreAsymError")
+			w.factory("nSig[%f,%f,%f]" % (0.,0, 2*predictedSignalYield))
+		w.var('nSig').setAttribute("StoreAsymError")
 
 
-		maxZCentral = w.data("dataSFOSCentral").sumEntries("abs(inv-91.2) < 20")	
-		maxZForward = w.data("dataSFOSForward").sumEntries("abs(inv-91.2) < 20")
+		maxZ = w.data("dataSFOS").sumEntries("abs(inv-91.2) < 20")
 		
-		#~ w.factory("nZCentral[%f,0.,%f]" % (theConfig.zPredictions.SF.central.val,maxZCentral))
-		#~ w.factory("nZForward[%f,0.,%f]" % (theConfig.zPredictions.SF.forward.val,maxZForward))
-		w.factory("nZCentral[%f,0.,%f]" % (0.01,maxZCentral))
-		w.factory("nZForward[%f,0.,%f]" % (0.01,maxZForward))
-		w.var('nZCentral').setAttribute("StoreAsymError")
-		w.var('nZForward').setAttribute("StoreAsymError")
-		w.var('nZCentral').setConstant()
-		w.var('nZForward').setConstant()
+		#~ w.factory("nZ[%f,0.,%f]" % (theConfig.zPredictions.SF..val,maxZ))
+		w.factory("nZ[%f,0.,%f]" % (0.01,maxZ))
+		w.var('nZ').setAttribute("StoreAsymError")
+		w.var('nZ').setConstant()
 		
 		
-		nBMinCentral = w.data("dataOFOSCentral").sumEntries()*0
-		nBMaxCentral= w.data("dataSFOSCentral").sumEntries()*2
-		nBStartCentral = w.data("dataOFOSCentral").sumEntries()*0.7
-		nBMinForward = w.data("dataOFOSForward").sumEntries()*0
-		nBMaxForward= w.data("dataSFOSForward").sumEntries()*2
-		nBStartForward = w.data("dataOFOSForward").sumEntries()*0.7		
+		nBMin = w.data("dataOFOS").sumEntries()*0
+		nBMax= w.data("dataSFOS").sumEntries()*2
+		nBStart = w.data("dataOFOS").sumEntries()*0.7	
 		
-		w.factory("nBCentral[%f,%f,%f]" % (nBStartCentral,nBMinCentral,nBMaxCentral))	
-		w.factory("nBForward[%f,%f,%f]" % (nBStartForward,nBMinForward,nBMaxForward))	
-		w.var('nBCentral').setAttribute("StoreAsymError")
-		w.var('nBForward').setAttribute("StoreAsymError")
+		w.factory("nB[%f,%f,%f]" % (nBStart,nBMin,nBMax))	
+		w.var('nB').setAttribute("StoreAsymError")
 
 		#create background only shapes
 		
 		#~ w.factory("Gaussian::gx(inv,mean[90,0,100],sigma[3,0,10])")
-		#~ convCentral = ROOT.RooFFTConvPdf("bgModelCentral","bla",w.var("inv"),w.pdf("gx"),w.pdf("ofosShape1Central"))
-		#~ getattr(w, 'import')(convCentral)
-		#~ w.pdf("bgModelCentral").setBufferFraction(5.0)
+		#~ conv = ROOT.RooFFTConvPdf("bgModel","bla",w.var("inv"),w.pdf("gx"),w.pdf("ofosShape1"))
+		#~ getattr(w, 'import')(conv, ROOT.RooCmdArg())
+		#~ w.pdf("bgModel").setBufferFraction(5.0)
 
 		
 			
-		w.factory("SUM::ofosShapeCentral(nBCentral*ofosShape1Central)")
-		w.factory("SUM::ofosShapeForward(nBForward*ofosShape1Forward)")
+		w.factory("SUM::ofosShape(nB*ofosShape1)")
 		
 		# fit background only shapes to OFOS dataset
 		w.Print()
-		fitOFOSCentral = w.pdf('ofosShapeCentral').fitTo(w.data("dataOFOSCentral"), ROOT.RooFit.Save(), ROOT.RooFit.SumW2Error(ROOT.kFALSE),ROOT.RooFit.Minos(theConfig.runMinos),ROOT.RooFit.Extended(ROOT.kTRUE),ROOT.RooFit.Strategy(1))
+		fitOFOS = w.pdf('ofosShape').fitTo(w.data("dataOFOS"), ROOT.RooFit.Save(), ROOT.RooFit.SumW2Error(ROOT.kFALSE),ROOT.RooFit.Minos(theConfig.runMinos),ROOT.RooFit.Extended(ROOT.kTRUE),ROOT.RooFit.Strategy(1))
 		
-		fitOFOSCentral.Print()
+		fitOFOS.Print()
 		
-		fitOFOSForward = w.pdf('ofosShapeForward').fitTo(w.data("dataOFOSForward"), ROOT.RooFit.Save(), ROOT.RooFit.SumW2Error(ROOT.kFALSE),ROOT.RooFit.Minos(theConfig.runMinos),ROOT.RooFit.Extended(ROOT.kTRUE),ROOT.RooFit.Strategy(1))
-		
-		fitOFOSForward.Print()
+		log.logWarning(" OFOS Fit Convergence Quality: %d"%fitOFOS.covQual())
 		
 		
-		log.logWarning("Central OFOS Fit Convergence Quality: %d"%fitOFOSCentral.covQual())
-		log.logWarning("Forward OFOS Fit Convergence Quality: %d"%fitOFOSForward.covQual())
+		parametersToSave["minNllOFOS"] = fitOFOS.minNll()
+
+		parametersToSave["nParOFOS"] = fitOFOS.floatParsFinal().getSize()
+
+		frameOFOS = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of OFOS lepton pairs'))
+		frameOFOS.GetXaxis().SetTitle('m_{e#mu} [GeV]')
+		frameOFOS.GetYaxis().SetTitle(theConfig.histoytitle)
+
 		
-		
-		parametersToSave["minNllOFOSCentral"] = fitOFOSCentral.minNll()
-		parametersToSave["minNllOFOSForward"] = fitOFOSCentral.minNll()
 
-		parametersToSave["nParOFOSCentral"] = fitOFOSCentral.floatParsFinal().getSize()
-		parametersToSave["nParOFOSForward"] = fitOFOSCentral.floatParsFinal().getSize()
+		sizeCanvas = 800
+		c1 = ROOT.TCanvas("c1","c1",sizeCanvas,int(1.25 * sizeCanvas))
 
 
-		frameOFOSCentral = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of OFOS lepton pairs'))
-		frameOFOSCentral.GetXaxis().SetTitle('m_{e#mu} [GeV]')
-		frameOFOSCentral.GetYaxis().SetTitle(theConfig.histoytitle)
-		frameOFOSForward = w.var('inv').frame(ROOT.RooFit.Title('Invariant mass of OFOS lepton pairs'))
-		frameOFOSForward.GetXaxis().SetTitle('m_{e#mu} [GeV]')
-		frameOFOSForward.GetYaxis().SetTitle(theConfig.histoytitle)
-
-		parametersToSave["chi2OFOSCentral"] = frameOFOSCentral.chiSquare(parametersToSave["nParOFOSCentral"])
-		log.logDebug("Chi2 OFOS: %f" % parametersToSave["chi2OFOSCentral"])
-		parametersToSave["chi2OFOSForward"] = frameOFOSForward.chiSquare(parametersToSave["nParOFOSForward"])
-		log.logDebug("Chi2 OFOS: %f" % parametersToSave["chi2OFOSForward"])
+		ROOT.RooAbsData.plotOn(w.data("dataOFOS"), frameOFOS)
+		w.pdf('ofosShape').plotOn(frameOFOS)	
 
 
-		c1 = ROOT.TCanvas("c1","c1",800,600)
-
-
-		#~ w.var("a2Central").setVal(58)
-		#~ w.var("a3Central").setVal(9.)
-		#~ w.var("a4Central").setVal(0.92)
-		#~ 
-		ROOT.RooAbsData.plotOn(w.data("dataOFOSCentral"), frameOFOSCentral)
-		w.pdf('ofosShapeCentral').plotOn(frameOFOSCentral)
-		ROOT.RooAbsData.plotOn(w.data("dataOFOSForward"), frameOFOSForward)
-		w.pdf('ofosShapeForward').plotOn(frameOFOSForward)
-
-
-
-		w.pdf('ofosShapeCentral').plotOn(frameOFOSCentral,
+		w.pdf('ofosShape').plotOn(frameOFOS,
 								  #~ ROOT.RooFit.VisualizeError(fitOFOS, 1),
 								  #~ ROOT.RooFit.FillColor(ROOT.kGreen + 2),
 								  #~ ROOT.RooFit.FillStyle(3009),
 								  ROOT.RooFit.LineWidth(2))
-		w.pdf('ofosShapeCentral').plotOn(frameOFOSCentral)
-		ROOT.RooAbsData.plotOn(w.data("dataOFOSCentral"), frameOFOSCentral)
+		w.pdf('ofosShape').plotOn(frameOFOS)
+		ROOT.RooAbsData.plotOn(w.data("dataOFOS"), frameOFOS)
+		
+		parametersToSave["chi2OFOS"] = frameOFOS.chiSquare(parametersToSave["nParOFOS"])
+		log.logDebug("Chi2 OFOS: %f" % parametersToSave["chi2OFOS"])
 
-		frameOFOSCentral.GetXaxis().SetRangeUser(theConfig.plotMinInv, theConfig.plotMaxInv)
+		
+		useMC = theConfig.useMC
+		luminosity = theConfig.runRange.lumi
+		isPreliminary = theConfig.isPreliminary
+		year = theConfig.year
+		showText = theConfig.showText
+		title = theConfig.title
+		histoytitle = theConfig.histoytitle
+		print year
+		
+		dLeg = ROOT.TH1F()
+		dLeg.SetMarkerStyle(ROOT.kFullCircle)
+		dLeg.SetMarkerColor(ROOT.kBlack)
+		dLeg.SetLineWidth(2)
+		fitLeg = dLeg.Clone()
+		fitLeg.SetLineColor(ROOT.kBlue)
+		bLeg = dLeg.Clone()
+		bLeg.SetLineStyle(2)
+		bLeg.SetLineColor(ROOT.kBlack)
+	
+			
+			
+		nLegendEntries = 2
+		if theConfig.plotErrorBands:
+			nLegendEntries =3
+		bl = tools.myLegend(0.69, 0.92 - 0.05 * nLegendEntries, 0.92, 0.93, borderSize=0)
+		bl.SetTextAlign(22)
+		
+		if (useMC):
+			bl.AddEntry(dLeg, 'Simulation', "pl")
+		else:
+			bl.AddEntry(dLeg, 'Data', "pl")
+		bl.AddEntry(fitLeg, 'FS background', "l")
+		if theConfig.plotErrorBands:
+			bl.AddEntry(uLeg, 'Uncertainty', "f")
+		
+								#~ residualMode =residualMode)
+		annotationsTitle = [
+						(0.92, 0.57, "#splitline{%s}{DF only fit}" % (theConfig.selection.latex)),
+						]
+		
+		
+
+		frameOFOS.GetXaxis().SetRangeUser(theConfig.plotMinInv, theConfig.plotMaxInv)
+		frameOFOS.SetMaximum(theConfig.plotYMax)
 		pad = ROOT.TPad("main%s" % (title), "main%s" % (title), 0.01, 0.25, 0.99, 0.99)
 		ROOT.SetOwnership(pad, False)
 		pad.SetNumber(1)
@@ -1600,8 +1211,13 @@ def main():
 		resPad.SetNumber(2)
 		resPad.Draw()
 		pad.cd()
-		#~ pad.DrawFrame(Holder.plotMinInv,1,Holder.plotMaxInv,yMax,";m_{ll} [GeV];Events / 5 GeV")	
-		frameOFOSCentral.Draw()
+		##~ pad.DrawFrame(Holder.plotMinInv,1,Holder.plotMaxInv,yMax,";m_{ll} [GeV];Events / 5 GeV")	
+		frameOFOS.Draw()
+		tools.makeCMSAnnotation(0.18, 0.88, luminosity, mcOnly=useMC, preliminary=isPreliminary, year=year,ownWork=theConfig.ownWork)
+		if (showText):
+			#~ tools.makeAnnotations(annotationsTitle, color=tools.myColors['Grey'], textSize=0.03, align=31)
+			tools.makeAnnotations(annotationsTitle, color=ROOT.kBlack, textSize=0.03, align=31)
+		bl.Draw()
 		resPad.cd()
 		residualMaxY = 3.
 		residualTitle = "#frac{(data - fit)}{#sigma_{data}}"
@@ -1614,7 +1230,7 @@ def main():
 		zeroLine.SetLineWidth(2)
 		zeroLine.Draw()
 		residuals = None
-		residuals = frameOFOSCentral.pullHist()
+		residuals = frameOFOS.pullHist()
 
 		residuals.Draw("P")
 		hAxis.GetYaxis().SetNdivisions(4, 2, 5)
@@ -1626,58 +1242,8 @@ def main():
 		pad.cd()
 
 
-		c1.Print("OF_Central_%s.pdf"%theConfig.backgroundShape)
-		c1.Clear()
-		w.pdf('ofosShapeForward').plotOn(frameOFOSForward,
-								  #~ ROOT.RooFit.VisualizeError(fitOFOS, 1),
-								  #~ ROOT.RooFit.FillColor(ROOT.kGreen + 2),
-								  #~ ROOT.RooFit.FillStyle(3009),
-								  ROOT.RooFit.LineWidth(2))
-		w.pdf('ofosShapeForward').plotOn(frameOFOSForward)
-		ROOT.RooAbsData.plotOn(w.data("dataOFOSForward"), frameOFOSForward)
-
-
-		frameOFOSForward.GetXaxis().SetRangeUser(theConfig.plotMinInv, theConfig.plotMaxInv)
-		pad = ROOT.TPad("main%s" % (title), "main%s" % (title), 0.01, 0.25, 0.99, 0.99)
-		ROOT.SetOwnership(pad, False)
-		pad.SetNumber(1)
-		pad.Draw()
-		resPad = ROOT.TPad("residual%s" % (title), "residual%s" % (title), 0.01, 0.01, 0.99, 0.25)
-		ROOT.SetOwnership(resPad, False)
-		resPad.SetNumber(2)
-		resPad.Draw()
-		pad.cd()
-		#~ pad.DrawFrame(Holder.plotMinInv,1,Holder.plotMaxInv,yMax,";m_{ll} [GeV];Events / 5 GeV")	
-		frameOFOSForward.Draw()
-		resPad.cd()
-		residualMaxY = 3.
-		residualTitle = "#frac{(data - fit)}{#sigma_{data}}"
-		hAxis = resPad.DrawFrame(theConfig.plotMinInv, -residualMaxY, theConfig.plotMaxInv, residualMaxY, ";;%s"%residualTitle)
-		resPad.SetGridx()
-		resPad.SetGridy()
-
-		zeroLine = ROOT.TLine(theConfig.plotMinInv, 0.0, theConfig.plotMaxInv, 0.0)
-		zeroLine.SetLineColor(ROOT.kBlue)
-		zeroLine.SetLineWidth(2)
-		zeroLine.Draw()
-		residuals = None
-		residuals = frameOFOSForward.pullHist()
-
-		residuals.Draw("P")
-		hAxis.GetYaxis().SetNdivisions(4, 2, 5)
-		hAxis.SetTitleOffset(0.36, "Y")
-		hAxis.SetTitleSize(0.18, "Y")
-		hAxis.GetXaxis().SetLabelSize(0.1) 
-		hAxis.GetYaxis().SetLabelSize(0.12)
-		resPad.Update()
-		pad.cd()
-
-
-
-
+		c1.Print("fig/OF_%s.pdf"%theConfig.title)
 		
-
-		c1.Print("OF_Forward_%s.pdf"%theConfig.backgroundShape)
 	
 
 main()

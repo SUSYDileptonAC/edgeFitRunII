@@ -44,7 +44,7 @@ Double_t RooTopPairProductionSpline::evaluate() const
     // we define the input parameters c,d,e,f (all parameters of f_2(x) ) and conclude on the parameters for f_1 and f_3. In this way the
     // central function also defines the outer ones (note that there 8 parameters and 4 constraints -> 4 free parameters)
   
-    // note: since RooFit normalizes as it pleases, there is one too many free parameters - we've chosen to divide everything by "e", making e=1 (in the old parametrization it was -1.3)
+    // note: since RooFit normalizes as it pleases, there is one too many free parameters - we've chosen to divide everything by "e", making e=-1 (in the old parametrization it was -1.3)
   
    bool debug=false;
     

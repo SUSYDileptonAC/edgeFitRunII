@@ -9,6 +9,10 @@
 # Author: Daniel Sprenger
 #         daniel.sprenger@cern.ch
 #=======================================================
+import sys
+sys.path.append('cfg/')
+from frameworkStructure import pathes
+sys.path.append(pathes.basePath)
 
 import ROOT
 
@@ -187,10 +191,13 @@ def makeAnnotations(annotations, textSize=0.04, color=None, align=None):
 		for annotation in annotations:
 			if "CMS" in annotation[2]:
 				latex.SetTextFont(61)
-				latex.SetTextSize(0.06)
+				latex.SetTextSize(0.05)
 			elif "Preliminary" in annotation[2] or "Private" in annotation[2] or "Simulation" in annotation[2]:
 				latex.SetTextFont(52) 
-				latex.SetTextSize(0.045)
+				latex.SetTextSize(0.0375)
+			elif "arXiv" in annotation[2]:
+				latex.SetTextFont(42) 
+				latex.SetTextSize(0.035)
 			latex.DrawLatex(*annotation)
 			latex.SetTextFont(42)
 			latex.SetTextSize(textSize)
@@ -207,43 +214,62 @@ def makeAnnotationsGroup(annotationList):
 		makeAnnotations(annotation, textSize=cfgDict['textSize'], color=cfgDict['color'], align=cfgDict['align'])
 
 
-def makeCMSAnnotation(xPos, yPos, luminosity, mcOnly=False, preliminary=True, year=2011, ownWork=False):
+def makeCMSAnnotation(xPos, yPos, luminosity, mcOnly=False, preliminary=True, year=2011, ownWork=False, supplementary= False):
 		from ROOT import kBlack, kBlue
 		energy = -1
 		if (year == 2011):
 			energy = 7
 		elif (year == 2012):
 			energy = 8
-		elif (year == 2015):
+		elif (year == 2015 or year == 2016):
 			energy = 13
 
 		color = kBlack
 
 		if (mcOnly):
 			cmsString = "CMS"
-			if (ownWork):
+			if not (ownWork):
 				cmsExtra = "Simulation"
+				annotationsCMS = [
+						   (xPos, yPos, cmsString),
+						   (xPos, yPos-0.04, cmsExtra),
+						   (0.685, 0.965, "%.1f fb^{-1} (%d TeV)" % (float(luminosity) / 1000,energy)),
+						   ]
 			else:
 				cmsExtra = "#splitline{Private Work}{Simulation}"
-			annotationsCMS = [
-					   (xPos, yPos, cmsString),
-					   (xPos, yPos-0.04, cmsExtra),
-					   (0.7, 0.965, "%.1f fb^{-1} (%d TeV)" % (float(luminosity) / 1000,energy)),
-					   ]
+				annotationsCMS = [
+						   (xPos, yPos, cmsString),
+						   (xPos, yPos-0.07, cmsExtra),
+						   (0.685, 0.965, "%.1f fb^{-1} (%d TeV)" % (float(luminosity) / 1000,energy)),
+						   ]
 
 			makeAnnotations(annotationsCMS, color=color)
 		else:
 			cmsString = "CMS"
 			if (preliminary):
 				cmsExtra = "Preliminary"
+			else:
+				cmsExtra = ""
 			if (ownWork):
 				cmsExtra = "Private Work"
 
-			annotationsCMS = [
-					   (xPos, yPos, cmsString),
-					   (xPos, yPos-0.04, cmsExtra),
-					   (0.7, 0.965, "%.1f fb^{-1} (%d TeV)" % (float(luminosity) / 1000 ,energy)),
-					   ]            
+			if (supplementary):
+				cmsExtra = "Supplementary"
+				arxiveLabel = "arxiv:xxxx.xxxxx"
+                                
+				annotationsCMS = [
+						   (xPos-0.02, 0.965, cmsString),
+						   (xPos+0.08, 0.965, cmsExtra),
+						   (xPos, yPos-0.02, arxiveLabel),
+						   (0.685, 0.965, "%.1f fb^{-1} (%d TeV)" % (float(luminosity) / 1000 ,energy)),
+							] 
+                        
+			else:
+				annotationsCMS = [
+						   (xPos, yPos, cmsString),
+						   (xPos, yPos-0.04, cmsExtra),
+						   (0.685, 0.965, "%.1f fb^{-1} (%d TeV)" % (float(luminosity) / 1000 ,energy)),
+						   ]            
 				
 
 			makeAnnotations(annotationsCMS, color=color)
@@ -360,85 +386,6 @@ def dataExists(project, key):
 
 	return value
 
-
-#def getNumberOfSUSYEvents(flag, task, dataset, verbose=False):
-#    configDict = mainConfig.MainConfig().getMap()
-#
-#    hSUSYNoScale = helper.getSUSY(configDict['HistosPath'], dataset, flag, task, "Weigths", configDict['Luminosity'], noScale=True)
-#    hSUSYScale = helper.getSUSY(configDict['HistosPath'], dataset, flag, task, "Weigths", configDict['Luminosity'], noScale=False)
-#    susyEvents = 0
-#    totalEvents = -1
-#    susyEventsScaled = 0.0
-#    efficiency = 0.0
-#    if (hSUSYNoScale != None):
-#        susyEvents = int(hSUSYNoScale.GetBinContent(2))
-#        totalEvents = int(helper.cfg.get(dataset, "numevents"))
-#    if (hSUSYScale != None):
-#        susyEventsScaled = hSUSYScale.GetBinContent(2)
-#
-#    if (verbose == True):
-#        print "Number of accepted events in SUSY dataset: " + str(susyEvents) + " (of " + str(totalEvents) + ")"
-#        print "Efficiency: " + str(float(susyEvents) / totalEvents)
-#        print "Number of accepted events in " + str(int(configDict['Luminosity'])) + " pb-1: " + str(susyEventsScaled)
-#
-#    return (susyEvents, totalEvents, susyEventsScaled, efficiency)
-#
-#
-#def getNumberOfBackgroundEvents(flag, task, verbose=False):
-#    configDict = mainConfig.MainConfig().getMap()
-#
-#    hWjetsNoScale = helper.combineWjets(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=True)
-#    hZjetsNoScale = helper.combineZjets(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=True)
-#    httbarNoScale = helper.combinettbar(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=True)
-#    hDibosonNoScale = helper.combineDiboson(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=True)
-#    hQCDNoScale = helper.combineQCD(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=True)
-#
-#    hWjetsScale = helper.combineWjets(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=False)
-#    hZjetsScale = helper.combineZjets(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=False)
-#    httbarScale = helper.combinettbar(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=False)
-#    hDibosonScale = helper.combineDiboson(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=False)
-#    hQCDScale = helper.combineQCD(configDict['HistosPath'], flag, task, "Weigths", configDict['Luminosity'], noScale=False)
-#
-#    backgroundEvents = 0
-#    totalBackgroundEvents = 0
-#    backgroundEventsScaled = 0.0
-#
-#    # sum up backgrounds
-#    backgroundEvents += int(hWjetsNoScale.GetBinContent(2))
-#    totalBackgroundEvents += int(helper.cfg.get('WJets_madgraph_Fall08', "numevents"))
-#    backgroundEventsScaled += hWjetsScale.GetBinContent(2)
-#
-#    backgroundEvents += int(hZjetsNoScale.GetBinContent(2))
-#    totalBackgroundEvents += int(helper.cfg.get('ZJets_madgraph_Fall08', "numevents"))
-#    totalBackgroundEvents += int(helper.cfg.get('AstarJets_madgraph_Fall08', "numevents"))
-#    backgroundEventsScaled += hZjetsScale.GetBinContent(2)
-#
-#    backgroundEvents += int(httbarNoScale.GetBinContent(2))
-#    totalBackgroundEvents += int(helper.cfg.get('TTJets_madgraph_Fall08', "numevents"))
-#    backgroundEventsScaled += httbarScale.GetBinContent(2)
-#
-#    backgroundEvents += int(hDibosonNoScale.GetBinContent(2))
-#    totalBackgroundEvents += int(helper.cfg.get('VVJets_madgraph_Fall08', "numevents"))
-#    totalBackgroundEvents += int(helper.cfg.get('Wgamma', "numevents"))
-#    totalBackgroundEvents += int(helper.cfg.get('Zgamma', "numevents"))
-#    backgroundEventsScaled += hDibosonScale.GetBinContent(2)
-#
-#    backgroundEventsQCD = int(hQCDNoScale.GetBinContent(2))
-#    backgroundEvents += backgroundEventsQCD
-#    jobs = ['JPsi', 'Upsilon1S', 'Upsilon2S', 'QCDpt80', 'QCDpt170', 'QCDpt300', 'QCDpt470', 'QCDpt800']
-#    for job in jobs:
-#        totalBackgroundEvents += int(helper.cfg.get(job, "numevents"))
-#    backgroundEventsScaledQCD = hQCDScale.GetBinContent(2)
-#    backgroundEventsScaled += backgroundEventsScaledQCD
-#
-#
-#    if (verbose == True):
-#        print "Number of accepted background events: " + str(backgroundEvents) + " (of " + str(totalBackgroundEvents) + ")"
-#        print "Number of accepted background events in " + str(int(configDict['Luminosity'])) + " pb-1: " + str(backgroundEventsScaled)
-#        print "Number of QCD background events: ", backgroundEventsQCD
-#        print "Number of QCD background events in ", int(configDict['Luminosity']), " pb-1: ", backgroundEventsScaledQCD
-#
-#    return (backgroundEvents, totalBackgroundEvents, backgroundEventsScaled)
 
 
 def createLatexTable(fileName, content, format={}):
@@ -611,9 +558,8 @@ def createMyColors():
 
 	return containerMyColors
 
-def getTrees(theConfig, datasets, central=True):
+def getTrees(theConfig, datasets):
 	import dataInterface
-	#~ theDataInterface = dataInterface.dataInterface(dataVersion=dataVersion)
 	theDataInterface = dataInterface.DataInterface(theConfig.dataSetPath,theConfig.dataVersion)
 	treePathOFOS = "/EMuDileptonTree"
 	treePathEE = "/EEDileptonTree"
@@ -622,12 +568,9 @@ def getTrees(theConfig, datasets, central=True):
 	treesMCOFOS = ROOT.TList()
 	treesMCEE = ROOT.TList()
 	treesMCMM = ROOT.TList()
-
-	if central:
-		cut = theConfig.selection.cut + " && abs(eta1) < 1.4 && abs(eta2) < 1.4"
-	else:
-		cut = theConfig.selection.cut + " && 1.6 <= TMath::Max(abs(eta1),abs(eta2)) && !(abs(eta1) > 1.4 && abs(eta1) < 1.6) && !(abs(eta2) > 1.4 && abs(eta2) < 1.6)"
-
+	
+	cut = theConfig.selection.cut
+	
 	for dataset in datasets:
 		scale = 0.0
 
@@ -642,7 +585,10 @@ def getTrees(theConfig, datasets, central=True):
 
 			dynNTotal = theDataInterface.getEventCount(job, theConfig.flag, theConfig.task)
 			dynXsection = theDataInterface.getCrossSection(job)
-			dynScale = dynXsection * theConfig.runRange.lumi / dynNTotal
+			dynNegWeightFraction = theDataInterface.getNegWeightFraction(job)
+			#~ dynScale = dynXsection * theConfig.runRange.lumi / dynNTotal
+			print theConfig.runRange.lumi
+			dynScale = dynXsection * theConfig.runRange.lumi / (dynNTotal * (1 - 2 * dynNegWeightFraction) )
 			if (dynScale != scale):
 				log.logInfo("dyn scale for %s (%s): n = %d, x = %f => %f" % (job, dataset, dynNTotal, dynXsection, dynScale))
 				scale = dynScale
@@ -650,9 +596,13 @@ def getTrees(theConfig, datasets, central=True):
 				log.logError("No dynamic scale applied. This should never happen!")
 
 			# convert trees
-			treesMCOFOS.Add(dataInterface.DataInterface.convertDileptonTree(treeMCOFOSraw, weight=scale))
-			treesMCEE.Add(dataInterface.DataInterface.convertDileptonTree(treeMCEEraw, weight=scale))
-			treesMCMM.Add(dataInterface.DataInterface.convertDileptonTree(treeMCMMraw, weight=scale))
+			if not treeMCOFOSraw == None:
+				treesMCOFOS.Add(dataInterface.DataInterface.convertDileptonTree(treeMCOFOSraw, weight=scale))
+			if not treeMCEEraw == None:
+				treesMCEE.Add(dataInterface.DataInterface.convertDileptonTree(treeMCEEraw, weight=scale))
+			if not treeMCMMraw == None:
+				treesMCMM.Add(dataInterface.DataInterface.convertDileptonTree(treeMCMMraw, weight=scale))
+			
 
 	treeMCOFOStotal = ROOT.TTree.MergeTrees(treesMCOFOS)
 	treeMCEEtotal = ROOT.TTree.MergeTrees(treesMCEE)
