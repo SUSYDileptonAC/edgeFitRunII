@@ -1242,8 +1242,6 @@ def main():
 						  help="plot is private work.")		
 	parser.add_argument("-p", "--paper", action="store_true", dest="paper", default=False,
 						  help="plot for paper without preliminary label.")		
-	parser.add_argument("-l", "--likelihoodScan", action="store_true", dest="likelihoodScan", default=False,
-						  help="produce likelihood scan vs edge position.")		
 	parser.add_argument("-w", "--write", action="store_true", dest="write", default=False,
 						  help="write results to central repository")	
 					
@@ -1254,7 +1252,6 @@ def main():
 	backgroundShape = args.backgroundShape
 	signalShape = args.edgeShape
 	runName =args.runRange
-	produceScan = args.likelihoodScan
 	useExistingDataset = args.useExisting
 		
 	from edgeConfig import edgeConfig
