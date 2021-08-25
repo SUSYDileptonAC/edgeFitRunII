@@ -5,7 +5,7 @@
 
 
 
-LIBS = -L$(ROOTSYS)/lib -lNew  -lCint  \
+LIBS = -L$(ROOTSYS)/lib -lNew  \
          -lGraf -lGraf3d -lHist -lHtml -lMatrix  -lMinuit  \
          -lPostscript -lTree -lCore -lm -ldl -lRooFit -lRooFitCore \
          -lGpad -lGui -lPhysics -lRIO
@@ -15,7 +15,7 @@ LIBS = -L$(ROOTSYS)/lib -lNew  -lCint  \
 
 
 
-CXXFLAGS = -g  --exceptions  -I$(ROOTSYS)/include 
+CXXFLAGS = -g  --exceptions -pthread -std=c++1z -m64 -I/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw/CMSSW_10_2_11/external/slc7_amd64_gcc700/bin/../../../../../../../slc7_amd64_gcc700/lcg/root/6.12.07-gnimlf5/include -L/cvmfs/cms.cern.ch/slc7_amd64_gcc700/cms/cmssw/CMSSW_10_2_11/external/slc7_amd64_gcc700/bin/../../../../../../../slc7_amd64_gcc700/lcg/root/6.12.07-gnimlf5/lib -lCore -lImt -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lTreePlayer -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -lMultiProc -pthread -lm -ldl -rdynamic
 
 CPP    = g++
 

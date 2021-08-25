@@ -12,6 +12,7 @@ syntax: glob
 *.db
 *.pdf
 *.png
+*.pcm
 *.root
 *.tex
 *.d

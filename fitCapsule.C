@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
     gSystem->Load("shapes/RooSUSYBkgGaussiansPdf_cxx.so");
     gSystem->Load("shapes/RooTopPairProductionSpline_cxx.so");
     gSystem->Load("shapes/RooDoubleCB_cxx.so");
-    gSystem->Load("libFFTW.so");
+    //gSystem->Load("libFFTW.so");
 
     if(argc<5||argc>5) {
         cerr << " You need to provide three arguments: [FILE] [PROFILE] [SIGNAL] [NAME]" << endl;
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
         cerr << " PROFILE: 0 or 1, if you provide '1' a profile is generated and stored " << endl;
         cerr << " SIGNAL: 0 or 1, if you provide '1' a fit including the signal model is performed " << endl;
         cerr << " NAME: Name of the fit needed to save profiles" << endl;
-	
+    
         return -1;
     }
     string filename=argv[1];
@@ -97,15 +97,15 @@ int main(int argc, char** argv) {
     if(!wa) wa = (RooWorkspace*)fin->Get("w");
     if(!wa) wa = (RooWorkspace*)fin->Get("wa");
     if(!wa) {
-	cout << "Could not load w, wa, or transferSpace from file. Will print content and terminate" << endl;
-	fin->ls();
-	return -1;
+    cout << "Could not load w, wa, or transferSpace from file. Will print content and terminate" << endl;
+    fin->ls();
+    return -1;
     }
 
 //    wa->Print();
 //     wa->Print();
-    RooMsgService::instance().setGlobalKillBelow(RooFit::FATAL);
-    
+    //RooMsgService::instance().setGlobalKillBelow(RooFit::FATAL);
+    cout << "Loading variables " << filename << endl;
     RooRealVar *mll = (RooRealVar*)wa->var("mll");
     RooRealVar *mlledge = (RooRealVar*)wa->var("m0");
     RooRealVar *NsignalSignal = (RooRealVar*)wa->var("nSig");
@@ -137,7 +137,7 @@ cout << "N(events) in dataset, unweighted : " << combData->numEntries() << endl;
 
         if(result->covQual()==3) HasConverged=true;
         else cout << "Unsuccesful, will try again" << endl;
-	nattempts+=1;
+    nattempts+=1;
         CovStatus.push_back(result->covQual());
     }
     
@@ -147,20 +147,20 @@ cout << "N(events) in dataset, unweighted : " << combData->numEntries() << endl;
 
     if (fitSignal) {
         RooRealVar minNllH1("minNllH1", "-log L of fit with signal model", result->minNll(), result->minNll() , result->minNll());
-		wa->import(minNllH1);
-		RooRealVar nParH1("nParSFOSH1", "number of free parameters", result->floatParsFinal().getSize(), result->floatParsFinal().getSize() , result->floatParsFinal().getSize());
-		wa->import(nParH1);
-		RooRealVar fitQuality("fitQualityH1", "Quality of fit", result->covQual(), result->covQual() , result->covQual());
-		wa->import(fitQuality);	
+        wa->import(minNllH1);
+        RooRealVar nParH1("nParSFOSH1", "number of free parameters", result->floatParsFinal().getSize(), result->floatParsFinal().getSize() , result->floatParsFinal().getSize());
+        wa->import(nParH1);
+        RooRealVar fitQuality("fitQualityH1", "Quality of fit", result->covQual(), result->covQual() , result->covQual());
+        wa->import(fitQuality); 
     }
     else {
         RooRealVar minNllH0("minNllH0", "-log L of fit without signal model", result->minNll(), result->minNll() , result->minNll());
-		wa->import(minNllH0); 
-		RooRealVar nParH0("nParSFOSH0", "number of free parameters", result->floatParsFinal().getSize(), result->floatParsFinal().getSize() , result->floatParsFinal().getSize());
-		wa->import(nParH0);
-		RooRealVar fitQuality("fitQualityH0", "Quality of fit", result->covQual(), result->covQual() , result->covQual());
-		wa->import(fitQuality);				
-			
+        wa->import(minNllH0); 
+        RooRealVar nParH0("nParSFOSH0", "number of free parameters", result->floatParsFinal().getSize(), result->floatParsFinal().getSize() , result->floatParsFinal().getSize());
+        wa->import(nParH0);
+        RooRealVar fitQuality("fitQualityH0", "Quality of fit", result->covQual(), result->covQual() , result->covQual());
+        wa->import(fitQuality);             
+            
     }
 //     RooRealVar minNllH1("minNllH1", "-log L of fit with signal model", result->minNll(), result->minNll() , result->minNll());
     
@@ -198,26 +198,26 @@ cout << "N(events) in dataset, unweighted : " << combData->numEntries() << endl;
         p3->Draw();
         
         can->SaveAs("FitCapsuleResultIllustration.png");
-	
+    
         can->cd(4);
-	RooNLLVar *NewNll = (RooNLLVar*) simPdf->createNLL(*combData,RooFit::ExternalConstraints(RooArgSet(*constrainingR_SF_OF)),RooFit::NumCPU(4));
-	NewNll->SetName("NewNll");
-	NewNll->SetTitle("NewNll");
-	
-	RooFormulaVar nllWithPenalty("nllWithPenalty","2*NewNll",RooArgList(*NewNll)) ;
-	
-	RooPlot* frameN = R_SF_OF->frame(RooFit::Range(1.08-2*0.05,1.08+2*0.05),RooFit::Title("-log(L) scan vs R(SF/OF)")) ;
-	nllWithPenalty.plotOn(frameN,RooFit::PrintEvalErrors(-1),RooFit::ShiftToZero(),RooFit::Precision(1e-7)) ;
-//	frameN->GetYaxis()->SetRangeUser(0,1);
-	frameN->GetXaxis()->SetTitle("R(SF/OF)");
-	frameN->GetXaxis()->CenterTitle();
-	frameN->GetYaxis()->SetTitle("-2#Delta log(L)");
-	frameN->GetYaxis()->CenterTitle();
-	frameN->Draw();
-	can->SaveAs("FitCapsuleResult_RSFOF.png");
-	
+    RooNLLVar *NewNll = (RooNLLVar*) simPdf->createNLL(*combData,RooFit::ExternalConstraints(RooArgSet(*constrainingR_SF_OF)),RooFit::NumCPU(4));
+    NewNll->SetName("NewNll");
+    NewNll->SetTitle("NewNll");
+    
+    RooFormulaVar nllWithPenalty("nllWithPenalty","2*NewNll",RooArgList(*NewNll)) ;
+    
+    RooPlot* frameN = R_SF_OF->frame(RooFit::Range(1.08-2*0.05,1.08+2*0.05),RooFit::Title("-log(L) scan vs R(SF/OF)")) ;
+    nllWithPenalty.plotOn(frameN,RooFit::PrintEvalErrors(-1),RooFit::ShiftToZero(),RooFit::Precision(1e-7)) ;
+//  frameN->GetYaxis()->SetRangeUser(0,1);
+    frameN->GetXaxis()->SetTitle("R(SF/OF)");
+    frameN->GetXaxis()->CenterTitle();
+    frameN->GetYaxis()->SetTitle("-2#Delta log(L)");
+    frameN->GetYaxis()->CenterTitle();
+    frameN->Draw();
+    can->SaveAs("FitCapsuleResult_RSFOF.png");
+    
 
-	
+    
     }
     
     
@@ -227,7 +227,7 @@ cout << "N(events) in dataset, unweighted : " << combData->numEntries() << endl;
         NewNll->SetTitle("NewNll");
         
         RooPlot *frameNOne = mlledge->frame(RooFit::Range(35,200),RooFit::Precision(ProfilePrecision));
-	NewNll->plotOn(frameNOne,RooFit::LineColor(kRed),RooFit::NumCPU(4));
+    NewNll->plotOn(frameNOne,RooFit::LineColor(kRed),RooFit::NumCPU(4));
         RooFormulaVar nllWithPenalty("nllWithPenalty","2*NewNll",RooArgList(*NewNll)) ;
         
         RooAbsReal* pll_mlledge    = NewNll->createProfile(*mlledge);
@@ -243,7 +243,7 @@ cout << "N(events) in dataset, unweighted : " << combData->numEntries() << endl;
 TCanvas *can = new TCanvas(); can->Divide(2,1);can->cd(1);frameNOne->Draw();can->cd(2);frameNE->Draw();can->SaveAs(("likelihoodScans/"+fitName+"_ProfileLikelihood.pdf").c_str());can->SaveAs(("likelihoodScans/"+fitName+"_ProfileLikelihood.C").c_str());delete can;
     } else {
         cout << "Profile creation not requested. " << endl;
-	cout << "    ( create profile is " << CreateProfile << " and mlledge is set constant ? " << mlledge->isConstant() << endl;
+    cout << "    ( create profile is " << CreateProfile << " and mlledge is set constant ? " << mlledge->isConstant() << endl;
     }
     wa->writeToFile((filename+"_result").c_str());
     
